@@ -280,26 +280,27 @@ def run(quality: str = "quick") -> dict:
     fig.tight_layout()
     fig_path = savefig(fig, "lqr.pdf")
 
+    # The trial sizes are fixed by ``q=2d_h`` and ``p=2b_h`` in the text, and
+    # the resolved ranks are quoted there too, so the table carries only the
+    # data-driven cost and the two error measures.
     rows = []
     for label, result in results.items():
         graph = result["graph_solution"]
         window = result["window_solution"]
         rows.append(
-            f"{label} & i-s-o & {result['graph_size']} & "
-            f"{graph.graph.rank}/{graph.graph.domain_dimension} & "
+            f"{label} & i-s-o & "
             f"{tex_num(graph.cost)} & {tex_num(result['graph_error'])} & "
             f"{tex_num(result['graph_replayed'])} \\\\"
         )
         rows.append(
-            f"{label} & i-o & {result['window_size']} & "
-            f"{window.behavior.rank}/{result['behavior_dim']} & "
+            f"{label} & i-o & "
             f"{tex_num(window.cost)} & {tex_num(result['window_error'])} & "
             f"{tex_num(result['window_replayed'])} \\\\"
         )
         rows.append(r"\addlinespace")
-    table = write_table("lqr.tex", r"""\begin{tabular}{llrrrrr}
+    table = write_table("lqr.tex", r"""\begin{tabular}{llrrr}
 \toprule
-Example & data & size & rank & $J_{\rm dd}$ & $e_J$ & $e_J^{\rm plant}$ \\
+Example & data & $J_{\rm dd}$ & $e_J$ & $e_J^{\rm plant}$ \\
 \midrule
 """ + "\n".join(rows[:-1]) + r"""
 \bottomrule

@@ -183,10 +183,12 @@ def _row(label: str, truth: str, method: str, report, reference) -> str:
     """One table line; the configuration and its verdict are printed once."""
     found = [c.lam for c in report.obstructions]
     head = f"{label} & {truth}" if method == "i-s" else " & "
-    cells = f"{report.numerical_rank}/{report.dimension} & {len(found)}"
+    # The resolved rank of the record stays a console diagnostic: the table
+    # reports the verdict, which the text qualifies by that subspace in prose.
     if reference is None:
-        return f"{head} & {method} & {cells} & --- & --- \\\\"
-    return (f"{head} & {method} & {cells} & {tex_complex(nearest(found, reference))}"
+        return f"{head} & {method} & {len(found)} & --- & --- \\\\"
+    return (f"{head} & {method} & {len(found)} &"
+            f" {tex_complex(nearest(found, reference))}"
             f" & {tex_complex(reference)} \\\\")
 
 
@@ -283,9 +285,9 @@ def run(quality: str = "quick") -> dict:
                bbox_to_anchor=(.5, .02), columnspacing=1.0, handlelength=1.6)
     fig_path = savefig(fig, "controllability.pdf")
 
-    table = write_table("controllability.tex", r"""\begin{tabular}{l@{\hspace{4pt}}clrrll}
+    table = write_table("controllability.tex", r"""\begin{tabular}{l@{\hspace{4pt}}clrll}
 \toprule
-\multicolumn{2}{l}{Configuration} & data & resolved & found & recovered $\lambda$ &
+\multicolumn{2}{l}{Configuration} & data & found & recovered $\lambda$ &
 exact $\lambda$ \\
 \midrule
 """ + "\n".join(rows) + r"""

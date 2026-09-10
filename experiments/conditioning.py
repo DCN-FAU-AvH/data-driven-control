@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import LogLocator
 
 from ddinf.systems.heat import heat_system
 from ddinf.data.informativity import gramian_spectrum
@@ -52,8 +53,11 @@ def run(quality: str = "quick") -> dict:
             spectra[sys_name, name] = gramian_spectrum(rec, sys, space=space, tol=TOL)
 
     markers = dict(zip(signals, ("o", "s", "^")))
-    fig = plt.figure(figsize=(7.0, 4.0))
-    grid = fig.add_gridspec(2, 6, height_ratios=(1.0, 1.8), hspace=.62, wspace=1.4)
+    fig = plt.figure(figsize=(7.0, 2.5))
+    # ``hspace`` is a fraction of the mean axes height, so a shorter figure
+    # needs a larger value to keep the same gap between the rows; this one
+    # leaves the second row's title clear of the first row's time axis.
+    grid = fig.add_gridspec(2, 6, height_ratios=(1.0, 1.8), hspace=.9, wspace=1.4)
 
     # Top row: the three probing inputs themselves, over the first quarter of
     # the observation window, where their shapes are still legible.
@@ -79,6 +83,10 @@ def run(quality: str = "quick") -> dict:
                        spec.eigenvalues / spec.eigenvalues[0],
                        markers[name] + "-", ms=3, color=color, label=name)
         a.axhline(TOL, color="k", ls=":", lw=1)
+        # One label every ten decades: the panel is too short for the default
+        # log ticks, which thin themselves to an irregular stride that no
+        # longer lands on the threshold.
+        a.yaxis.set_major_locator(LogLocator(base=1e10))
         a.set(xlabel="Gramian eigenvalue index", title=sys_name)
         a.title.set_fontsize(8)
         a.grid(True, which="both", alpha=.25)
