@@ -194,8 +194,9 @@ def behavior_basis(library: WindowLibrary, *, rank_tol: float = 1e-10
 
     The counterpart, for input--output data, of the weighted SVD of ``Z_q`` in
     :func:`ddinf.lqr.graph.estimate_graph`: both replace a raw data matrix by a
-    well-scaled basis of the subspace it resolves, at the same relative
-    threshold on the squared singular values.
+    well-scaled basis of the subspace it resolves. Here ``rank_tol`` applies
+    to squared singular values; ``estimate_graph`` applies its tolerance
+    to singular values.
     """
     w = trapezoid_weights(library.t)
     eye_u, eye_y = np.eye(library.m), np.eye(library.p)
