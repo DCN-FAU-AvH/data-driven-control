@@ -34,28 +34,25 @@ The Neumann configuration needs no lifting and uses the consistent mass matrix.
 
 from __future__ import annotations
 
-from typing import Callable, Literal
+from typing import Literal
 
 import numpy as np
 
-from .fem import (Mesh1D, bump, interpolate, mass_matrix, point_evaluation,
-                  stiffness_matrix)
 from .base import LinearSystem
+from .fem import Mesh1D, bump, interpolate, mass_matrix, point_evaluation, stiffness_matrix
 
 
 def heat_system(kind: str = "neumann", *, n_elems: int = 64, nu: float = 1.0,
                 obs_center: float = 0.6, obs_width: float = 0.25,
-                obs: Callable[[np.ndarray], np.ndarray] | None = None,
-                observation: Literal["point", "distributed"] | None = None,
+                observation: Literal["point", "distributed"] = "point",
                 ) -> LinearSystem:
     """Semi-discrete heat equation ``x_t = nu x_xx`` as a :class:`LinearSystem`.
 
     By default, ``y(t) = x(t, obs_center)`` is evaluated exactly in the P1
     space.  This functional is unbounded on ``X=L^2(0,1)`` but bounded on the
     finer space ``W=H^1(0,1)``, matching Example ``ex:intro-pde``.  Set
-    ``observation="distributed"`` to use a smooth unit-mass bump instead.  For
-    backwards compatibility, passing a custom kernel through ``obs`` also
-    selects the distributed observation when ``observation`` is omitted.
+    ``observation="distributed"`` to measure the smooth unit-mass bump of
+    :func:`ddinf.systems.fem.bump` instead.
 
     The diffusivity ``nu`` rescales time (``lambda_n = -nu n^2 pi^2``) and
     is what makes the example numerically legible: the record can only be
@@ -68,18 +65,15 @@ def heat_system(kind: str = "neumann", *, n_elems: int = 64, nu: float = 1.0,
     mesh = Mesh1D(n_elems)
     K0 = stiffness_matrix(mesh)  # unscaled: defines the H^1 structure of W
     K = nu * K0
-    obs_kind = observation or ("distributed" if obs is not None else "point")
-    if obs_kind not in ("point", "distributed"):
-        raise ValueError(f"unknown heat observation {obs_kind!r}")
-    if obs_kind == "point" and obs is not None:
-        raise ValueError("a custom kernel requires observation='distributed'")
+    if observation not in ("point", "distributed"):
+        raise ValueError(f"unknown heat observation {observation!r}")
 
-    if obs_kind == "point":
+    if observation == "point":
         obs_weights = point_evaluation(mesh, obs_center)
         c_fun = None
         c_nodal = None
     else:
-        c_fun = obs if obs is not None else bump(obs_center, obs_width)
+        c_fun = bump(obs_center, obs_width)
         c_nodal = interpolate(mesh, c_fun)
         obs_weights = None
 
@@ -96,7 +90,7 @@ def heat_system(kind: str = "neumann", *, n_elems: int = 64, nu: float = 1.0,
             load = K[np.ix_(free, [0])] + K[np.ix_(free, [mesh.n_nodes - 1])]
         B = -Minv @ load
         MX = M_II
-        if obs_kind == "point":
+        if observation == "point":
             controlled = [0] if kind == "dirichlet" else [0, mesh.n_nodes - 1]
             if np.any(np.abs(obs_weights[controlled]) > 1e-14):
                 raise ValueError(
@@ -128,7 +122,7 @@ def heat_system(kind: str = "neumann", *, n_elems: int = 64, nu: float = 1.0,
         e0[0, 0] = 1.0
         B = -nu * (Minv @ e0)
         MX = M
-        if obs_kind == "point":
+        if observation == "point":
             C = obs_weights[None, :]
         else:
             C = (M @ c_nodal)[None, :]
@@ -151,7 +145,7 @@ def heat_system(kind: str = "neumann", *, n_elems: int = 64, nu: float = 1.0,
             "mesh": mesh,
             "free": free,
             "expand": expand,
-            "observation": obs_kind,
+            "observation": observation,
             "obs_center": obs_center,
             "obs_weights": obs_weights,
             "obs_kernel": c_fun,

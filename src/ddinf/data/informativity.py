@@ -11,7 +11,7 @@ so ``G`` is represented by ``Z S`` with ``Z = int z z' dt``, and its spectrum is
 that of the symmetric positive semidefinite matrix ``L' Z L`` where ``S = L L'``.
 That spectrum is what these functions return.
 
-The caveat the paper states (Remark following ``prop:data-fattorini-hautus``) is
+The caveat the paper states (Remark following ``thm:data-fattorini-hautus``) is
 visible here and is not a numerical artifact: on an infinite-dimensional space
 ``G`` is compact, so its eigenvalues accumulate at zero and its range is dense
 but not closed.  Under discretization the eigenvalues decay geometrically, and
@@ -26,8 +26,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .moments import trapezoid_weights
 from ..systems import LinearSystem
+from .moments import trapezoid_weights
 from .records import Record
 
 

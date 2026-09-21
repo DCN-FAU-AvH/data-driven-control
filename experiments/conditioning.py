@@ -13,15 +13,15 @@ different.
 
 from __future__ import annotations
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.ticker import LogLocator
 
-from ddinf.systems.heat import heat_system
 from ddinf.data.informativity import gramian_spectrum
-from ddinf.paper import configure, family_colors, savefig, write_table
-from ddinf.data.signals import Prbs, harmonic_pe, multisine
 from ddinf.data.records import simulate, uniform_grid
+from ddinf.data.signals import Prbs, harmonic_pe, multisine
+from ddinf.paper import configure, family_colors, savefig, write_table
+from ddinf.systems.heat import heat_system
 from ddinf.systems.wave import wave_system
 from experiments.common import parser, tex_num
 

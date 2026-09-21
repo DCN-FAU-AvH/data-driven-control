@@ -16,6 +16,7 @@ directly with a recovered obstruction.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import cached_property
 
 import numpy as np
 
@@ -115,13 +116,19 @@ class Prbs:
     horizon: float = 100.0
     label: str = "PRBS"
 
+    @cached_property
     def _levels(self) -> np.ndarray:
+        """The ``+-1`` level per dwell interval, drawn from ``seed``.
+
+        Cached only to avoid re-drawing on every evaluation; the draw is
+        seeded, so the sequence is the same whether or not it is cached.
+        """
         rng = np.random.default_rng(self.seed)
         n = int(np.ceil(self.horizon / self.dwell)) + 2
         return rng.choice([-1.0, 1.0], size=(n, self.m))
 
     def __call__(self, t: np.ndarray | float) -> np.ndarray:
-        levels = self._levels()
+        levels = self._levels
         t_arr = np.atleast_1d(np.asarray(t, dtype=float))
         idx = np.clip((t_arr / self.dwell).astype(int), 0, levels.shape[0] - 1)
         vals = levels[idx].T  # (m, T)

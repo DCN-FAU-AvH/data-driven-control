@@ -1,4 +1,4 @@
-"""The data-driven controllability test of Proposition ``prop:data-fattorini-hautus``.
+"""The data-driven controllability test of Theorem ``thm:data-fattorini-hautus``.
 
 The test says: given an approximately informative record, the system fails to
 be approximately controllable exactly when the record carries a pure
@@ -36,8 +36,8 @@ from scipy.linalg import eig
 
 from ..data.informativity import moment_spectrum
 from ..data.moments import Moments
-from ..systems import LinearSystem
 from ..data.records import Record
+from ..systems import LinearSystem
 
 
 @dataclass
@@ -91,7 +91,7 @@ def data_driven_controllability(
     rank_tol: float = 1e-10, residual_tol: float = 1e-6,
     kappa_tol: float = 1e-8, space: str = "X",
 ) -> ControllabilityReport:
-    """Run the test of ``prop:data-fattorini-hautus`` on measured moments.
+    """Run the test of ``thm:data-fattorini-hautus`` on measured moments.
 
     ``sys`` is used only for the inner product that reports informativity and
     for reshaping ``eta``; neither ``A``, ``B`` nor ``C`` enters the decision.

@@ -3,12 +3,12 @@
 import numpy as np
 import pytest
 
-from ddinf.systems.heat import heat_system
-from ddinf.lqr.window import behavior_basis, io_shift_library, solve_io_lqr
-from ddinf.lqr.riccati import LqrWeights, riccati_hamiltonian, trajectory_cost
 from ddinf.data.moments import trapezoid_weights
-from ddinf.data.signals import Prbs
 from ddinf.data.records import simulate, uniform_grid
+from ddinf.data.signals import Prbs
+from ddinf.lqr.riccati import LqrWeights, riccati_hamiltonian, trajectory_cost
+from ddinf.lqr.window import behavior_basis, io_shift_library, solve_io_lqr
+from ddinf.systems.heat import heat_system
 from ddinf.systems.wave import wave_system
 
 PAST, HORIZON, DT, LENGTH, DWELL = .25, .5, .01, 6.0, 4

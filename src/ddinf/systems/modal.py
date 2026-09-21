@@ -13,22 +13,26 @@ For boundary control the modal coefficients come from a lift.  With ``D`` a
 fixed function carrying the inhomogeneous boundary condition,
 ``d_n = <D, phi_n>`` and integration by parts gives ``b_n = -lambda_n d_n``.
 
-Modal data (see Pritchard--Salamon Ex. 4.6 and ``sections/lqr.tex``); the last
-row is the verbatim example of the cited paper and includes the constant mode:
+Modal data (see Pritchard--Salamon Ex. 4.6 and ``sections/lqr.tex``).  All three
+configurations have ``lambda_n = -nu n^2 pi^2``; the last is the verbatim
+example of the cited paper and is the one that carries the constant mode.
 
-===========================  =======================  ==================================  =========================
-example                      ``lambda_n``             ``phi_n``                           ``b_n``
-===========================  =======================  ==================================  =========================
-Dirichlet control at 0       ``-nu n^2 pi^2``         ``sqrt2 sin(n pi xi)``              ``sqrt2 nu n pi``
-Dirichlet control both ends  ``-nu n^2 pi^2``         ``sqrt2 sin(n pi xi)``              ``sqrt2 nu n pi (1-(-1)^n)``
-Neumann at both endpoints    ``-nu n^2 pi^2``, n>=0  ``1`` (n=0), ``sqrt2 cos(n pi xi)`` ``-nu phi_n(0)``
-===========================  =======================  ==================================  =========================
+``dirichlet``
+    control at ``xi = 0``; ``phi_n = sqrt2 sin(n pi xi)`` and
+    ``b_n = sqrt2 nu n pi``, for ``n >= 1``.
+``dirichlet_sym``
+    control at both ends; the same ``phi_n``, but
+    ``b_n = sqrt2 nu n pi (1 - (-1)^n)``, so every *even* ``n`` -- the modes
+    antisymmetric about ``xi = 1/2`` -- is unreachable.
+``neumann``
+    control at ``xi = 0``, homogeneous at ``xi = 1``; ``phi_0 = 1`` and
+    ``phi_n = sqrt2 cos(n pi xi)``, with ``b_n = -nu phi_n(0)``, for ``n >= 0``.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 

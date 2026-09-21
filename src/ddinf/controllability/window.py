@@ -1,6 +1,6 @@
 """The input--output controllability test of ``thm:io-window-controllability``.
 
-Proposition ``prop:data-fattorini-hautus`` reads the state: it looks for a
+Theorem ``thm:data-fattorini-hautus`` reads the state: it looks for a
 functional ``eta`` of ``X`` whose pairing with the record is a pure exponential.
 When only ``(u, y)`` is measured the state is latent, and the theorem replaces
 ``eta`` by a functional of a whole length-``T`` input--output *window*,
@@ -20,7 +20,7 @@ By ``lem:finite-horizon-output`` the window at shift ``s`` is
     alpha := v + F_T^* g,      eta := O_T^* g.                       (eq:io-window-pullback)
 
 The input kernel ``v`` is free, so ``alpha`` can always be annulled, and what is
-left is exactly the state predicate of ``prop:data-fattorini-hautus`` restricted
+left is exactly the state predicate of ``thm:data-fattorini-hautus`` restricted
 to ``eta`` in the range of ``O_T^*``.  Exact observability makes that range all
 of ``X``, which is why the theorem assumes it: the window functional then
 reaches every state functional the state test could have used.
@@ -78,9 +78,9 @@ import numpy as np
 from scipy.linalg import eig
 from scipy.optimize import minimize
 
-from .state import ControllabilityReport
 from ..data.moments import hat_tests, trapezoid_weights
 from ..data.records import Record
+from .state import ControllabilityReport
 
 
 @dataclass

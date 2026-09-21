@@ -15,8 +15,8 @@ nodal values, so that the ``L^2(0,1)`` inner product of two functions is
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 

@@ -46,8 +46,8 @@ from scipy.integrate import solve_ivp
 from scipy.linalg import expm, lu_factor, lu_solve
 
 from ..data.moments import quadrature_weights, trapezoid_weights
-from ..systems import LinearSystem
 from ..data.records import Record
+from ..systems import LinearSystem
 
 
 @dataclass
@@ -59,7 +59,7 @@ class LqrWeights:
 
     @staticmethod
     def make(sys: LinearSystem, *, terminal: float = 1.0, control: float = 1.0
-             ) -> "LqrWeights":
+             ) -> LqrWeights:
         """``G = terminal * M_X`` (i.e. ``terminal ||x(T)||_X^2``) and ``R = control I``."""
         return LqrWeights(G=terminal * sys.MX, R=control * np.eye(sys.m))
 

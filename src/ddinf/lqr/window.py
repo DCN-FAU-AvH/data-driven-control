@@ -58,9 +58,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .riccati import LqrWeights
 from ..data.moments import quadrature_weights, trapezoid_weights
 from ..data.records import Record
+from .riccati import LqrWeights
 
 
 def _metric_root(metric: np.ndarray) -> np.ndarray:

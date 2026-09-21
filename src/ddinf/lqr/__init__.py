@@ -9,8 +9,7 @@ state.
 
 from .graph import GraphBasis, estimate_graph, solve_graph_lqr
 from .riccati import LqrWeights, riccati_hamiltonian, trajectory_cost
-from .window import (BehaviorBasis, behavior_basis, io_shift_library,
-                     solve_io_lqr)
+from .window import BehaviorBasis, behavior_basis, io_shift_library, solve_io_lqr
 
 __all__ = ["BehaviorBasis", "GraphBasis", "LqrWeights", "behavior_basis",
            "estimate_graph", "io_shift_library", "riccati_hamiltonian",

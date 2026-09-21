@@ -18,19 +18,22 @@ cost a method predicts can be compared with the cost it actually pays.
 
 from __future__ import annotations
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import NullLocator
-import numpy as np
+from typing import NamedTuple
 
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.ticker import NullLocator
+
+from ddinf.data.moments import hat_tests
+from ddinf.data.records import simulate, uniform_grid
+from ddinf.data.signals import Prbs
+from ddinf.lqr.graph import estimate_graph, solve_graph_lqr
+from ddinf.lqr.riccati import LqrWeights, riccati_hamiltonian, trajectory_cost
+from ddinf.lqr.window import behavior_basis, io_shift_library, solve_io_lqr
+from ddinf.paper import configure, family_colors, savefig, write_table
+from ddinf.systems import LinearSystem
 from ddinf.systems.delay import controllable_pair, delay_system
 from ddinf.systems.heat import heat_system
-from ddinf.lqr.graph import estimate_graph, solve_graph_lqr
-from ddinf.lqr.window import behavior_basis, io_shift_library, solve_io_lqr
-from ddinf.lqr.riccati import LqrWeights, riccati_hamiltonian, trajectory_cost
-from ddinf.data.moments import hat_tests
-from ddinf.paper import configure, family_colors, savefig, write_table
-from ddinf.data.signals import Prbs
-from ddinf.data.records import simulate, uniform_grid
 from ddinf.systems.wave import wave_system
 from experiments.common import parser, tex_num
 
@@ -67,7 +70,19 @@ def _dwell_safe(length: float, window: float, dt: float, dwell: int,
     raise RuntimeError("no dwell-safe record length found")
 
 
-def _cases(quality: str) -> dict:
+class Case(NamedTuple):
+    """One plant together with every clock the comparison needs."""
+
+    sys: LinearSystem
+    start: np.ndarray  # state the plant is released from, before conditioning
+    horizon: float  # T, the control horizon
+    past: float  # T_ini, the conditioning window of the input-output method
+    base_dt: float  # time step of the reported run
+    length: float  # length of the probing record the library is cut from
+    dwell: int  # PRBS dwell, in samples of ``base_dt``
+
+
+def _cases(quality: str) -> dict[str, Case]:
     """Systems, clocks and conditioning windows; 401 samples per horizon.
 
     Each plant is released from a disturbed state and probed over the
@@ -92,11 +107,12 @@ def _cases(quality: str) -> dict:
 
     step = 1. if fine else 2.
     return {
-        "heat": (heat, 1.0 + .2 * np.cos(np.pi * xi_h), 1.0, .25,
-                 .0025 * step, 12.0, 4),
-        "wave": (wave, np.concatenate([np.sin(np.pi * xi_w), np.zeros(xi_w.size)]),
-                 4.0, 2.0, .01 * step, 40.0, 4),
-        "delay": (delay, np.zeros(delay.n), 2.0, 2.5, .005 * step, 30.0, 4),
+        "heat": Case(heat, 1.0 + .2 * np.cos(np.pi * xi_h), horizon=1.0, past=.25,
+                     base_dt=.0025 * step, length=12.0, dwell=4),
+        "wave": Case(wave, np.concatenate([np.sin(np.pi * xi_w), np.zeros(xi_w.size)]),
+                     horizon=4.0, past=2.0, base_dt=.01 * step, length=40.0, dwell=4),
+        "delay": Case(delay, np.zeros(delay.n), horizon=2.0, past=2.5,
+                      base_dt=.005 * step, length=30.0, dwell=4),
     }
 
 
@@ -116,12 +132,13 @@ def _replayed_cost(sys, weights, t, x0, solution) -> float:
     return trajectory_cost(replay, sys, weights)
 
 
-def _solve_case(case: tuple, *, dt: float | None = None,
+def _solve_case(case: Case, *, dt: float | None = None,
                 dwell_time: float | None = None) -> dict:
     """Solve both regulators at one time resolution and a spanning trial size."""
-    sys, start, horizon, past, base_dt, length, dwell = case
-    dt = base_dt if dt is None else dt
-    dwell_time = dwell * base_dt if dwell_time is None else dwell_time
+    sys, start, horizon, past = case.sys, case.start, case.horizon, case.past
+    length = case.length
+    dt = case.base_dt if dt is None else dt
+    dwell_time = case.dwell * case.base_dt if dwell_time is None else dwell_time
     dwell_samples = int(round(dwell_time / dt))
     if not np.isclose(dwell_samples * dt, dwell_time):
         raise ValueError("the PRBS dwell must be an integer number of time steps")
@@ -208,10 +225,10 @@ def run(quality: str = "quick") -> dict:
     # The wave and delay errors instead sit on unresolved-behavior floors, so
     # a time-grid slope for them would have no convergence interpretation.
     heat_case = cases["heat"]
-    base_dt = heat_case[4]
+    base_dt = heat_case.base_dt
     heat_dts = base_dt * np.array((2.0, 1.0) if quality == "quick"
                                   else (4.0, 2.0, 1.0))
-    heat_dwell_time = heat_case[6] * base_dt
+    heat_dwell_time = heat_case.dwell * base_dt
     heat_runs = []
     for dt in heat_dts:
         if np.isclose(dt, base_dt):
@@ -219,7 +236,7 @@ def run(quality: str = "quick") -> dict:
         else:
             heat_runs.append(_solve_case(heat_case, dt=float(dt),
                                          dwell_time=heat_dwell_time))
-    time_steps = heat_case[2] / heat_dts
+    time_steps = heat_case.horizon / heat_dts
     graph_errors = np.array([item["graph_error"] for item in heat_runs])
     window_errors = np.array([item["window_error"] for item in heat_runs])
     graph_order = float(

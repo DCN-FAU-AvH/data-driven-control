@@ -9,11 +9,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from ddinf.controllability.window import (io_shift_windows, io_window_controllability,
-                                      _ExponentialFit)
+from ddinf.controllability.window import (
+    _ExponentialFit,
+    io_shift_windows,
+    io_window_controllability,
+)
+from ddinf.data.records import simulate, uniform_grid
 from ddinf.data.signals import Prbs
 from ddinf.systems import LinearSystem
-from ddinf.data.records import simulate, uniform_grid
 
 DT = .02
 WINDOW = 2.0

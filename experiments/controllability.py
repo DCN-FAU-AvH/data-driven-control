@@ -6,7 +6,7 @@ configuration whose obstruction is known in closed form, where both must
 recover it.  The two tests differ in what they are allowed to read.
 
 ``i-s``
-    Proposition ``prop:data-fattorini-hautus``: the record is ``(ubar, xbar)``
+    Theorem ``thm:data-fattorini-hautus``: the record is ``(ubar, xbar)``
     and the obstruction is a state functional ``eta`` with
     ``<eta, xbar(t)> = kappa e^{lambda t}``.  Implemented in
     :mod:`ddinf.controllability.state`.
@@ -33,18 +33,21 @@ model-based Hautus modes are computed only to score them.
 
 from __future__ import annotations
 
-import numpy as np
+from typing import NamedTuple
+
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.lines import Line2D
 
 from ddinf.controllability.state import data_driven_controllability, hautus_uncontrollable
 from ddinf.controllability.window import io_shift_windows, io_window_controllability
+from ddinf.data.moments import moments, sine_tests
+from ddinf.data.records import simulate, uniform_grid
+from ddinf.data.signals import Prbs, multisine
+from ddinf.paper import configure, family_colors, savefig, write_table
+from ddinf.systems import LinearSystem
 from ddinf.systems.delay import controllable_pair, delay_system, uncontrollable_pair
 from ddinf.systems.heat import heat_system
-from ddinf.data.moments import moments, sine_tests
-from ddinf.paper import configure, family_colors, savefig, write_table
-from ddinf.data.signals import Prbs, multisine
-from ddinf.data.records import simulate, uniform_grid
 from ddinf.systems.wave import wave_system
 from experiments.common import nearest, parser, tex_complex
 
@@ -89,8 +92,18 @@ def _rng_state(n: int, seed: int) -> np.ndarray:
     return np.random.default_rng(seed).normal(size=n) / np.sqrt(n)
 
 
-def _cases(quality: str) -> dict:
-    """``label -> (system, initial state, horizon, reference obstruction, space)``."""
+class Case(NamedTuple):
+    """One configuration of one example, with the truth it is scored against."""
+
+    sys: LinearSystem
+    x0: np.ndarray
+    horizon: float  # length of the input-state record
+    reference: complex | None  # closed-form obstruction, or None if controllable
+    space: str  # "X" or "W": the Hilbert structure informativity is reported in
+
+
+def _cases(quality: str) -> dict[str, Case]:
+    """``label -> Case``, six configurations: three examples, controllable or not."""
     ne = 16 if quality == "quick" else 20
     # The window test is the binding constraint on the delay mesh: its
     # obstruction is reached through O_T^*, whose inversion is the unstable one
@@ -115,7 +128,7 @@ def _cases(quality: str) -> dict:
     wave_c = wave_system("dirichlet", n_elems=ne, speed=SPEED)
     wave_u = wave_system("dirichlet_sym", n_elems=ne, speed=SPEED)
     xi = wave_c.meta["mesh"].nodes[wave_c.meta["free"]]
-    # The predicate of prop:data-fattorini-hautus needs kappa != 0, so the
+    # The predicate of thm:data-fattorini-hautus needs kappa != 0, so the
     # initial state has to put energy into the mode that the input cannot
     # reach; a record in which the unreachable mode is simply absent carries no
     # evidence either way.
@@ -123,20 +136,19 @@ def _cases(quality: str) -> dict:
                               np.zeros(xi.size)])
 
     return {
-        "heat, one-sided": (heat_c, x0_heat_c, 8.0, None, "X"),
-        "heat, symmetric": (heat_u, x0_heat_u, 8.0,
-                            -NU * (2 * np.pi) ** 2, "X"),
-        "wave, one-sided": (wave_c, x0_wave, 8.0, None, "W"),
-        "wave, symmetric": (wave_u, x0_wave, 8.0, 2j * np.pi * SPEED, "W"),
-        "delay, coupled": (delay(delay_c), _rng_state(delay(delay_c).n, 1), 10.0,
-                           None, "W"),
-        "delay, decoupled": (delay(delay_u), _rng_state(delay(delay_u).n, 1), 10.0,
-                             delay_ref, "W"),
+        "heat, one-sided": Case(heat_c, x0_heat_c, 8.0, None, "X"),
+        "heat, symmetric": Case(heat_u, x0_heat_u, 8.0, -NU * (2 * np.pi) ** 2, "X"),
+        "wave, one-sided": Case(wave_c, x0_wave, 8.0, None, "W"),
+        "wave, symmetric": Case(wave_u, x0_wave, 8.0, 2j * np.pi * SPEED, "W"),
+        "delay, coupled": Case(delay(delay_c), _rng_state(delay(delay_c).n, 1),
+                               10.0, None, "W"),
+        "delay, decoupled": Case(delay(delay_u), _rng_state(delay(delay_u).n, 1),
+                                 10.0, delay_ref, "W"),
     }
 
 
 def _state_test(sys, x0, horizon, space, signal, dt):
-    """Proposition ``prop:data-fattorini-hautus`` on a state record."""
+    """Theorem ``thm:data-fattorini-hautus`` on a state record."""
     rec = simulate(sys, signal, uniform_grid(horizon, dt), x0, theta=.5)
     mom = moments(rec, sine_tests(rec.t, max(30, sys.n + 8)))
     report = data_driven_controllability(
@@ -163,7 +175,8 @@ def multisine_window_failure(quality: str = "quick") -> dict:
     and the test reports its frequency as an obstruction.  Reported in the text,
     not in the table: it scores the record, not the system.
     """
-    sys, x0, _, _, _ = _cases(quality)["heat, one-sided"]
+    case = _cases(quality)["heat, one-sided"]
+    sys, x0 = case.sys, case.x0
     length = SHIFTS + WINDOW
     rec = simulate(sys, _multisine(), uniform_grid(length, WINDOW_DT), x0, theta=.5)
     windows = io_shift_windows(rec, horizon=WINDOW, spread=SHIFTS)
@@ -198,13 +211,14 @@ def run(quality: str = "quick") -> dict:
     signal = _multisine()
 
     state_reports, window_reports, rows, diagnostics = {}, {}, [], {}
-    for i, (label, (sys, x0, horizon, reference, space)) in enumerate(
-            _cases(quality).items()):
+    for i, (label, case) in enumerate(_cases(quality).items()):
         if i:  # blank line between configurations
             rows.append(r"\addlinespace")
 
-        state, residual = _state_test(sys, x0, horizon, space, signal, dt)
-        window = _window_test(sys, x0)
+        sys, reference = case.sys, case.reference
+        state, residual = _state_test(sys, case.x0, case.horizon, case.space,
+                                      signal, dt)
+        window = _window_test(sys, case.x0)
         state_reports[label], window_reports[label] = state, window
 
         model = [lam for lam, _ in hautus_uncontrollable(sys)]

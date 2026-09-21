@@ -20,8 +20,8 @@ control term with :func:`ddinf.data.moments.trapezoid_weights`.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 from scipy.linalg import lu_factor, lu_solve
@@ -50,14 +50,14 @@ class Record:
     def horizon(self) -> float:
         return float(self.t[-1] - self.t[0])
 
-    def window(self, t0: float, t1: float, *, rebase: bool = True) -> "Record":
+    def window(self, t0: float, t1: float, *, rebase: bool = True) -> Record:
         """Sub-record on ``[t0, t1]``; ``rebase`` shifts its clock back to 0."""
         idx = np.where((self.t >= t0 - 1e-12) & (self.t <= t1 + 1e-12))[0]
         t = self.t[idx]
         return Record(t - t[0] if rebase else t,
                       self.u[:, idx], self.x[:, idx], self.y[:, idx])
 
-    def shifted(self, k: int, n_samples: int) -> "Record":
+    def shifted(self, k: int, n_samples: int) -> Record:
         """The length-``n_samples`` window starting ``k`` samples in, clock at 0.
 
         By time invariance this is again a trajectory of the same system, with

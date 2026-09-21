@@ -1,8 +1,8 @@
 import numpy as np
 
 from ddinf.data.moments import moments, sine_tests, theta_moments
-from ddinf.systems import LinearSystem
 from ddinf.data.records import Record
+from ddinf.systems import LinearSystem
 
 
 def test_weak_derivative_moment_for_exact_exponential():

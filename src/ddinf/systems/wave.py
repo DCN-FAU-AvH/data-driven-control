@@ -14,7 +14,7 @@ continuous, nonsmoothing group on ``W`` (unitary in an equivalent
 speed-weighted energy norm) and is *not* analytic: this example is precisely
 the one the sufficiency theorem for harmonic persistency of excitation
 (``thm:analytic-universal-sufficiency``) does not reach, while the
-controllability test of ``prop:data-fattorini-hautus`` and the data-driven
+controllability test of ``thm:data-fattorini-hautus`` and the data-driven
 regulator of ``thm:lqr-data`` apply unchanged.
 
 ``dirichlet``
@@ -48,17 +48,14 @@ which are the discrete inner products of ``X`` and of the energy space ``W``.
 
 from __future__ import annotations
 
-from typing import Callable
-
 import numpy as np
 
-from .fem import Mesh1D, bump, interpolate, mass_matrix, stiffness_matrix
 from .base import LinearSystem
+from .fem import Mesh1D, bump, interpolate, mass_matrix, stiffness_matrix
 
 
 def wave_system(kind: str = "dirichlet", *, n_elems: int = 64, speed: float = 1.0,
-                obs_center: float = 0.6, obs_width: float = 0.25,
-                obs: Callable[[np.ndarray], np.ndarray] | None = None) -> LinearSystem:
+                obs_center: float = 0.6, obs_width: float = 0.25) -> LinearSystem:
     """Semi-discrete wave equation ``z_tt = speed^2 z_xixi`` as a :class:`LinearSystem`.
 
     The observation is the smooth distributed measurement of the *displacement*,
@@ -93,7 +90,7 @@ def wave_system(kind: str = "dirichlet", *, n_elems: int = 64, speed: float = 1.
     A = np.block([[Z, np.eye(n)], [-c2 * (Minv @ K), Z]])
     B = np.vstack([np.zeros((n, 1)), -c2 * (Minv @ load)])
 
-    c_fun = obs if obs is not None else bump(obs_center, obs_width)
+    c_fun = bump(obs_center, obs_width)
     c_nodal = interpolate(mesh, c_fun)
     C = np.concatenate([M @ c_nodal[free], np.zeros(n)])[None, :]
 

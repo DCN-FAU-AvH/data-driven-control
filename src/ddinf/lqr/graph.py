@@ -21,12 +21,13 @@ from dataclasses import dataclass
 
 import numpy as np
 from scipy.linalg import block_diag
-from scipy.sparse import bmat, block_diag as sparse_block_diag, lil_matrix
+from scipy.sparse import block_diag as sparse_block_diag
+from scipy.sparse import bmat, lil_matrix
 from scipy.sparse.linalg import spsolve
 
-from .riccati import LqrWeights
 from ..data.moments import Moments, TestFunctions, theta_moments
 from ..data.records import Record
+from .riccati import LqrWeights
 
 
 def _metric_root(metric: np.ndarray) -> np.ndarray:
@@ -54,7 +55,7 @@ def _resolved_graph(
     output_metric: np.ndarray,
     rank_tol: float,
     moments: Moments | None,
-) -> "GraphBasis":
+) -> GraphBasis:
     """Build a metric-orthogonal graph basis from ``D = Gamma_h Z``."""
     domain_root = block_diag(
         _metric_root(input_metric), _metric_root(state_metric)
