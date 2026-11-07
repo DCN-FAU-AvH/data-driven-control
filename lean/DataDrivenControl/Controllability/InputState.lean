@@ -1,0 +1,196 @@
+module
+
+public import DataDrivenControl.Controllability.FattoriniHautus
+public import DataDrivenControl.Informativity.Informative
+
+/-!
+# Input–state controllability tests
+
+Paper: `thm:data-fattorini-hautus`, `eq:data-fh`, `eq:weak-mild-diff`, `eq:data-fh-exponential`
+(`app:data-fattorini-hautus`).
+
+## Conventions
+
+Complex test vectors live in `X_ℂ = Complexification X` and are paired with the real record by
+the complex-bilinear pairing `⟪η, ↑x⟫_bil` (`Analysis/Complexification`, the paper's
+convention).  The exponential identity `eq:data-fh` for the record `x̄ = sys.mild x₀ ū` reads
+`∀ t ∈ Icc 0 T, ⟪η, ↑(sys.mild x₀ ū t)⟫_bil = κ * Complex.exp (μ * t)` (the paper's `λ` is `μ`).
+`D(A^⋆)_ℂ` is `sys.A.adjoint.complexify.domain`.  `prop:fattorini-hautus` enters as the
+hypothesis `sys.FattoriniHautusProperty T` (`Controllability/FattoriniHautus`).
+
+## Main declarations
+
+* `Informative.complex`: informativity also rules out complex annihilators
+  `(α, β) ∈ U_ℂ × X_ℂ` (`app:data-fattorini-hautus`, Step 2).
+* `System.exp_of_isHautusEigenvector`: `eq:data-fh-exponential`, an eigenvector of `A^⋆` in
+  `ker B^⋆` gives `⟨η, x̄(t)⟩ = ⟨η, x₀⟩ e^{λ t}` (Step 1; uses `eq:weak-mild-diff`, i.e.
+  `System.inner_mild_eq`).
+* `System.isHautusEigenvector_of_exp`: `app:data-fattorini-hautus` Step 2, an exponential
+  identity with `η ∈ D(A^⋆)_ℂ` and an informative record forces `A^⋆ η = λ η`, `B^⋆ η = 0`.
+* `System.approxControllable_of_forall_not_exp`: `thm:data-fattorini-hautus` (i).
+* `System.approxControllable_iff_forall_not_exp`: `thm:data-fattorini-hautus` (ii), the
+  equivalence.
+* `System.exp_coeff_eq_and_ne_zero`: `thm:data-fattorini-hautus` (ii), last sentence,
+  `κ = ⟨η, x₀⟩ ≠ 0` (strengthening: for every nonzero `η ∈ X_ℂ`, without the Fattorini–Hautus
+  property or `hyp:H1`).
+
+## Proof route
+
+Step 1 (`eq:data-fh-exponential`) and the complex form of `eq:weak-mild-diff`
+(`System.hasWeakDeriv_pairing_mild`, built on `System.inner_mild_eq`) live in
+`Controllability/FattoriniHautus`, which needs them for the easy direction.  Step 2 compares two
+weak derivatives of `y_η(t) = ⟨η, x̄(t)⟩`: `⟨A^⋆ η, x̄⟩ + ⟨B^⋆ η, ū⟩` and, from `eq:data-fh`,
+`λ y_η`; they agree a.e. (`HasWeakDeriv.ae_eq`), and `Informative.complex` applied to
+`(B^⋆ η, A^⋆ η - λ η)` gives the eigenvector.  Parts (i) and (ii) then follow from the
+Fattorini–Hautus property (the "only if" of (ii) uses only the easy direction
+`System.hautusCondition_of_approxControllable`).
+-/
+
+@[expose] public section
+
+open MeasureTheory Set Filter Topology
+open scoped InnerProductSpace
+
+noncomputable section
+
+set_option autoImplicit false
+set_option linter.unusedSectionVars false
+
+namespace DataDrivenControl
+
+section Complex
+
+variable {U X : Type*}
+  [NormedAddCommGroup U] [InnerProductSpace ℝ U]
+  [NormedAddCommGroup X] [InnerProductSpace ℝ X]
+
+/-- **Informativity rules out complex annihilators** (`def:hilbert-informative`, as used in
+`app:data-fattorini-hautus`, Step 2): if `(ū, x̄)` is informative in `U × X` and
+`(α, β) ∈ U_ℂ × X_ℂ` satisfies `⟨α, ū t⟩ + ⟨β, x̄ t⟩ = 0` (bilinear pairing) for a.e. `t`, then
+`(α, β) = 0`. -/
+theorem Informative.complex {T : ℝ} {u : ℝ → U} {x : ℝ → X} (h : Informative T u x)
+    {a : Complexification U} {b : Complexification X}
+    (hab : ∀ᵐ t ∂(μI T), ⟪a, (u t : Complexification U)⟫_bil +
+      ⟪b, (x t : Complexification X)⟫_bil = 0) : a = 0 ∧ b = 0 := by
+  simp_rw [Complexification.pairing_ofReal_add_pairing_ofReal_eq_zero_iff] at hab
+  obtain ⟨hre1, hre2⟩ := h.eq_zero (hab.mono fun t ht => ht.1)
+  obtain ⟨him1, him2⟩ := h.eq_zero (hab.mono fun t ht => ht.2)
+  exact ⟨Complexification.ext hre1 him1, Complexification.ext hre2 him2⟩
+
+end Complex
+
+namespace System
+
+variable {U W X V Y : Type*}
+  [NormedAddCommGroup U] [InnerProductSpace ℝ U] [CompleteSpace U]
+  [NormedAddCommGroup W] [InnerProductSpace ℝ W] [CompleteSpace W]
+  [NormedAddCommGroup X] [InnerProductSpace ℝ X] [CompleteSpace X]
+  [NormedAddCommGroup V] [InnerProductSpace ℝ V] [CompleteSpace V]
+  [NormedAddCommGroup Y] [InnerProductSpace ℝ Y] [CompleteSpace Y]
+
+variable {sys : System U W X V Y}
+
+/-- **Obstructions produce exponential identities** (`eq:data-fh-exponential`,
+`app:data-fattorini-hautus` Step 1): under `hyp:H1`, if `A^⋆ η = μ η` and `B^⋆ η = 0`, then the
+state projection of every mild solution is a pure exponential,
+`⟨η, x(t; x₀, u)⟩ = ⟨η, x₀⟩ e^{μ t}` for `t ∈ [0, τ]`. -/
+theorem exp_of_isHautusEigenvector {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T) {μ : ℂ}
+    {η : Complexification X} (hη : sys.IsHautusEigenvector μ η) {τ : ℝ} {x₀ : X} {u : ℝ → U}
+    (hu : MemLp u 2 (μI τ)) :
+    ∀ t ∈ Icc 0 τ, ⟪η, (sys.mild x₀ u t : Complexification X)⟫_bil =
+      ⟪η, (x₀ : Complexification X)⟫_bil * Complex.exp (μ * t) :=
+  pairing_mild_eq_of_isHautusEigenvector hH1 hT hη hu
+
+/-- **Informativity turns exponential identities into obstructions**
+(`app:data-fattorini-hautus` Step 2): under `hyp:H1`, if the record `(ū, x̄)` generated by
+`(x₀, ū)` is informative and `⟨η, x̄(t)⟩ = κ e^{λ t}` on `I` with `η ∈ D(A^⋆)_ℂ`, then
+`A^⋆ η = λ η` and `B^⋆ η = 0`.  Neither `η ≠ 0` nor the Fattorini–Hautus property is needed. -/
+theorem isHautusEigenvector_of_exp {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T) {x₀ : X}
+    {u : ℝ → U} (hu : MemLp u 2 (μI T)) (hinf : Informative T u (sys.mild x₀ u)) {μ κ : ℂ}
+    {η : Complexification X} (hD : η ∈ sys.A.adjoint.complexify.domain)
+    (h : ∀ t ∈ Icc 0 T, ⟪η, (sys.mild x₀ u t : Complexification X)⟫_bil =
+      κ * Complex.exp (μ * t)) :
+    sys.IsHautusEigenvector μ η := by
+  -- `y_η = κ e^{λ t}` has weak derivative `λ y_η`
+  have h2 : HasWeakDeriv T (fun t => ⟪η, (sys.mild x₀ u t : Complexification X)⟫_bil)
+      (fun t => μ * ⟪η, (sys.mild x₀ u t : Complexification X)⟫_bil) := by
+    have he : HasWeakDeriv T (fun t : ℝ => κ * Complex.exp (μ * t))
+        (fun t : ℝ => μ * (κ * Complex.exp (μ * t))) := by
+      refine HasWeakDeriv.of_hasDerivAt (fun t => ?_) (by fun_prop)
+      refine ((((hasDerivAt_id t).ofReal_comp.const_mul μ).cexp).const_mul κ).congr_deriv ?_
+      simp only [id, Complex.ofReal_one, mul_one]
+      ring
+    refine he.congr (fun t ht => (h t ht).symm) ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioc] with t ht
+    rw [h t (Ioc_subset_Icc_self ht)]
+  -- subtracting `eq:weak-mild-diff` leaves an annihilator of the record
+  have hae := (hasWeakDeriv_pairing_mild hH1 hT hu x₀ hD).ae_eq h2
+  have hann : ∀ᵐ t ∂(μI T), ⟪sys.Bstar.complexify ⟨η, hD⟩, (u t : Complexification U)⟫_bil +
+      ⟪sys.A.adjoint.complexify ⟨η, hD⟩ - μ • η,
+        (sys.mild x₀ u t : Complexification X)⟫_bil = 0 := by
+    filter_upwards [hae] with t ht
+    rw [Complexification.pairing_sub_left, Complexification.pairing_smul_left]
+    linear_combination ht
+  obtain ⟨hB, hA⟩ := hinf.complex hann
+  exact ⟨hD, sub_eq_zero.1 hA, hB⟩
+
+/-- **Input–state certificate** (`thm:data-fattorini-hautus` (i)): under the Fattorini–Hautus
+property (`prop:fattorini-hautus`) and `hyp:H1`, let `x̄ = x(·; x₀, ū)` be the mild solution
+generated by `(x₀, ū) ∈ X × L²(I; U)`.  If no `λ, κ ∈ ℂ` and `η ∈ X_ℂ \ {0}` satisfy the
+exponential identity `eq:data-fh`, `⟨η, x̄(t)⟩ = κ e^{λ t}` for `t ∈ I`, then `(A, B)` is
+approximately controllable. -/
+theorem approxControllable_of_forall_not_exp {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T)
+    (hFH : sys.FattoriniHautusProperty T) {x₀ : X} {u : ℝ → U} (hu : MemLp u 2 (μI T))
+    (h : ∀ (μ κ : ℂ) (η : Complexification X), η ≠ 0 →
+      ¬ ∀ t ∈ Icc 0 T, ⟪η, (sys.mild x₀ u t : Complexification X)⟫_bil =
+        κ * Complex.exp (μ * t)) :
+    sys.ApproxControllable T := by
+  refine hFH.2 fun μ η hη => ?_
+  by_contra hne
+  exact h μ _ η hne (exp_of_isHautusEigenvector hH1 hT hη hu)
+
+/-- **Input–state characterisation** (`thm:data-fattorini-hautus` (ii)): under the
+Fattorini–Hautus property and `hyp:H1`, if the record `(ū, x̄)` generated by
+`(x₀, ū) ∈ X × L²(I; U)` is informative, then `(A, B)` is approximately controllable iff no
+`λ, κ ∈ ℂ` and `η ∈ D(A^⋆)_ℂ \ {0}` satisfy `eq:data-fh`. -/
+theorem approxControllable_iff_forall_not_exp {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T)
+    (hFH : sys.FattoriniHautusProperty T) {x₀ : X} {u : ℝ → U} (hu : MemLp u 2 (μI T))
+    (hinf : Informative T u (sys.mild x₀ u)) :
+    sys.ApproxControllable T ↔
+      ∀ (μ κ : ℂ) (η : Complexification X), η ∈ sys.A.adjoint.complexify.domain → η ≠ 0 →
+        ¬ ∀ t ∈ Icc 0 T, ⟪η, (sys.mild x₀ u t : Complexification X)⟫_bil =
+          κ * Complex.exp (μ * t) := by
+  constructor
+  · -- "only if": Step 2 and the easy direction of `prop:fattorini-hautus`
+    intro hc μ κ η hD hne hexp
+    exact hne (hautusCondition_of_approxControllable hH1 hT hc μ η
+      (isHautusEigenvector_of_exp hH1 hT hu hinf hD hexp))
+  · -- "if": Step 1 and the Fattorini–Hautus property
+    intro h
+    refine hFH.2 fun μ η hη => ?_
+    by_contra hne
+    exact h μ _ η hη.1 hne (exp_of_isHautusEigenvector hH1 hT hη hu)
+
+/-- **The constant of the exponential identity** (`thm:data-fattorini-hautus` (ii), last
+sentence; `app:data-fattorini-hautus` Step 3): if the record `(ū, x̄)` generated by
+`(x₀, ū)` is informative and `⟨η, x̄(t)⟩ = κ e^{λ t}` on `I` with `η ≠ 0`, then
+`κ = ⟨η, x₀⟩ ≠ 0`.  Strengthening: `η` is any nonzero vector of `X_ℂ` (not only of
+`D(A^⋆)_ℂ`), and neither the Fattorini–Hautus property nor `hyp:H1` is assumed. -/
+theorem exp_coeff_eq_and_ne_zero {T : ℝ} (hT : 0 < T) {x₀ : X} {u : ℝ → U}
+    (hinf : Informative T u (sys.mild x₀ u)) {μ κ : ℂ} {η : Complexification X} (hη : η ≠ 0)
+    (h : ∀ t ∈ Icc 0 T, ⟪η, (sys.mild x₀ u t : Complexification X)⟫_bil =
+      κ * Complex.exp (μ * t)) :
+    κ = ⟪η, (x₀ : Complexification X)⟫_bil ∧ κ ≠ 0 := by
+  have h0 := h 0 ⟨le_rfl, hT.le⟩
+  simp only [mild_zero_time, Complex.ofReal_zero, mul_zero, Complex.exp_zero, mul_one] at h0
+  refine ⟨h0.symm, fun hκ => hη ?_⟩
+  have hann : ∀ᵐ t ∂(μI T), ⟪(0 : Complexification U), (u t : Complexification U)⟫_bil +
+      ⟪η, (sys.mild x₀ u t : Complexification X)⟫_bil = 0 := by
+    refine (ae_restrict_mem measurableSet_Ioc).mono fun t ht => ?_
+    rw [h t (Ioc_subset_Icc_self ht), hκ, zero_mul, add_zero]
+    simp [Complexification.pairing]; rfl
+  exact (hinf.complex hann).2
+
+end System
+
+end DataDrivenControl

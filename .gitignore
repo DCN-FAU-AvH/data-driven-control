@@ -41,6 +41,9 @@ htmlcov/
 *.synctex.gz
 *.toc
 
+# Lean 4 / Lake build artifacts (lean/.lake holds Mathlib and the build output)
+.lake/
+
 # Editors and OS.  .vscode/ is deliberately tracked: it carries the debug
 # configuration for the experiments.
 .idea/
