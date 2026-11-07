@@ -40,10 +40,11 @@ representations**; everything is generic over `𝕜` with `[RCLike 𝕜]`.
   `trace_eq_linearMap_trace` (in finite dimension every operator is trace class and the trace is
   `LinearMap.trace`).
 
-## Not formalised
+## The textbook definition
 
-The equivalence with the textbook definition through `|T|` (`tr |T| < ∞`) needs polar
-decomposition.
+The equivalence with the textbook definition through `|T|` (`tr |T| < ∞`), and `tr |T|` as the
+nuclear norm, are proved in `Analysis/TraceClassAbs`, with the polar decomposition of
+`Analysis/PolarDecomposition`.
 -/
 
 @[expose] public section

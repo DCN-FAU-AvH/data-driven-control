@@ -23,7 +23,7 @@ The formalisation takes `X = WithLp 2 (X₁ × X₂)` for real Hilbert spaces `X
 space `L²(0, 1)`) and `X₂` (the velocity space `H⁻¹(0, 1)` with the norm `c⁻¹ ‖·‖_{H⁻¹}`) with
 Hilbert bases `s` and `f` (the paper's `sₙ` and `ωₙ sₙ`), so that `aₙ = ⟪s n, x₁⟫` and
 `bₙ = ⟪f n, x₂⟫`, and `q ∈ X₁`.  The theorems therefore concern a unitarily equivalent copy of
-the PDE; the dictionary to functions on `(0, 1)` is not formalised (as for the heat equation).
+the PDE; the dictionary to functions on `(0, 1)` is in `Examples/Wave/PDE`.
 
 **Indexing.**  Modes are numbered from `0`: Lean's mode `n` is the paper's mode `n + 1`, with
 `ωₙ = freq c n = c (n + 1) π` (`Examples/Wave/Fourier`).

@@ -223,7 +223,7 @@ theorem waveSystem_B_apply_not_mem_range (hc : c ≠ 0) {u : ℝ} (hu : u ≠ 0)
 
 /-- **`B⋆` in modal form** (`app:control-realization`): `B⋆ η = ∑ₙ c √2 bₙ(η)` for
 `η ∈ D(A⋆)`, `bₙ(η) = ⟪fₙ, η₂⟫`.  The series converges because `D(A⋆)` has
-`∑ₙ ωₙ² bₙ(η)² < ∞`.  In function language (not formalised): for `η = (φ, ψ) ∈ L² × H⁻¹` with
+`∑ₙ ωₙ² bₙ(η)² < ∞`.  In function language (`Wave.PDE.waveSystemL2_Bstar`): for `η = (φ, ψ) ∈ L² × H⁻¹` with
 the energy inner product of `X`, `bₙ(η) = ⟨ψ, sₙ⟩ / ωₙ` and `sₙ'(0) = √2 nπ` (paper's `n`), so
 `B⋆ η = ∑ₙ √2 ⟨ψ, sₙ⟩ / (nπ) = ∂ξ((-∂ξξ)⁻¹ ψ)(0)`, the normal derivative at the controlled
 end `ξ = 0` that defines Dirichlet boundary control. -/

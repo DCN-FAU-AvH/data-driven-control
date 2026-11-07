@@ -9,14 +9,16 @@ the paper cites without proof:
 * the standing setting `W ↪ X ↪ V` with Assumptions `hyp:H1`, `hyp:H2`, `hyp:compat`, mild
   solutions and the finite-horizon operators (Section 2, `app:finite-horizon-output`,
   `app:control-realization`);
-* the delay system with delayed output (`ex:intro-delay`, retarded case `M = 0`) as a system on
+* the delay system with delayed output (`ex:intro-delay`), retarded (`M = 0`) and neutral
+  (`M ≠ 0`, the semigroup of Burns–Herdman–Stech 1983), as a system on
   `W ↪ X ↪ V` that satisfies `hyp:H1`, `hyp:H2` and `hyp:compat`, with `B` bounded and `C`
   unbounded on `X` (Section 1);
 * the wave equation with Dirichlet control (`ex:intro-wave`) as a system on `W = X ↪ V` that
   satisfies `hyp:H1`, `hyp:H2` and `hyp:compat`, with `B` unbounded and `C` bounded on `X` and a
   non-analytic group (Section 1);
-* informativity, window informativity and persistency of excitation in Hilbert spaces, the
-  Gramian and its trace-class property, the three examples (among them the boundary-controlled
+* informativity, window informativity and persistency of excitation in Hilbert spaces, a
+  record that is informative in `U × X` but not in `U × W`, the Gramian and its trace-class
+  property (with the equivalence of the nuclear trace class and `tr |T| < ∞`), the three examples (among them the boundary-controlled
   heat equation, `ex:intro-pde`, `ex:boundary-heat-informative`), and universal sufficiency of
   harmonic inputs for analytic semigroups (Section 3);
 * Willems' fundamental lemma and its windowed input–output version (Section 4);
@@ -30,27 +32,31 @@ Fattorini–Hautus test (`prop:fattorini-hautus`) and the Pritchard–Salamon Ri
 (`thm:lqr-riccati`).  The Fattorini–Hautus test is proved under a corrected hypothesis: the root
 vectors of `A`, not of `A^⋆`, must be complete.  Boyer's statement, which names `A^⋆`, does not
 suffice, and the paper now states the hypothesis for `A`.  The Riccati theorem is proved without
-`hyp:compat`.  The heat equation is formalised in modal coordinates and tied to `L²(0, 1)` (cosine basis,
-Neumann Laplacian, point evaluation, boundary trace).  The delay system is
-formalised for retarded equations (`M = 0`) with finitely many point delays and distributed
-parts that are bounded on the `L²` history.  The wave equation is formalised in modal
-coordinates.  The numerics of Section 7 are not formalised.
+`hyp:compat`.  The heat equation is formalised in modal coordinates, tied to `L²(0, 1)` (cosine basis,
+Neumann Laplacian, point evaluation, boundary trace), and on the paper's own spaces
+(the `χ`-localised `H¹` norm of `eq:heat-localized-V`).  The delay system is formalised for
+retarded and neutral equations with finitely many point delays (the neutral ones in `(0, h]`)
+and distributed parts that are bounded on the `L²` history.  The wave equation is formalised
+in modal coordinates and tied to `L²(0, 1) × H⁻¹(0, 1)` (sine basis, `H⁻¹ = (H¹₀)'`, the
+function form of `A`, `B^⋆` and `C`).  The numerics of Section 7 are not formalised.
 
 ## Status
 
 **Complete** as of 2026-11-07: Sections 2–6, the appendix proofs, both counterexamples of
-Section 3, the trace-class claim of `eq:hilbert-gramian` (also in the textbook form
-`tr |𝒢| < ∞`), the boundary-controlled heat equation (`ex:intro-pde`,
-`ex:boundary-heat-informative`, in modal form and on `L²(0, 1)`), the wave equation
-(`ex:intro-wave`, modal form), the delay system (`ex:intro-delay`, retarded class), and proofs of
-the two theorems the paper cites, the Riccati theorem in full (integral Riccati equation and
+Section 3 and a counterexample for the remark after `lem:informative-gramian`, the trace-class
+claim of `eq:hilbert-gramian` (also in the textbook form `tr |𝒢| < ∞`, and the equivalence of
+the nuclear trace class with `tr |T| < ∞` for every bounded `T`), the boundary-controlled heat
+equation (`ex:intro-pde`, `ex:boundary-heat-informative`, in modal form, on `L²(0, 1)`, and with
+the paper's localised `V`), the wave equation (`ex:intro-wave`, modal form and on
+`L²(0, 1) × H⁻¹(0, 1)`), the delay system (`ex:intro-delay`, retarded and neutral), and proofs
+of the two theorems the paper cites, the Riccati theorem in full (integral Riccati equation and
 uniqueness).
 
-* 79 files under `DataDrivenControl/`, about 35,700 lines.  The sequential build
-  (`scripts/build.sh`) succeeds: all 79 modules, no errors and no warnings.  A clean build
+* 100 files under `DataDrivenControl/`, about @LINES@ lines.  The sequential build
+  (`scripts/build.sh`) succeeds: all 100 modules, @WARN@.  A clean build
   (after deleting `.lake/build`) took about 28 minutes when the library had 70 modules.
 * No `sorry`, no `admit`, no `axiom`.
-* `AxiomAudit.lean` prints the axioms of 123 main results.  It covers every theorem,
+* `AxiomAudit.lean` prints the axioms of 193 main results.  It covers every theorem,
   proposition and lemma of Sections 2–6, the examples, the cited theorems, the trace class and
   the key semigroup results.  Every one depends only on `propext`, `Classical.choice` and
   `Quot.sound`.  Check it with `scripts/check.sh AxiomAudit.lean` after a full build.  Module
@@ -65,9 +71,8 @@ uniqueness).
   The Fattorini–Hautus hypothesis is corrected: completeness of the root vectors of `A`, not
   of `A⋆` (see "The cited theorems, now proved").  The paper's `prop:fattorini-hautus` was
   changed to match.
-* Not formalised: Section 7 (numerics), neutral delay systems, the paper's `χ`-localised `H¹`
-  norm for the heat `V`, a general diffusivity, and the dictionary from the wave's modal model
-  to functions on `(0, 1)` (see the last section).
+* Not formalised: Section 7 (numerics), a general diffusivity `ν` in the heat example, and
+  delay operators given by general measures (see the last section).
 * `STATEMENTS.md` maps every paper label to its Lean declaration.
 
 ## Building and checking
@@ -125,7 +130,7 @@ All declarations live in the namespace `DataDrivenControl`.
 | Directory | Files | Content | Paper |
 |---|---|---|---|
 | `Signal/` | `Basic`, `Span`, `Gramian`, `GramianTrace`, `TestFunction`, `WeakDerivative`, `Shift` | Signals on `(0, T]` (`μI T`, `L2 E T`); annihilators and closed spans; the Gramian, and its trace-class property with `tr 𝒢(z) = ∫ ‖z‖²`; test functions and derivative moments `⟨Dᵏū, φ⟩`; `H¹` in integral form, du Bois-Reymond, variation of constants in weak form; windows, continuity of translation in `L²`, the window synthesis operators `𝒵`, `𝒴`, restriction, tails and concatenation | `eq:hilbert-gramian`, `eq:gramian-kernel`, `rmk:gramian-not-coercive`, `eq:io-window-synthesis` |
-| `Analysis/` | `BoundedBelow`, `Quadratic`, `Complexification`, `ExpSums`, `BohrMean`, `Laplace`, `TraceClass`, `CosineBasis` | Mathematics missing from Mathlib: bounded-below operators; unique minimisers of coercive quadratic functionals; the complexification `X_ℂ` with the paper's bilinear pairing; uniqueness for exponential sums, Dirichlet, power, Laurent and trigonometric series; Bohr means; the Laplace transform and its uniqueness; Hilbert–Schmidt and trace-class operators and the trace; the cosine Hilbert basis of `L²(0, 1)` and uniformly convergent cosine series | tools of the appendix, `eq:hilbert-gramian`, the heat example |
+| `Analysis/` | `BoundedBelow`, `Quadratic`, `Complexification`, `ExpSums`, `BohrMean`, `Laplace`, `TraceClass`, `PolarDecomposition`, `TraceClassAbs`, `CosineBasis`, `SineBasis`, `Sobolev01` | Mathematics missing from Mathlib: bounded-below operators; unique minimisers of coercive quadratic functionals; the complexification `X_ℂ` with the paper's bilinear pairing; uniqueness for exponential sums, Dirichlet, power, Laurent and trigonometric series; Bohr means; the Laplace transform and its uniqueness; Hilbert–Schmidt and trace-class operators and the trace; `|T|` on real and complex Hilbert spaces, the polar decomposition, and the trace class as `tr |T| < ∞` with `tr |T|` the nuclear norm; the cosine Hilbert basis of `L²(0, 1)` and uniformly convergent cosine series; the sine Hilbert basis, `H¹₀(0, 1)` and `H⁻¹(0, 1) = (H¹₀)'` as Hilbert spaces, the `H⁻¹` norm in sine coefficients, the Dirichlet problem | tools of the appendix, `eq:hilbert-gramian`, the heat and wave examples |
 | `Semigroup/` | `Basic`, `Generator`, `Resolvent`, `Adjoint`, `Inhomogeneous`, `Analytic`, `Extrapolation`, `Diagonal`, `Perturbation`, `DomainSpace`, `Modal`, `CompactResolvent`, `Rotation` | C₀-semigroups and generators; resolvents as Laplace transforms and the finite-time Laplace identity; the adjoint semigroup; mild and weak solutions and Ball's theorem; analytic semigroups; the dual-model extrapolation space; diagonal semigroups with a direct controllability test; bounded perturbations and feedback invariance; `D(A)` with the graph norm as a Hilbert space, with the restricted semigroup; diagonal maps between modal spaces, resolvents of real diagonal generators, and approximate controllability from modal coordinates for unbounded `B`; compact resolvents (root vectors independent of the resolvent point, the Fredholm alternative on an invariant subspace); isometric block-rotation groups and block-diagonal maps | `sec:setting`, Ball (1977), tools for `prop:fattorini-hautus`, the heat and wave examples |
 | `System/` | `Setting`, `Mild`, `Controllability`, `ControlRealization` | The structure `System U W X V Y`; `hyp:H1`, `hyp:H2`, `hyp:compat`; mild solutions, `L_t`, `𝓕_τ`, `𝓞_τ`; controllability and observability; `B_X`, `B†` on `D(A†)`, `eq:weak-mild-diff` | Sec. 1–2, `app:finite-horizon-output`, `app:control-realization` |
 | `Informativity/` | `Informative`, `Window`, `PE`, `FiniteDim`, `Necessity`, `Harmonic`, `AnalyticSufficiency` | Informative and window-informative data, persistency of excitation (necessity, finite-dimensional sufficiency), harmonic excitation, universal sufficiency for analytic semigroups | Sec. 3 |
@@ -133,10 +138,11 @@ All declarations live in the namespace `DataDrivenControl`.
 | `FundamentalLemma/` | `Graph`, `Willems`, `InputOutput` | Graph and synthesis operators, Willems' fundamental lemma, the input–output parametrisation and fundamental lemma | Sec. 4 |
 | `Controllability/` | `FattoriniHautus`, `FHObservation`, `FHResolvent`, `FHSpectral`, `InputState`, `InputOutput` | The Fattorini–Hautus statement and its easy direction; its proof (the unobservable subspace, one compact resolvent of `A^⋆`, the Fredholm alternative); input–state and input–output controllability tests | Sec. 5 |
 | `LQR/` | `ModelBased`, `InputStateOutput`, `InputOutput`, `TailOperators`, `ValueOperator`, `DynamicProgramming`, `Feedback`, `RiccatiExistence`, `RiccatiEquation`, `RiccatiIntegralDeriv`, `RiccatiIntegral` | Model-based cost and the Riccati interface, input–state–output and input–output regulators; the proof of the Riccati theorem: tail problems on a fixed control space, the value operator and its strong continuity, dynamic programming, the adjoint of the input map, existence; the integral Riccati equation, its uniqueness, and the value operator as its solution | Sec. 6 |
-| `Examples/` | `WindowStrict`, `PECounterexample`, `BoundaryHeat` | The three examples of Sec. 3; `BoundaryHeat` states the heat example's main theorems | `ex:window-strictly-stronger`, `prop:infinite-pe-insufficient`, `ex:boundary-heat-informative` |
-| `Examples/Heat/` | `Kernel`, `Input`, `Spaces`, `Estimates`, `System`, `PDE` | The boundary-controlled heat equation in modal form: eigenvalues, modal coefficients and the impulse response (method of images); the exciting input `ū`; the spaces `X₋₁`, `V`, `W`; the trace formula in time and the control estimate; the `System` with `hyp:H1`, `hyp:H2`, `hyp:compat`; the dictionary to `L²(0, 1)` (`H²_N`, the Neumann Laplacian, point evaluation, boundary trace) | `ex:intro-pde`, `app:boundary-heat-informative` |
+| `Examples/` | `WindowStrict`, `PECounterexample`, `BoundaryHeat`, `InformativityConverse` (with `InformativityConverse/Trig`) | The three examples of Sec. 3; `BoundaryHeat` states the heat example's main theorems; a record of a delay system that is informative in `U × X` but not in `U × W` (with the trigonometric tools it needs: completeness in `L²(0, 2π)`, Riemann–Lebesgue) | `ex:window-strictly-stronger`, `prop:infinite-pe-insufficient`, `ex:boundary-heat-informative`, remark after `lem:informative-gramian` |
+| `Examples/Heat/` | `Kernel`, `Input`, `Spaces`, `Estimates`, `System`, `PDE`, `LocalizedKernel`, `LocalizedCutoff`, `LocalizedOrbit`, `LocalizedSpaces`, `LocalizedControl`, `LocalizedSystem` | The boundary-controlled heat equation in modal form: eigenvalues, modal coefficients and the impulse response (method of images); the exciting input `ū`; the spaces `X₋₁`, `V`, `W`; the trace formula in time and the control estimate; the `System` with `hyp:H1`, `hyp:H2`, `hyp:compat`; the dictionary to `L²(0, 1)` (`H²_N`, the Neumann Laplacian, point evaluation, boundary trace); the paper's `χ`-localised `V` and `W = D(A_V)` on `L²(0, 1)`, the kernel bounds on `supp χ`, and the system on these spaces | `ex:intro-pde`, `app:boundary-heat-informative`, `eq:heat-localized-V` |
 | `Examples/Delay/` | `Solution`, `Translation`, `Semigroup`, `System`, `Unbounded` | The retarded delay system with delayed output: existence, uniqueness and bounds for the delay equation; translation of `H¹` signals in `L²`; the delay semigroup on `E × L²` and its generator; the `System` with `W = D(A)`, `X = V`, `hyp:H1`, `hyp:H2`, `hyp:compat`; `C` unbounded on `X` | `ex:intro-delay` |
-| `Examples/Wave/` | `Fourier`, `Spaces`, `System` | The wave equation with Dirichlet control in energy coordinates: orthogonality of `cos(ωₙ·)`, `sin(ωₙ·)` on `(0, 2/c]`, Bessel and its dual; the weighted `V`, `B`, `C` and the `System` with `W = X`; `hyp:H1`, `hyp:H2`, `hyp:compat`, the modal formulas for `L_T` and `B^⋆`, non-analyticity | `ex:intro-wave` |
+| `Examples/NeutralDelay/` | `Operator`, `Weighted`, `Solution`, `Regularity`, `Semigroup`, `System`, `Retarded`, `Unbounded` | The neutral delay system: delay functionals `∑ₖ Pₖ φ(-δₖ) + D φ`; weighted `L²` norms and invertibility of the neutral Volterra operator; existence, uniqueness, linearity, time shift and `L²` bounds for the a.e. integral form; `H¹` regularity for compatible `H¹` data; the semigroup `S(t)(r, ψ) = (x(t) - M x_t, x_t)` on `E × L²` and its generator; the `System` with `W = D(A)`, `X = V`, `hyp:H1`, `hyp:H2`, `hyp:compat`; consistency with the retarded system; `C` unbounded on `X` | `ex:intro-delay` |
+| `Examples/Wave/` | `Fourier`, `Spaces`, `System`, `PDE` | The wave equation with Dirichlet control in energy coordinates: orthogonality of `cos(ωₙ·)`, `sin(ωₙ·)` on `(0, 2/c]`, Bessel and its dual; the weighted `V`, `B`, `C` and the `System` with `W = X`; `hyp:H1`, `hyp:H2`, `hyp:compat`, the modal formulas for `L_T` and `B^⋆`, non-analyticity; the dictionary to `L²(0, 1) × H⁻¹(0, 1)` (`C = ∫ q w`, `D(A) = H¹₀ × L²`, `B^⋆ η = ζ'(0)`) | `ex:intro-wave` |
 
 `scripts/` holds the build tools: `build.sh`, `check.sh` and `slot.sh`.
 
@@ -171,9 +177,14 @@ for `x₀ ∈ W`.  Theorems take the paper's assumptions at the paper's horizon,
 | `def:hilbert-informative`, `eq:informative-span` | `Informative`, `informative_iff_annihilator`, `informative_iff` | `Informativity/Informative` |
 | `eq:hilbert-gramian`, `eq:gramian-kernel` | `gramian`, `isPositive_gramian`, `ker_gramian_eq_orthogonal_cspan`, `orthogonal_ker_gramian` | `Signal/Gramian` |
 | `eq:hilbert-gramian` (trace class) | `isTraceClass_gramian`, `trace_gramian` (`tr 𝒢(z) = ∫ ‖z‖²`); the textbook form `hasSum_inner_gramian`, `hasSum_re_inner_gramian`; the definitions `TraceClass.IsTraceClass`, `TraceClass.IsHilbertSchmidt`, `TraceClass.trace` | `Signal/GramianTrace`, `Analysis/TraceClass` |
+| trace class = `tr \|T\| < ∞` | `TraceClass.isTraceClass_iff_summable_realAbs`, `TraceClass.isTraceClass_iff_isTraceClass_realAbs`, `TraceClass.isLeast_nuclearSums_realAbs` (`tr \|T\|` is the nuclear norm; real Hilbert spaces); `TraceClass.isTraceClass_iff_summable_cfcAbs`, `TraceClass.isTraceClass_iff_isTraceClass_cfcAbs`, `TraceClass.isLeast_nuclearSums_cfcAbs` (complex, `\|T\| = CFC.abs T`); `TraceClass.isTraceClass_complexify_iff`, `TraceClass.trace_complexify` | `Analysis/TraceClassAbs` |
+| `\|𝒢(z)\| = 𝒢(z)` | `TraceClass.realAbs_gramian`, `TraceClass.cfcAbs_gramian`, `TraceClass.hasSum_inner_realAbs_gramian`, `TraceClass.hasSum_re_inner_cfcAbs_gramian` | `Analysis/TraceClassAbs` |
+| (`\|T\|` and the polar decomposition) | `TraceClass.realAbs`, `TraceClass.realSqrt`, `TraceClass.realAbs_unique`, `TraceClass.complexify_realAbs`, `TraceClass.polar_decomposition_realAbs` (real); `TraceClass.cfcAbs_unique`, `TraceClass.norm_cfcAbs_apply`, `TraceClass.polar_decomposition_cfcAbs` (complex); `TraceClass.polarPart` (any `RCLike 𝕜`) | `Analysis/PolarDecomposition` |
 | `lem:informative-gramian` | `informative_iff_injective_gramian` | `Informativity/Informative` |
 | `rmk:gramian-not-coercive` | `gramian_injective_iff_coercive` | `Signal/Gramian` |
 | remark after `lem:informative-gramian` (`U × W` ⇒ `U × X`) | `Informative.map_of_denseRange`, `System.Informative.mild_of_mildW` | `Informativity/Informative` |
+| remark after `lem:informative-gramian` ("the converse fails in general") | `InformativityConverse.exists_informative_not_informativeW`, `InformativityConverse.not_forall_informativeW_of_informative`; the record: `InformativityConverse.informative_X`, `InformativityConverse.informative_mild` (informative in `U × X`, every `T > 0`), `InformativityConverse.not_informative_W` (not informative in `U × W`, every `T`); see below | `Examples/InformativityConverse` |
+| (completeness of the trigonometric system, Riemann–Lebesgue) | `InformativityConverse.ae_eq_zero_of_moments_eq_zero`, `InformativityConverse.tendsto_cosMoment`, `InformativityConverse.tendsto_sinMoment` | `Examples/InformativityConverse/Trig` |
 | `def:window-informative` | `WindowInformative`, `windowInformative_iff` | `Informativity/Window` |
 | `lem:window-implies-informative` | `System.informative_of_windowInformative` | `Informativity/Window` |
 | `ex:window-strictly-stronger` | `WindowStrict.informative`, `WindowStrict.not_windowInformative`, `WindowStrict.exactlyControllable` | `Examples/WindowStrict` |
@@ -190,6 +201,25 @@ for `x₀ ∈ W`.  Theorems take the paper's assumptions at the paper's horizon,
 | `lem:harmonic-pe-implies-pe` | `HarmonicSignal.IsHarmonicPE.persistentlyExcitingInfinite` | `Informativity/Harmonic` |
 | `thm:analytic-universal-sufficiency` | `System.analytic_universal_sufficiency` (TFAE); (i) ⇒ (ii) `System.informative_of_approxControllable_harmonic`; (i) ⇒ (iii) `System.windowInformative_of_approxControllable_harmonic`; "moreover": `System.approxControllable_of_informative_zero`, `System.approxControllable_of_windowInformative_zero` | `Informativity/AnalyticSufficiency` |
 | `ex:boundary-heat-informative` | `BoundaryHeat.exists_boundaryHeat` (the paper's existential form); for the concrete system `BoundaryHeat.heatSystem e hξ₀`: `heatSystem_approxControllable`, `heatSystem_TFAE` (`thm:analytic-universal-sufficiency` with `σ = 0`, `M = 1`), `heatSystem_informative` (in `U × W`, every `x̄₀ ∈ W`), `heatSystem_windowInformative` (every `x̄₀ ∈ X`); the input `heatInput`, `isHarmonicPE_heatInput`.  Details in the heat table below | `Examples/BoundaryHeat`, `Examples/Heat/Input` |
+
+**The converse of "informative in `U × W` ⇒ informative in `U × X`" fails**
+(`Examples/InformativityConverse`).  The system is the retarded delay system of
+`ex:intro-delay` (`Delay.Model.sys`, `W = D(A)` with the graph norm, `X = V = ℝ × L²(0, 2π)`)
+with `h = 2π`, `E = U = Y = ℝ`, no state delays and `B₀ = 1`, i.e. `ẋ(t) = u(t)`, and the
+output `y(t) = x(t - 2π)`; `hyp:H1`, `hyp:H2` (every horizon) and `hyp:compat` hold, and `C` is
+unbounded on `X`.  The record is generated by the `2π`-periodic signal
+`x(t) = ∑ₙ 2^{-n} cos(n t)`: `ū = ẋ`, `x̄₀ = (x(0), x_0) ∈ W`, and the state is
+`x̄(t) = (x(t), x_t)` (`ιW_mildW_eq_state`, a strong solution, hence the mild one).  *Not
+informative in `U × W`*: `(g(2π), g) ↦ g(2π) - g(0) = ∫₀^{2π} (A v)₂` is continuous on `W`, not
+on `X`, and vanishes on `x̄(t)` because `x` is periodic; its nonzero Riesz representer `β ∈ W`
+gives the annihilator `(0, β)`.  *Informative in `U × X`*: an annihilator `(α, (β₁, β₂))` turns
+`α ū(t) + β₁ x(t) + ⟪β₂, x_t⟫ = 0` into a trigonometric series in `t` with geometrically
+decaying coefficients `2^{-n}(β₁ + Cₙ)`, `2^{-n}(α n + Sₙ)` (`Cₙ`, `Sₙ` the cosine and sine
+moments of `β₂`), which vanish by `trigSeries_coeff_eq_zero` on any interval; Riemann–Lebesgue
+gives `α = β₁ = 0`, and completeness of the trigonometric system in `L²(0, 2π)` (both from
+Mathlib's Parseval identity on `AddCircle`) gives `β₂ = 0`.
+`not_forall_informativeW_of_informative` states the failure of the converse of
+`System.Informative.mild_of_mildW` over all systems satisfying the standing assumptions.
 
 ### Section 4: the fundamental lemma
 
@@ -259,6 +289,14 @@ Hilbert basis `e : HilbertBasis ℕ ℝ X` (the cosine basis of `L²(0, 1)` in t
 | the dictionary: `A` is the Neumann Laplacian | `PDE.IsNeumannH2` (`H²(0, 1)` in integral form, `φ'(0) = φ'(1) = 0`), `PDE.mem_graph_generator_iff`, `PDE.heatSystemL2_A_graph`, `PDE.heatSystemL2_A_adjoint` (`A⋆ = A`) | `Examples/Heat/PDE` |
 | the dictionary: `B` is the Neumann control, `C` the point observation | `PDE.inner_cosBasis_neumann_control` (`⟪eₙ, φ''⟫ = λₙ⟪eₙ, φ⟫ + bₙ φ'(0)` if `φ'(1) = 0`), `PDE.heatSystemL2_Bstar` (`B⋆η = -η(0)`), `PDE.heatSystemL2_C` (`C w = φ(ξ₀)`) | `Examples/Heat/PDE` |
 | `ex:boundary-heat-informative` on `L²(0, 1)` | `PDE.exists_boundaryHeat_L2`: `exists_boundaryHeat` for `X = L2 ℝ 1`, with the ties in function language | `Examples/Heat/PDE` |
+| the cut-off `χ ∈ C_c^∞(0, 1)`, `χ = 1` near `ξ₀` | `Localized.Cutoff` (`χ ∈ C¹`, `tsupport χ ⊆ Ioo 0 1`), `Cutoff.exists_pos_le` (`d_χ > 0`), `Localized.exists_smooth_cutoff` (a `C^∞` cut-off exists, `ContDiffBump`) | `Examples/Heat/LocalizedCutoff` |
+| `F_z(t) = e^{-t} χ S(t) z ∈ H¹(0, 1)`; `∫₀^∞ e^{-2t} ‖S(t) z‖²_{H¹} dt = ½ ‖z‖²_X`; `‖χ f‖_{H¹} ≤ c_χ ‖f‖_{H¹}` | `Localized.orbit` (`S(t) z` as a function), `Localized.H1sq` (`‖f‖²_{H¹} = ∫₀¹ f² + ∫₀¹ (f')²`), `Localized.orbitH`, `norm_orbitH_sq_eq`, `orbitH_Sm` (`F_{S(s)z}(t) = e^s F_z(t + s)`), `integral_H1sq_orbit`, `norm_orbitH_sq_le`, `abs_orbit_le` | `Examples/Heat/LocalizedOrbit` |
+| `eq:heat-localized-V` (the paper's `V`) | `Localized.V χ` (closed graph of `z ↦ F_z` in `WithLp 2 (Xm1 × L²(0, ∞; L² × L²))`), `norm_V_sq_eq` (the norm in function language), `exists_fstV_eq_iff` (`V = {z : ‖z‖_V < ∞}`), `Localized.SV χ`; `X ↪ V`: `Localized.ιV χ`, `norm_ιV_sq_le`, `ιV_injective`, `denseRange_ιV` | `Examples/Heat/LocalizedSpaces` |
+| `W = D(A_V)`, `eq:heat-W-domain` (paper's `V`) | `Localized.W χ`, `ιW`, `mem_SV_generator_domain_iff`, `SV_generator_ιV`, `range_ιW` | `Examples/Heat/LocalizedSpaces` |
+| `eq:heat-separated-kernel` on `supp χ` | `Localized.kernelDerivX_eq_tsum` (image series of `∂_ξ q'`), `exists_abs_kernelDeriv_le_unif` (`q'`, `∂_ξ q'` bounded on `(0, ∞) × [d, 1)`) | `Examples/Heat/LocalizedKernel` |
+| `eq:heat-control-X`, `hyp:H1` (paper's `V`) | `Localized.exists_control_bound_loc`, `orbit_genXm1_eq`, `ctrlVec_eq`, `memLp_orbitH_ctrlVec`, `heatSystemLoc_H1` (every horizon) | `Examples/Heat/LocalizedControl`, `Examples/Heat/LocalizedSystem` |
+| `C ∈ L(W, ℝ)`, `hyp:H2`, `hyp:compat` (paper's `V`) | `Localized.J` (`V ↪ V_scalar`), `Localized.JW`, `Localized.C`, `heatSystemLoc_C` (`C w = φ(ξ₀)` on `H²_N`), `heatSystemLoc_H2` (every horizon), `heatSystemLoc_compat` | `Examples/Heat/LocalizedSystem` |
+| `ex:boundary-heat-informative` with the paper's spaces | `Localized.heatSystemLoc hξ₀ χ hχ : System ℝ (W χ) (L2 ℝ 1) (V χ) ℝ`, `heatSystemLoc_Bstar`, `heatSystemLoc_B_not_mem_range`, `heatSystemLoc_C_unbounded`, `heatSystemLoc_approxControllable`, `heatSystemLoc_TFAE`, `heatSystemLoc_informative`, `heatSystemLoc_windowInformative`, **`Localized.exists_boundaryHeat_loc`** | `Examples/Heat/LocalizedSystem` |
 
 ### The delay system with delayed output (`ex:intro-delay`)
 
@@ -274,6 +312,24 @@ paper's `ℝⁿ`, `ℝᵐ`, `ℝᵖ`), and the history lives on `(0, h]`: `ψ(s)
 | the system | `Model h E U Y` (adds `B₀`, the output delays `Cₖ`, `h'ₖ ∈ [0, h]` and `C_d`), `Model.sys : System U W X X Y` with `W = D(A)` (`C0Semigroup.Dom`) and `X = V = State h E`, `Model.Bop` (`B = (B₀, 0)`, bounded), `Model.Cop` (`C ∈ L(W, Y)`), `Model.Cop_apply` (`C (g(h), g) = ∑ₖ Cₖ g(h - h'ₖ) + C_d g` on `D(A)`) | `Examples/Delay/System` |
 | `L_T`, `hyp:H1`, `hyp:H2`, `hyp:compat` | `Model.ctrlState_eq_conv`, `Model.ιW_L` (`L_T u = (x(T), x_T)` for the zero history), `Model.H1`, `Model.H2` (every horizon), `Model.compat` | `Examples/Delay/System` |
 | "a discrete output delay generally makes `C` unbounded on `X`" | `Model.not_exists_bound_C` (if `∑_{h'ₖ = θ} Cₖ ≠ 0` for some `θ ∈ (0, h]`), `Model.not_exists_bound_C_of_ne_zero` | `Examples/Delay/Unbounded` |
+
+### The neutral delay system (`ex:intro-delay`, `M ≠ 0`)
+
+Names are relative to `DataDrivenControl.NeutralDelay`.  Conventions as for the retarded system
+(history on `(0, h]`, `ψ(s) = φ(s - h)`, `traj`, `window`, `Delay.State h E`).
+
+| Paper | Lean | File |
+|---|---|---|
+| the operators `L`, `M`, `C` on the history | `DelayOp h E F` (`∑ₖ Pₖ φ(-δₖ) + D φ`, `δₖ ∈ [0, h]`, `D` bounded on `L²`), `DelayOp.eval`, `DelayOp.eLpNorm_eval_le`, `DelayOp.hasWeakDeriv_eval`, `DelayOp.opL` (zero history, on `L²(0, τ)`), `primL` | `Examples/NeutralDelay/Operator` |
+| the neutral equation `d/dt (x(t) - M x_t) = L x_t + f` | `Equation h E` (extends `Delay.Equation` by `Mₖ`, `mₖ ∈ (0, h]` ("no mass at `0`") and `M_d`), `Equation.L`, `Equation.M`, `Equation.prim` (`x(t) - M x_t = r + ∫₀ᵗ (L x_s + f)`), `Equation.IsSolOn` (a.e. integral form, `x ∈ L²`) | `Examples/NeutralDelay/Solution` |
+| solutions | `Equation.isUnit_opK` (weighted contraction: `isUnit_one_sub_of_wnorm_le`, `wnorm_shift_le`, `wnorm_window_le`, `wnorm_primL_le`), existence `Equation.isSolOn_solL`, `Equation.isSolOn_sol`, uniqueness `Equation.IsSolOn.ae_eq`, `IsSolOn.add`, `IsSolOn.smul`, time shift `IsSolOn.shift`, `Equation.prim_shift`, the `L²` bound `Equation.norm_solL_le` | `Examples/NeutralDelay/Weighted`, `Examples/NeutralDelay/Solution` |
+| regularity | `Equation.exists_hasWeakDeriv`, `Equation.IsSolOn.exists_hasWeakDeriv` (`H¹` history `g`, `r = g(h) - M g`, `L²` forcing ⇒ `H¹` trajectory) | `Examples/NeutralDelay/Regularity` |
+| the state `(x(t) - M x_t, x_t) ∈ ℝⁿ × L²` and the semigroup (Burns–Herdman–Stech 1983) | `Equation.semigroup` (`semigroup_apply`), `Equation.norm_semigroup_le`, `Equation.stateAt_stateAt` | `Examples/NeutralDelay/Semigroup` |
+| the generator | `Equation.mem_generator_domain_iff` (`D(A) = {(g(h) - M g, g) : g ∈ H¹(0, h; E)}`), `Equation.generator_apply` (`A (g(h) - M g, g) = (L g, g')`) | `Examples/NeutralDelay/Semigroup` |
+| the system | `Model h E U Y` (adds `B₀`, `Cₖ`, `h'ₖ ∈ [0, h]`, `C_d`), `Model.sys : System U W X X Y` with `W = D(A)`, `X = V = Delay.State h E`, `Model.Bop`, `Model.Cop`, `pointEval_eq`, `Model.evalOp` (`H¹` point evaluation from `(g, g')`), `Model.Cop_apply` (`C (g(h) - M g, g) = ∑ₖ Cₖ g(h - h'ₖ) + C_d g`) | `Examples/NeutralDelay/System` |
+| `L_T`, `hyp:H1`, `hyp:H2`, `hyp:compat` | `Model.ctrlState_eq_conv`, `Model.ιW_L` (`L_T u = (x(T) - M x_T, x_T)`), `Model.H1`, `Model.H2` (every horizon), `Model.compat` | `Examples/NeutralDelay/System` |
+| consistency with `M = 0` | `Equation.semigroup_eq_of_M_eq_zero` (`= Delay.Equation.semigroup`), `Equation.isSolOn_of_retarded` | `Examples/NeutralDelay/Retarded` |
+| "a discrete output delay generally makes `C` unbounded on `X`" | `Model.not_exists_bound_C` (if `∑_{h'ₖ = θ} Cₖ ≠ 0` for some `θ ∈ (0, h]` and no `mₖ = θ`) | `Examples/NeutralDelay/Unbounded` |
 
 ### The wave equation with Dirichlet control (`ex:intro-wave`)
 
@@ -291,6 +347,11 @@ coordinates `aₙ = ⟪sₙ, w⟫`, `bₙ = ⟪fₙ, v⟫`.  Modes count from `0
 | "the observation is bounded on `X`" | `hasSum_waveSystem_C` (`C x = ∑ qₙ aₙ = ⟪q, w⟫`), `norm_waveSystem_C_le` | `Examples/Wave/Spaces` |
 | `hyp:H1`, `hyp:H2`, `hyp:compat` | `waveSystem_H1`, `waveSystem_H2` (every horizon, from `T = 2/c`), `waveSystem_compat` | `Examples/Wave/System`, `Examples/Wave/Spaces` |
 | Section 7: the wave group is not analytic | `waveSystem_not_isAnalytic`, `Rotation.not_isAnalytic` | `Examples/Wave/System`, `Semigroup/Rotation` |
+| the dictionary to `L²(0, 1)`: the sine basis | `SineBasis.sinBasis : HilbertBasis ℕ ℝ (L2 ℝ 1)` (`sₙ = √2 sin((n + 1)πξ)`), `SineBasis.inner_sinBasis` (`⟪sₙ, f⟫ = ∫₀¹ sₙ f`), `SineBasis.hasDerivAt_sinFun`, `SineBasis.integral_sinFun_mul_deriv` | `Analysis/SineBasis` |
+| the dictionary: `H¹₀(0, 1)` and `H⁻¹(0, 1)` | `Sobolev01.H10` (mean-zero classes `φ'`, the function `h10Fun φ = ∫₀^· φ'`, `exists_H10`), `Sobolev01.Hm1 = StrongDual ℝ H10` (the dual norm, Hilbert through Riesz), `Sobolev01.riesz : H10 ≃ₗᵢ[ℝ] Hm1` (`-∂_ξξ` in weak form), `Sobolev01.hm1Basis` (`(n + 1)π sₙ`) | `Analysis/Sobolev01` |
+| the dictionary: the `H⁻¹` norm in sine coefficients, `L² ↪ H⁻¹` | `Sobolev01.hasSum_norm_sq` (`‖ℓ‖² = ∑ₙ ℓ(sₙ)² / ((n + 1)π)²`), `Sobolev01.hasSum_norm_embed_sq`, `Sobolev01.embed`, `norm_embed_le`, `injective_embed`, `denseRange_embed` | `Analysis/Sobolev01` |
+| the dictionary: `H⁻¹` with the norm `c⁻¹‖·‖` and `fₙ = ωₙ sₙ` | `PDE.smul_hm1Basis`, `PDE.norm_eq_inv_mul_norm_smul`, `PDE.scaledInner_freq_smul`, `PDE.hasSum_scaledInner_sq` | `Examples/Wave/PDE` |
+| `ex:intro-wave` on `L²(0, 1) × H⁻¹(0, 1)` | `PDE.waveSystemL2 c q = waveSystem sinBasis hm1Basis c q`, `PDE.waveSystemL2_C` (`C x = ∫₀¹ q w`), `PDE.waveSystemL2_Lop`, `PDE.waveSystemL2_A_domain` (`D(A) = H¹₀ × L²`), `PDE.waveSystemL2_A_apply` (`A (φ, v) = (c v, c ∂_ξξ φ)`), `PDE.waveSystemL2_Bstar` (`B⋆η = ζ'(0)`, `-ζ'' = η₂`, Dirichlet), `PDE.exists_isDirichletH2_of_mem_adjoint_domain`; `PDE.exists_wave_L2` | `Examples/Wave/PDE`, `Analysis/Sobolev01` |
 
 ### The proofs of the cited theorems
 
@@ -406,20 +467,33 @@ semigroup, `H¹(0, 1)` or contour integrals.
   statement reads it on `t ≥ 0` only.  The heat example numbers its modes from `0`, as the paper
   does (`λ₀ = 0`, `e₀ = 1`): the paper's `eₙ` is `e n`.  Its input index `k ≥ 1` is `k + 1` in
   `heatInput`, so `heatFreq k = 1 + 1/(k + 2)` is the paper's `ω_{k+1}`.
-* **Trace class: nuclear representations.**
+* **Trace class: nuclear representations, and `tr |T| < ∞`.**
   `TraceClass.IsTraceClass T` means `T = ∑ₙ aₙ ⊗ bₙ`, convergent in operator norm, with
   `∑ₙ ‖aₙ‖ ‖bₙ‖ < ∞`, where `a ⊗ b = ⟪b, ·⟫ • a` (`InnerProductSpace.rankOne`).
   `TraceClass.trace T = ∑ᵢ ⟪eᵢ, T eᵢ⟫` in a Hilbert basis `stdHilbertBasis` chosen once; for a
   trace-class `T` the same sum is obtained in every Hilbert basis (`IsTraceClass.hasSum_trace`)
-  and equals `∑ₙ ⟪bₙ, aₙ⟫` for every representation (`trace_eq_tsum_of_hasSum`).  The
-  definition needs no `|T|`, which Mathlib provides (`CFC.abs`) only in complex C⋆-algebras.  It
-  is validated in finite dimension, where every operator is trace class and the trace is
-  `LinearMap.trace` (`trace_eq_linearMap_trace`), and by `trace (a ⊗ b) = ⟪b, a⟫`.  Its
-  equivalence with the textbook definition `tr |T| < ∞` for general `T` needs polar decomposition
-  and is not formalised.  The paper needs it only for the Gramian, which is nonnegative, so
-  `|𝒢(z)| = 𝒢(z)`: `hasSum_re_inner_gramian` states the textbook condition directly,
-  `∑ᵢ ⟪eᵢ, 𝒢(z) eᵢ⟫ = ∫ ‖z‖² < ∞` with nonnegative terms in every Hilbert basis.  The names live in the namespace `TraceClass`, apart from Mathlib's
-  `LinearMap.trace`.
+  and equals `∑ₙ ⟪bₙ, aₙ⟫` for every representation (`trace_eq_tsum_of_hasSum`).  The definition
+  is validated in finite dimension (`trace_eq_linearMap_trace`) and by `trace (a ⊗ b) = ⟪b, a⟫`,
+  and it is the textbook one (`Analysis/TraceClassAbs`): `T` is trace class iff
+  `∑ᵢ ⟪bᵢ, |T| bᵢ⟫ < ∞` in every Hilbert basis (nonnegative terms), iff `|T|` is trace class, and
+  `tr |T|` is the nuclear norm, the least `∑ₙ ‖aₙ‖ ‖bₙ‖` over all representations, attained
+  (`isTraceClass_iff_summable_realAbs`, `isLeast_nuclearSums_realAbs`, and the `cfcAbs`
+  versions).  On a complex Hilbert space `|T|` is Mathlib's `CFC.abs T`.  Mathlib has no `|T|` on
+  real Hilbert spaces and no polar decomposition, so `Analysis/PolarDecomposition` builds both:
+  `realAbs T` is the restriction to `X ⊆ X_ℂ` of `(T_ℂ† T_ℂ)^{1/2}`, which commutes with the
+  conjugation by uniqueness of the positive square root; it is the unique positive square root
+  of `T† T` (`realAbs_unique`).  The polar part sends `|T| x ↦ T x`, extends by continuity to
+  `closure (range |T|)` and by `0` to its orthogonal complement; it is a partial isometry with
+  `T = U |T|` and `U† T = |T|`.  A trace-class `T` has `|T| = U† T` trace class; conversely a
+  summable diagonal makes `|T|^{1/2}` Hilbert–Schmidt, so `|T| = (|T|^{1/2})† |T|^{1/2}` and
+  `T = U |T|` are trace class.  The nuclear-norm identity needs no singular value decomposition:
+  `T = ∑ⱼ U |T|^{1/2} fⱼ ⊗ |T|^{1/2} fⱼ` in any Hilbert basis `f` attains `tr |T|`.  Lean does not
+  synthesise the `CFC` instances on `Complexification X →L[ℂ] Complexification X` (it fails on
+  `IsScalarTower ℝ (X_ℂ →L[ℂ] X_ℂ) (X_ℂ →L[ℂ] X_ℂ)`), so the real construction uses
+  `sqrtOp A`, which is `CFC.sqrt A` by definition with only Hilbert-space instance arguments.
+  For the Gramian, `|𝒢(z)| = 𝒢(z)` (`realAbs_gramian`), and the equivalence specialises to
+  `hasSum_re_inner_gramian`.  The names live in the namespace `TraceClass`, apart from Mathlib's
+  `LinearMap.trace` and `CFC.abs`.
 * **Modal models.**  The heat equation is built in eigenfunction coordinates.  `X`
   is any real Hilbert space with a Hilbert basis `e : HilbertBasis ℕ ℝ X`, and `A` generates the
   diagonal semigroup with the Neumann eigenvalues `λₙ = -(nπ)²`.  `X₋₁` is `ℓ²` in the
@@ -445,12 +519,31 @@ semigroup, `H¹(0, 1)` or contour integrals.
   (with `V = X₋₁`, `hyp:H2` fails for some `q ∈ L²`).  `hyp:H1` and `hyp:H2` are proved at
   `T = 2/c` by Bessel's inequality and its dual for `cos(ωₙ·)` and `sin(ωₙ·)`, which are
   orthogonal on `(0, 2/c]` because `ωₙ = c(n + 1)π`; no Ingham inequality is needed.
+  The dictionary to functions on `(0, 1)` is formalised in `Analysis/SineBasis`,
+  `Analysis/Sobolev01` and `Examples/Wave/PDE`.  `sₙ = √2 sin((n + 1)πξ)` is a Hilbert basis of
+  `L2 ℝ 1` (`sinBasis`; complete by integration by parts against the cosine basis: if `f ⊥ sₙ`
+  for all `n`, then `F = ∫₀^· f` is orthogonal to every `e_{n+1}`, hence constant, hence `0`).
+  `H¹₀(0, 1)` is modelled by derivatives: `H10` is the closed subspace of mean-zero classes of
+  `L²(0, 1)`, and `φ : H10` stands for the function `h10Fun φ = ∫₀^· φ` with the norm `‖φ'‖_{L²}`,
+  so the coercion `H10 → L2 ℝ 1` is the derivative; every `x ∈ H¹` with `x(0) = x(1) = 0`
+  arises (`exists_H10`).  `H⁻¹(0, 1)` is literally the dual `Hm1 = StrongDual ℝ H10` with its
+  dual norm, made a Hilbert space by `⟪ℓ, ℓ'⟫ = ⟪riesz⁻¹ ℓ, riesz⁻¹ ℓ'⟫`, where
+  `riesz : H10 ≃ₗᵢ[ℝ] Hm1` is the Dirichlet Laplacian `-∂_ξξ` in weak form.
+  `waveSystemL2 c q = waveSystem sinBasis hm1Basis c q` takes `X₂ = Hm1` with its own norm and
+  the basis `hm1Basis n = (n + 1)π sₙ`; the factor `c⁻¹` of the paper's velocity norm sits in the
+  identification of the state instead of in a type (which would need `c > 0` at the type level):
+  the velocity of `(w, x₂)` is `∂ₜw = c • x₂`, and `x₂ ↦ c • x₂` is an isometry onto `H⁻¹` with
+  the norm `c⁻¹‖·‖` that sends `hm1Basis n` to the paper's `fₙ = ωₙ sₙ`.  With this,
+  `C x = ∫₀¹ q w`; `D(A) = H¹₀ × L²` with `A (φ, v) = (c v, c ∂_ξξ φ)`, which is the paper's
+  `A (w, v) = (v, c² ∂_ξξ w)` in the velocity `c • x₂`; and on `D(A⋆)`, `B⋆η = ζ'(0)` for the
+  solution `ζ ∈ H¹₀ ∩ H²` of `-ζ'' = c • η.snd`.
 * **Graph-norm spaces.**  Every new Hilbert space is a closed submodule of a
   `WithLp 2` product, as `C0Semigroup.Extrap` is.  `D(A)` with the graph norm is the graph of
   `A` (`C0Semigroup.Dom`, with the restricted semigroup `domSemigroup`); it is the `W` of the
   heat example (`W = D(A_V)`) and of the delay example (`W = D(A)`).  The heat `V` is the graph
   of `z ↦ C S(·) z` in `WithLp 2 (X₋₁ × L²(0, 1))`.
-* **The heat `V`: the scalar observation norm.**  The paper (`eq:heat-localized-V`) measures
+* **The heat `V`: the scalar observation norm (modal model).**  The paper
+  (`eq:heat-localized-V`) measures
   the orbit `χ S(t) z` in `H¹(0, 1)`, with
   a cut-off `χ` near `ξ₀` and the weight `e^{-2t}` on `(0, ∞)`.  The formalisation observes the
   orbit at `ξ₀` instead: `‖z‖²_V = ‖z‖²_{X₋₁} + ∫₀¹ |C S(t) z|² dt`.  This needs neither
@@ -461,9 +554,34 @@ semigroup, `H¹(0, 1)` or contour integrals.
   `hyp:H1`, tested on `u = ε^{-1/2} 1_{[T-ε, T]}`, gives `∑_{n ≤ N} wₙ ≲ N²`.  Since
   `cₙ² = 2 cos²(nπξ₀)` does not decay, the inequality between arithmetic and harmonic means
   makes the two incompatible on dyadic blocks (the borderline case `H^{1/2}`).
+* **The heat `V`: the paper's localised norm.**  `Examples/Heat/Localized*` formalise
+  `eq:heat-localized-V` literally on `X = L²(0, 1)` with the cosine basis; the modal model with
+  the scalar norm (`exists_boundaryHeat`, `exists_boundaryHeat_L2`) is kept, and the localised
+  spaces give `exists_boundaryHeat_loc`.  For `z ∈ X₋₁` and `t > 0`, `orbit z t` is the smooth
+  function `S(t) z`, and `F_z(t) = e^{-t} χ S(t) z ∈ H¹(0, 1)` is recorded as the pair
+  `e^{-t} ([χ S(t) z], [∂_ξ (χ S(t) z)]) ∈ L²(0, 1) × L²(0, 1)` (`orbitH χ t`), so that
+  `‖F_z(t)‖² = e^{-2t} ‖χ S(t) z‖²_{H¹(0, 1)}` with `‖f‖²_{H¹} = ∫₀¹ f² + ∫₀¹ (f')²` (`H1sq`).
+  `V χ` is the closed graph `{(z, F) : F = F_z a.e. on (0, ∞)}` in
+  `WithLp 2 (Xm1 × L²(0, ∞; L² × L²))`, and `norm_V_sq_eq` states
+  `‖z‖²_V = ‖z‖²_{X₋₁} + ∫₀^∞ e^{-2t} ‖χ S(t) z‖²_{H¹(0, 1)} dt`.  `S_V(s)(z, F) = (S(s) z, e^s F(· + s))`
+  is strongly continuous by continuity of right translations in `L²(0, ∞)`; `W = D(A_V)` carries
+  the graph norm.  The cut-off is only assumed `C¹` with `tsupport χ ⊆ (0, 1)` (`Cutoff`), which
+  every `χ ∈ C_c^∞(0, 1)` satisfies (`exists_smooth_cutoff` builds one equal to `1` near `ξ₀`);
+  `exists_boundaryHeat_loc` assumes the paper's `χ = 1` near `ξ₀`, of which only `χ(ξ₀) = 1` is
+  used.  `C` and `hyp:H2` are transported rather than rebuilt: since `χ(0) = 0` and `χ(ξ₀) = 1`,
+  `(S(t) z)(ξ₀) = ∫₀^{ξ₀} ∂_ξ(χ S(t) z)`, so `|C S(t) z| ≤ eᵗ ‖F_z(t)‖` (`abs_orbit_le`), the
+  localised norm dominates the scalar one, and `J : V χ → V_scalar`, `JW : W χ → W_scalar` are
+  continuous; `C = C_scalar ∘ JW` equals `w ↦ w(ξ₀)` on `D(A) = H²_N`.  The paper uses the time
+  trace of `F_w ∈ H¹(0, ∞; H¹)` and `H¹ ↪ C[0, 1]` instead; that `D(A)` is dense in `W` (which
+  would make `C` the unique continuous extension) is not formalised.  `hyp:H1` follows the
+  paper: `χ S(s) A_{X,-1} L_T u` is the convolution of `u` with `q'(s + T - ·)`, and `q'` and
+  `∂_ξ q'` are bounded uniformly on `(0, ∞) × [d_χ, 1)` (`exists_abs_kernelDeriv_le_unif`: image
+  series for `τ < 1`, modal series for `τ ≥ 1`), a pointwise strengthening of
+  `eq:heat-separated-kernel`; `b ∈ V` follows from `b = S(1) b - A_{X,-1} L_1 1`.
 * **The delay class.**  The paper's `L`, `M` and `C` are
   bounded operators on `C([-h, 0]; ℝⁿ)`, i.e. given by matrix measures, with a neutral term
-  `M`.  The formalisation covers retarded systems, `M = 0`.  `L x_t = ∑ₖ Aₖ x(t - hₖ) + L_d x_t`
+  `M`.  `Examples/Delay` covers retarded systems, `M = 0`; `Examples/NeutralDelay` adds the
+  neutral term (next bullets).  `L x_t = ∑ₖ Aₖ x(t - hₖ) + L_d x_t`
   and `C x_t = ∑ₖ Cₖ x(t - h'ₖ) + C_d x_t` have finitely many point delays in `[0, h]` and
   distributed parts `L_d`, `C_d` that are arbitrary bounded operators on the `L²` history.  This
   contains the kernel form `∫_{-h}^0 A_d(θ) x(t + θ) dθ` with `A_d ∈ L²` (`Delay.kernelOp`), and
@@ -476,6 +594,34 @@ semigroup, `H¹(0, 1)` or contour integrals.
   defined on `L²` classes, so `C` is defined on the graph,
   `C (v, A v) = ∑ₖ Cₖ (v₁ - ∫_{(h - h'ₖ, h]} (A v)₂) + C_d v₂`, which is the paper's output on
   `D(A)` (`Model.Cop_apply`).
+* **The neutral delay class.**  `NeutralDelay.Equation` extends the retarded `Delay.Equation`
+  (the same `L`) by `M x_t = ∑ₖ Mₖ x(t - mₖ) + M_d x_t` with finitely many point delays
+  `mₖ ∈ (0, h]` and `M_d` an arbitrary bounded operator on the `L²` history.  Strict positivity of
+  the `mₖ` is the paper's "the measure representing `M` has no mass at `0`".  `M_d` needs no
+  smallness condition: any bounded operator on `L²(0, h; E)` contributes `‖M_d‖ / √(2γ)` to the
+  weighted norm (Tonelli).  `L`, `M` and `C` are instances of the common shape `DelayOp`
+  (`∑ₖ Pₖ φ(-δₖ) + D φ`).
+* **Solutions of the neutral equation.**  Solutions are only square integrable, so the solution
+  concept is the integral form `x(t) = M x_t + r + ∫₀ᵗ (L x_s + f)` for a.e. `t ∈ (0, τ]` with
+  `x ∈ L²(0, τ)` (`Equation.IsSolOn`), where `r = x(0) - M x_0`; the first state component
+  `prim = r + ∫₀ᵗ (L x_s + f)` is continuous.  Picard iteration with `Kⁿ tⁿ / n!` bounds does not
+  apply (the neutral term is not an integral); instead `1 - 𝒦`, `𝒦 x = M x_· + ∫₀^· L x_s ds` with
+  zero history, is invertible on `L²(0, τ)`: in the weighted norm
+  `‖x‖_γ² = ∫₀^τ e^{-2γt} ‖x(t)‖²` the point delays of `M` contribute `‖Mₖ‖ e^{-γ mₖ}`, `M_d`
+  contributes `‖M_d‖ / √(2γ)` and the integral `O(1/√γ)`, so `‖𝒦ⁿ‖ < 1` for some `n`.  The
+  solution for all times (`Equation.sol`) is glued from the solutions on `(0, n + 1]` and assumes
+  a locally integrable forcing.  Regularity (`H¹` history `g` with the compatible
+  `r = g(h) - M g`) solves the differentiated equation `y = M y_· + L (∫₀^· y)_· + w'` in `L²` and
+  integrates.
+* **The neutral state space and semigroup.**  The state is `(x(t) - M x_t, x_t)` in
+  `Delay.State h E`, as in the paper (Burns–Herdman–Stech 1983).  `D(A) = {(g(h) - M g, g)}`, so
+  the first component of a domain element is not a point value of the history; `C` on
+  `W = D(A)` recovers the point values from `(v₂, (A v)₂) = (g, g')` by the bounded `H¹` point
+  evaluation `g(a) = h⁻¹ ∫₀ʰ g + ∫₀ʰ g' - h⁻¹ ∫₀ʰ ∫₀^σ g' - ∫_{(a, h]} g'` (`pointEval_eq`,
+  `Model.evalOp`).  `hyp:compat` is trivial and `B = (B₀, 0)` is bounded.  Unboundedness of `C`
+  on `X` (`Model.not_exists_bound_C`) is proved when no neutral delay equals the output delay
+  `θ`; otherwise the first state component of the one-bump test functions does not tend to `0`,
+  and a two-bump argument (not formalised) would be needed.
 
 ### The cited theorems, now proved
 
@@ -773,6 +919,9 @@ The statements are unchanged; only the arguments differ.  Each entry names the p
     graph-norm bound follows from the closed graph theorem.
   * Unboundedness of `C` on `X`: smooth bumps `φ_ε e` centred at `h - θ` have `L²` norm
     `O(√ε)` while `C` maps them to `(∑_{h'ₖ = θ} Cₖ) e + O(√ε)`.
+  * Neutral case (`Examples/NeutralDelay`): a contraction in the weighted `L²` norm replaces the
+    Picard iteration, regularity comes from the differentiated equation, and `hyp:H1` follows as
+    in the retarded case (strong solution, Ball, closed graph).
 * **`prop:fattorini-hautus`.**  The paper cites the theorem;
   the formalisation's proof is contour-free.  It needs no Laplace representation of
   `B^⋆ R(z, A^⋆)`, no analytic continuation in `z`, and no Riesz projections or theory of
@@ -838,22 +987,13 @@ changed with it.
 ## What is not formalised
 
 * **Section 7** (numerics).
-* **The wave example's dictionary to functions on `(0, 1)`.**  `ex:intro-wave` is formalised in
-  modal coordinates (see the modelling choices); that `sₙ` is a Hilbert basis of `L²(0, 1)`, the
-  `H⁻¹` norm in sine coefficients, and the function form of `B^⋆` are not formalised.
-* **Neutral delay systems and general measures** (`ex:intro-delay`).  The neutral term `M ≠ 0`
-  needs the well-posedness theory of neutral equations (Burns–Herdman–Stech 1983), and general
-  matrix measures for `L` and `C` would need the Riesz representation on `C([-h, 0])`.  Only
-  retarded systems with point delays and distributed parts bounded on `L²` are formalised (see
-  the modelling choices).
-* **The `χ`-localised `H¹` norm and a general diffusivity.**  The heat example on `L²(0, 1)` is
-  formalised (`Examples/Heat/PDE`: cosine basis, Neumann Laplacian, point evaluation, boundary
-  trace), but the paper's `χ`-localised `H¹` norm (`eq:heat-localized-V`) and a general
-  diffusivity `ν` are not.
-* **The equivalence of the nuclear trace class with `tr |T| < ∞` for general operators**, which
-  needs polar decomposition.  The Gramian's trace-class claim does not depend on it: for the
-  nonnegative `𝒢(z)` the textbook condition is proved directly (see the modelling choices).
-<!-- * The sentence after `lem:informative-gramian` that the converse "fails in general", which
-  makes no precise claim.  Items that are commented out in the paper's source
-  (`rmk:counterexample-analytic`, `cor:lqr-regulators-agree`, `rmk:lqr-riccati-data`) are not
-  part of the paper and are not formalised. -->
+* **General measures in the delay example** (`ex:intro-delay`).  `L`, `M` and `C` have finitely
+  many point delays and distributed parts bounded on the `L²` history; general matrix measures
+  would need the Riesz representation on `C([-h, 0])`.  In the neutral case, unboundedness of
+  `C` on `X` is proved only when no neutral delay equals the output delay (see the modelling
+  choices).
+* **A general diffusivity `ν`** in the heat example.  The paper's `ex:boundary-heat-informative`
+  takes `ν = 1`, as the formalisation does.
+<!-- Items that are commented out in the paper's source (`rmk:counterexample-analytic`,
+  `cor:lqr-regulators-agree`, `rmk:lqr-riccati-data`) are not part of the paper and are not
+  formalised. -->

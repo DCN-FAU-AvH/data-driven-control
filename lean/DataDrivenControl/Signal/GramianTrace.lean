@@ -26,7 +26,8 @@ so `M` is Hilbert–Schmidt (`TraceClass.isHilbertSchmidt_analysisOp`) and
 * `trace_gramian`: `TraceClass.trace (gramian 𝕜 μ z) = ∫ ‖z t‖² ∂μ`;
 * `hasSum_inner_gramian`, `hasSum_re_inner_gramian`: the textbook form — `∑ᵢ ⟪eᵢ, 𝒢(z) eᵢ⟫ = ∫ ‖z‖²`
   in every Hilbert basis, with nonnegative terms.  As `𝒢(z) ≥ 0`, `|𝒢(z)| = 𝒢(z)` and this is
-  `tr |𝒢(z)| < ∞`, without polar decomposition.
+  `tr |𝒢(z)| < ∞` directly.  The general equivalence of the trace class with `tr |T| < ∞` is
+  `Analysis/TraceClassAbs` (`TraceClass.hasSum_inner_realAbs_gramian` restates this with `|𝒢(z)|`).
 
 As in `Signal/Gramian`, the Gramian needs `[NormedSpace ℝ E]`; the trace needs `[CompleteSpace E]`.
 -/
@@ -217,7 +218,7 @@ theorem trace_gramian (hz : MemLp z 2 μ) :
 /-- `eq:hilbert-gramian` in the textbook form of the trace class: in **every** Hilbert basis `e`,
 the diagonal sum `∑ᵢ ⟪eᵢ, 𝒢(z) eᵢ⟫` converges to `∫ ‖z‖²`.  Since `𝒢(z)` is nonnegative and
 self-adjoint (`isPositive_gramian`), `|𝒢(z)| = 𝒢(z)`, so this is the condition `tr |𝒢(z)| < ∞`;
-no polar decomposition is needed for the Gramian. -/
+the general equivalence of `Analysis/TraceClassAbs` is not needed for the Gramian. -/
 theorem hasSum_inner_gramian (hz : MemLp z 2 μ) {ι : Type*} (e : HilbertBasis ι 𝕜 E) :
     HasSum (fun i => ⟪e i, gramian 𝕜 μ z (e i)⟫_𝕜) ((∫ t, ‖z t‖ ^ 2 ∂μ : ℝ) : 𝕜) := by
   rw [← trace_gramian hz]

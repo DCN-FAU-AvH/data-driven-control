@@ -22,8 +22,7 @@ Paper: `eq:hilbert-gramian`, `eq:gramian-kernel`, `rmk:gramian-not-coercive`,
 * `gramian_injective_iff_coercive`: in finite dimensions injectivity is equivalent to
   coercivity (`rmk:gramian-not-coercive`).
 
-The trace-class assertion of `eq:hilbert-gramian` is not formalised (Mathlib has no trace class;
-the paper does not use it).
+The trace-class assertion of `eq:hilbert-gramian` is proved in `Signal/GramianTrace`.
 
 The Bochner integral needs a real structure on `E`; it is the hypothesis `[NormedSpace ℝ E]`,
 automatic for `𝕜 = ℝ` and `𝕜 = ℂ` (Mathlib's pattern, `Real.isScalarTower` makes it compatible).

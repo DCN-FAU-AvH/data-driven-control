@@ -32,6 +32,15 @@ Paper: `ex:boundary-heat-informative` (`informativity.tex`), `app:boundary-heat-
 The paper takes `χ ∈ C_c^∞(0, 1)` equal to one near `ξ₀`.  The construction needs `χ ∈ C¹` with
 `supp χ ⊆ (0, 1)` (`Cutoff`), and the observation only uses `χ(ξ₀) = 1`; `exists_boundaryHeat_loc`
 takes the paper's hypothesis `χ =ᶠ[𝓝 ξ₀] 1`.
+
+## Deviation from the paper
+
+The paper obtains `C ∈ L(W, ℝ)` from the time trace of `F_w ∈ H¹(0, ∞; H¹(0, 1))` and the
+embedding `H¹(0, 1) ↪ C[0, 1]`.  Here `C` is the observation of `Examples/Heat/System` transported
+through `W ↪ W_scalar`; it is continuous on `W` and is the point evaluation at `ξ₀` on
+`D(A) = H²_N(0, 1)`.  `hyp:H2` is transported in the same way.  The modal data `heatData hξ₀`
+and `heatModal` share their eigenvalues; the resulting identities (`heatData_Sm`, `heatData_SX`,
+`heatData_toXm1`) are proved through `eig`.
 -/
 
 @[expose] public section
@@ -118,18 +127,45 @@ theorem memLp_obs (v : V χ) : MemLp ((heatData hξ₀).obs (fstV χ v)) 2 (μI 
   exact (abs_orbit_le χ hξ₀ hχ ht.1 _).trans
     (mul_le_mul_of_nonneg_right (Real.exp_le_exp.2 ht.2) (norm_nonneg _))
 
+/-- Additivity of `V ↪ V_scalar` on the `X₋₁` component. -/
+theorem Jlin_add (v w : V χ) :
+    (heatData hξ₀).fstV ((heatData hξ₀).mkV (fstV χ (v + w)) (memLp_obs hξ₀ χ hχ (v + w))) =
+      (heatData hξ₀).fstV ((heatData hξ₀).mkV (fstV χ v) (memLp_obs hξ₀ χ hχ v) +
+        (heatData hξ₀).mkV (fstV χ w) (memLp_obs hξ₀ χ hχ w)) := by
+  rw [map_add (heatData hξ₀).fstV, ModalData.fstV_mkV, ModalData.fstV_mkV, ModalData.fstV_mkV,
+    map_add]
+
+/-- Homogeneity of `V ↪ V_scalar` on the `X₋₁` component. -/
+theorem Jlin_smul (r : ℝ) (v : V χ) :
+    (heatData hξ₀).fstV ((heatData hξ₀).mkV (fstV χ (r • v)) (memLp_obs hξ₀ χ hχ (r • v))) =
+      (heatData hξ₀).fstV (r • (heatData hξ₀).mkV (fstV χ v) (memLp_obs hξ₀ χ hχ v)) := by
+  rw [map_smul (heatData hξ₀).fstV, ModalData.fstV_mkV, ModalData.fstV_mkV, map_smul]
+
 /-- `V ↪ V_scalar`, as a linear map. -/
 def Jlin : V χ →ₗ[ℝ] (heatData hξ₀).V where
   toFun v := (heatData hξ₀).mkV (fstV χ v) (memLp_obs hξ₀ χ hχ v)
-  map_add' v w := (heatData hξ₀).V_ext (by simp)
-  map_smul' r v := (heatData hξ₀).V_ext (by simp)
+  map_add' v w := (heatData hξ₀).V_ext (Jlin_add hξ₀ χ hχ v w)
+  map_smul' r v := (heatData hξ₀).V_ext (Jlin_smul hξ₀ χ hχ r v)
+
+/-- `Jlin v = (z, C S(·) z)`. -/
+theorem Jlin_apply (v : V χ) :
+    Jlin hξ₀ χ hχ v = (heatData hξ₀).mkV (fstV χ v) (memLp_obs hξ₀ χ hχ v) := rfl
+
+/-- `Jlin` is the identity on `X₋₁`. -/
+theorem fstV_Jlin (v : V χ) : (heatData hξ₀).fstV (Jlin hξ₀ χ hχ v) = fstV χ v := by
+  rw [Jlin_apply, ModalData.fstV_mkV]
 
 /-- **`V ↪ V_scalar`**: the identity on `X₋₁`, bounded by the closed graph theorem. -/
 def J : V χ →L[ℝ] (heatData hξ₀).V :=
-  ⟨Jlin hξ₀ χ hχ, (heatData hξ₀).continuous_of_fstV (Jlin hξ₀ χ hχ) (fstV χ) fun _ => rfl⟩
+  ⟨Jlin hξ₀ χ hχ, (heatData hξ₀).continuous_of_fstV (Jlin hξ₀ χ hχ) (fstV χ)
+    (fstV_Jlin hξ₀ χ hχ)⟩
+
+/-- `J v = Jlin v`. -/
+theorem J_apply (v : V χ) : J hξ₀ χ hχ v = Jlin hξ₀ χ hχ v := rfl
 
 /-- `J` is the identity on `X₋₁`. -/
-@[simp] theorem fstV_J (v : V χ) : (heatData hξ₀).fstV (J hξ₀ χ hχ v) = fstV χ v := rfl
+@[simp] theorem fstV_J (v : V χ) : (heatData hξ₀).fstV (J hξ₀ χ hχ v) = fstV χ v := by
+  rw [J_apply, fstV_Jlin]
 
 /-- `J ∘ ιV = ιV_scalar`. -/
 theorem J_ιV (x : L2 ℝ 1) : J hξ₀ χ hχ (ιV χ x) = (heatData hξ₀).ιV cosBasis x :=
@@ -141,8 +177,12 @@ theorem consistent_J : C0Semigroup.Consistent (J hξ₀ χ hχ) (SV χ) (heatDat
     rw [fstV_J, fstV_SV, (heatData hξ₀).fstV_SV, fstV_J, heatData_Sm])
 
 /-- `J b = b`. -/
-theorem J_ctrlV : J hξ₀ χ hχ (ctrlV χ) = (heatData hξ₀).ctrlV :=
-  (heatData hξ₀).V_ext (ext_Xm1 fun _ => rfl)
+theorem J_ctrlV : J hξ₀ χ hχ (ctrlV χ) = (heatData hξ₀).ctrlV := by
+  refine (heatData hξ₀).V_ext ?_
+  rw [fstV_J, ctrlV, fstV_mkV, ControlData.ctrlV, ModalData.fstV_mkV]
+  refine ext_Xm1 fun n => ?_
+  rw [ctrlVec_apply, ControlData.ctrlVec_apply, heatData_wt]
+  rfl
 
 /-- `J (D(A_V)) ⊆ D(A_{V_scalar})`. -/
 theorem J_mem_domain (w : W χ) :
@@ -325,7 +365,7 @@ theorem heatSystemLoc_C_unbounded :
     rw [← heatData_SX hξ₀]; exact hw'
   obtain ⟨w, hw⟩ := exists_ιW_eq χ hw''
   have hJ : JW hξ₀ χ hχ w = w' := (heatData hξ₀).ιW_injective cosBasis (by
-    rw [ιW_JW, hw]; rfl)
+    rw [ιW_JW, hw])
   have h := hK w (by rw [heatSystemLoc_ιW, hw]; exact hw'')
   rw [← hJ]
   show ‖(heatData hξ₀).C (JW hξ₀ χ hχ w)‖ ≤ K * ‖(heatData hξ₀).ιW cosBasis (JW hξ₀ χ hχ w)‖
@@ -463,16 +503,16 @@ theorem heatSystemLoc_TFAE {T T' : ℝ} (hT : 0 < T) (hT' : 0 < T') :
 /-- **`ex:boundary-heat-informative`, (ii)**: `(ū, x̄)` is informative in `U × W` for every
 `x̄₀ ∈ W`. -/
 theorem heatSystemLoc_informative {T : ℝ} (hT : 0 < T) (w₀ : W χ) :
-    Informative T heatInput ((heatSystemLoc hξ₀ χ hχ).mildW w₀ heatInput) :=
-  ((heatSystemLoc_TFAE hξ₀ χ hχ hT one_pos).out 1 2).1
-    (heatSystemLoc_approxControllable hξ₀ χ hχ hT) w₀
+    Informative T heatInput ((heatSystemLoc hξ₀ χ hχ).mildW w₀ heatInput) := by
+  have h := (heatSystemLoc_TFAE hξ₀ χ hχ hT one_pos).out 1 2
+  exact h.1 (heatSystemLoc_approxControllable hξ₀ χ hχ hT) w₀
 
 /-- **`ex:boundary-heat-informative`, (iii)**: `(ū, x̄)` is window informative for every
 `x̄₀ ∈ X`. -/
 theorem heatSystemLoc_windowInformative {T T' : ℝ} (hT : 0 < T) (hT' : 0 < T') (x₀ : L2 ℝ 1) :
-    WindowInformative T T' heatInput ((heatSystemLoc hξ₀ χ hχ).mild x₀ heatInput) :=
-  ((heatSystemLoc_TFAE hξ₀ χ hχ hT hT').out 1 3).1
-    (heatSystemLoc_approxControllable hξ₀ χ hχ hT) x₀
+    WindowInformative T T' heatInput ((heatSystemLoc hξ₀ χ hχ).mild x₀ heatInput) := by
+  have h := (heatSystemLoc_TFAE hξ₀ χ hχ hT hT').out 1 3
+  exact h.1 (heatSystemLoc_approxControllable hξ₀ χ hχ hT) x₀
 
 /-! ### The example with the paper's spaces -/
 

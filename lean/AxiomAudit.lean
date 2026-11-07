@@ -19,6 +19,12 @@ public import DataDrivenControl.LQR.RiccatiExistence
 public import DataDrivenControl.LQR.RiccatiIntegral
 public import DataDrivenControl.Examples.Delay.Unbounded
 public import DataDrivenControl.Examples.Wave.System
+public import DataDrivenControl.Analysis.TraceClassAbs
+public import DataDrivenControl.Examples.Heat.LocalizedSystem
+public import DataDrivenControl.Examples.NeutralDelay.Unbounded
+public import DataDrivenControl.Examples.NeutralDelay.Retarded
+public import DataDrivenControl.Examples.Wave.PDE
+public import DataDrivenControl.Examples.InformativityConverse
 
 /-!
 # Axiom audit
@@ -48,12 +54,36 @@ open DataDrivenControl
 #print axioms gramian_injective_iff_coercive
 #print axioms ker_gramian_eq_orthogonal_cspan
 #print axioms System.informative_of_windowInformative
+-- Remark after lem:informative-gramian: the converse fails
+#print axioms InformativityConverse.exists_informative_not_informativeW
+#print axioms InformativityConverse.not_forall_informativeW_of_informative
+#print axioms InformativityConverse.informative_X
+#print axioms InformativityConverse.informative_mild
+#print axioms InformativityConverse.not_informative_W
+#print axioms InformativityConverse.ae_eq_zero_of_moments_eq_zero
 
 -- Section 3.1: the Gramian is trace class (eq:hilbert-gramian)
 #print axioms isTraceClass_gramian
 #print axioms trace_gramian
 #print axioms hasSum_inner_gramian
 #print axioms hasSum_re_inner_gramian
+-- trace class = tr |T| < ∞ (polar decomposition), and |𝒢(z)| = 𝒢(z)
+#print axioms TraceClass.polar_decomposition_cfcAbs
+#print axioms TraceClass.polar_decomposition_realAbs
+#print axioms TraceClass.cfcAbs_unique
+#print axioms TraceClass.realAbs_unique
+#print axioms TraceClass.complexify_realAbs
+#print axioms TraceClass.isTraceClass_iff_summable_cfcAbs
+#print axioms TraceClass.isTraceClass_iff_isTraceClass_cfcAbs
+#print axioms TraceClass.isLeast_nuclearSums_cfcAbs
+#print axioms TraceClass.isTraceClass_iff_summable_realAbs
+#print axioms TraceClass.isTraceClass_iff_isTraceClass_realAbs
+#print axioms TraceClass.trace_realAbs_le
+#print axioms TraceClass.isLeast_nuclearSums_realAbs
+#print axioms TraceClass.isTraceClass_complexify_iff
+#print axioms TraceClass.trace_complexify
+#print axioms TraceClass.realAbs_gramian
+#print axioms TraceClass.hasSum_inner_realAbs_gramian
 
 -- Section 3.3–3.5: persistency of excitation, harmonic excitation, analytic sufficiency
 #print axioms persistentlyExciting_iff_injective_gramian
@@ -98,6 +128,27 @@ open DataDrivenControl
 #print axioms BoundaryHeat.PDE.heatSystemL2_C
 #print axioms BoundaryHeat.PDE.heatSystemL2_Bstar
 #print axioms BoundaryHeat.PDE.exists_boundaryHeat_L2
+-- the paper's localised V (eq:heat-localized-V)
+#print axioms BoundaryHeat.Localized.exists_boundaryHeat_loc
+#print axioms BoundaryHeat.Localized.exists_smooth_cutoff
+#print axioms BoundaryHeat.Localized.exists_abs_kernelDeriv_le_unif
+#print axioms BoundaryHeat.Localized.kernelDerivX_eq_tsum
+#print axioms BoundaryHeat.Localized.norm_orbitH_sq_eq
+#print axioms BoundaryHeat.Localized.integral_H1sq_orbit
+#print axioms BoundaryHeat.Localized.norm_V_sq_eq
+#print axioms BoundaryHeat.Localized.exists_fstV_eq_iff
+#print axioms BoundaryHeat.Localized.SV
+#print axioms BoundaryHeat.Localized.denseRange_ιV
+#print axioms BoundaryHeat.Localized.range_ιW
+#print axioms BoundaryHeat.Localized.exists_control_bound_loc
+#print axioms BoundaryHeat.Localized.heatSystemLoc_H1
+#print axioms BoundaryHeat.Localized.heatSystemLoc_H2
+#print axioms BoundaryHeat.Localized.heatSystemLoc_compat
+#print axioms BoundaryHeat.Localized.heatSystemLoc_C
+#print axioms BoundaryHeat.Localized.heatSystemLoc_Bstar
+#print axioms BoundaryHeat.Localized.heatSystemLoc_C_unbounded
+#print axioms BoundaryHeat.Localized.heatSystemLoc_informative
+#print axioms BoundaryHeat.Localized.heatSystemLoc_windowInformative
 
 -- Example of the introduction: the delay system with delayed output (ex:intro-delay, M = 0)
 #print axioms Delay.kernelOp_apply
@@ -118,6 +169,25 @@ open DataDrivenControl
 #print axioms Delay.Model.not_exists_bound_C
 #print axioms Delay.Model.not_exists_bound_C_of_ne_zero
 
+-- Example of the introduction: the neutral delay system (ex:intro-delay, M ≠ 0)
+#print axioms NeutralDelay.isUnit_one_sub_of_wnorm_le
+#print axioms NeutralDelay.wnorm_window_le
+#print axioms NeutralDelay.Equation.isUnit_opK
+#print axioms NeutralDelay.Equation.isSolOn_sol
+#print axioms NeutralDelay.Equation.IsSolOn.ae_eq
+#print axioms NeutralDelay.Equation.norm_solL_le
+#print axioms NeutralDelay.Equation.IsSolOn.exists_hasWeakDeriv
+#print axioms NeutralDelay.Equation.semigroup
+#print axioms NeutralDelay.Equation.mem_generator_domain_iff
+#print axioms NeutralDelay.Equation.generator_apply
+#print axioms NeutralDelay.Equation.semigroup_eq_of_M_eq_zero
+#print axioms NeutralDelay.Model.Cop_apply
+#print axioms NeutralDelay.Model.ιW_L
+#print axioms NeutralDelay.Model.H1
+#print axioms NeutralDelay.Model.H2
+#print axioms NeutralDelay.Model.compat
+#print axioms NeutralDelay.Model.not_exists_bound_C
+
 -- Example of the introduction: the wave equation with Dirichlet control (ex:intro-wave)
 #print axioms Rotation.rotGroup
 #print axioms Rotation.adjoint_rotGroup
@@ -136,6 +206,18 @@ open DataDrivenControl
 #print axioms Wave.waveSystem_B_apply_not_mem_range
 #print axioms Wave.waveSystem_not_isAnalytic
 #print axioms Wave.exists_wave
+-- the dictionary to L²(0, 1) × H⁻¹(0, 1)
+#print axioms SineBasis.sinBasis
+#print axioms Sobolev01.hasSum_norm_sq
+#print axioms Sobolev01.hasSum_norm_embed_sq
+#print axioms Sobolev01.denseRange_embed
+#print axioms Sobolev01.exists_isDirichletH2_toH10
+#print axioms Wave.PDE.hasSum_scaledInner_sq
+#print axioms Wave.PDE.waveSystemL2_C
+#print axioms Wave.PDE.waveSystemL2_Bstar
+#print axioms Wave.PDE.waveSystemL2_A_domain
+#print axioms Wave.PDE.waveSystemL2_A_apply
+#print axioms Wave.PDE.exists_wave_L2
 
 -- Section 4: fundamental lemmas
 #print axioms System.hasWeakDeriv_mildW
