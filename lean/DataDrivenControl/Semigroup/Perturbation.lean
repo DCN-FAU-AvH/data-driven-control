@@ -415,10 +415,6 @@ theorem generator_perturb (P : X →L[ℝ] X) :
   refine (S.perturb P).generator_apply_eq hx ?_
   exact ((hQ x).add (S.tendsto_generator ⟨x, hy⟩)).congr fun h => by abel
 
-theorem generator_perturb_domain (P : X →L[ℝ] X) :
-    (S.perturb P).generator.domain = S.generator.domain := by
-  rw [generator_perturb]; rfl
-
 /-- `A† + P† ⊆ (A + P)†`: every `η ∈ D(A†)` lies in the domain of the adjoint of the perturbed
 generator, where it acts as `A† η + P† η`. -/
 theorem exists_adjoint_perturb (P : X →L[ℝ] X) {η : X} (hη : η ∈ S.generator.adjoint.domain) :

@@ -22,8 +22,8 @@ paper, complex in Sections 3.5 and 5) and an arbitrary measure `μ` on the time 
 * monotonicity in the measure and the window: `annihilator_mono_measure`,
   `annihilator_restrict_mono`, `annihilator_μI_mono` and the `cspan_…` versions; invariance under
   a.e. equality (`annihilator_congr`, `cspan_congr`);
-* Bochner integrals: `integral_mem_of_ae_mem` (an integral of a function with values a.e. in a
-  closed subspace lies in it) and `integral_smul_mem_cspan` (`∫ φ z ∈ cspan z`);
+* `integral_mem_of_ae_mem`: a Bochner integral of a function with values a.e. in a closed
+  subspace lies in it;
 * images under continuous linear maps: `orthogonal_map_eq_comap_adjoint`
   (`(T K)ᗮ = (T†)⁻¹ Kᗮ`), `annihilator_comp` (`ζ` annihilates `T ∘ z` iff `T† ζ` annihilates
   `z`), `cspan_comp` (`cspan (T ∘ z) = closure (T (cspan z))`) and, for bounded-below `T`,
@@ -135,19 +135,10 @@ theorem cspan_congr (h : z =ᵐ[μ] w) : cspan 𝕜 μ z = cspan 𝕜 μ w := by
 theorem annihilator_mono_measure (h : ν ≪ μ) : annihilator 𝕜 μ z ≤ annihilator 𝕜 ν z :=
   fun _ hζ => h.ae_le hζ
 
-/-- The closed span grows with the measure (e.g. with the window). -/
-theorem cspan_mono_measure (h : ν ≪ μ) : cspan 𝕜 ν z ≤ cspan 𝕜 μ z :=
-  Submodule.orthogonal_le (annihilator_mono_measure h)
-
 /-- Restricting to a smaller set makes annihilating easier. -/
 theorem annihilator_restrict_mono {s s' : Set α} (hs : s ⊆ s') :
     annihilator 𝕜 (μ.restrict s') z ≤ annihilator 𝕜 (μ.restrict s) z :=
   annihilator_mono_measure (Measure.absolutelyContinuous_of_le (Measure.restrict_mono hs le_rfl))
-
-/-- Restricting to a smaller set shrinks the closed span. -/
-theorem cspan_restrict_mono {s s' : Set α} (hs : s ⊆ s') :
-    cspan 𝕜 (μ.restrict s) z ≤ cspan 𝕜 (μ.restrict s') z :=
-  Submodule.orthogonal_le (annihilator_restrict_mono hs)
 
 /-- Annihilating on a longer window `(0, T']` is harder. -/
 theorem annihilator_μI_mono {z : ℝ → E} {T T' : ℝ} (h : T ≤ T') :
@@ -232,13 +223,6 @@ theorem integral_mem_of_ae_mem {K : Submodule 𝕜 E} (hK : IsClosed (K : Set E)
     exact Submodule.inner_left_of_mem_orthogonal ht hζ
   · rw [integral_undef hfi]
     exact K.zero_mem
-
-/-- Weighted averages of an a.e. strongly measurable signal lie in its closed span. -/
-theorem integral_smul_mem_cspan (hz : AEStronglyMeasurable z μ) (φ : α → 𝕜) :
-    ∫ t, φ t • z t ∂μ ∈ cspan 𝕜 μ z := by
-  refine integral_mem_of_ae_mem isClosed_cspan ?_
-  filter_upwards [ae_mem_cspan (𝕜 := 𝕜) hz] with t ht
-  exact Submodule.smul_mem _ _ ht
 
 end Integral
 

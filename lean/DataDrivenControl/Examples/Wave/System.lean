@@ -34,7 +34,6 @@ assumptions, and its operators are those of the PDE in modal form.
   on `X`: `B u ∉ X` for `u ≠ 0`) and `norm_waveSystem_C_le`
   (`C` is bounded on `X`, automatic since `W = X`).
 * `waveSystem_not_isAnalytic`: the wave group is not analytic (Section 7).
-* `exists_wave`: **`ex:intro-wave`** in existential form.
 -/
 
 @[expose] public section
@@ -304,40 +303,6 @@ theorem waveSystem_not_isAnalytic (hc : c ≠ 0) : ¬ (waveSystem s f c q).SX.Is
   have h0 : (c * Real.pi) ^ 2 = 0 :=
     tendsto_nhds_unique tendsto_const_nhds hs.tendsto_atTop_zero
   exact hc ((mul_eq_zero.1 ((pow_eq_zero_iff two_ne_zero).1 h0)).resolve_right Real.pi_ne_zero)
-
-/-! ### The paper's statement -/
-
-/-- **`ex:intro-wave`** (existential form): on `X = X₁ × X₂` (the modal model of
-`L²(0, 1) × H⁻¹(0, 1)`, Hilbert bases `s` and `f`, modes numbered from `0`) there are a Hilbert
-space `V` and a system on `W = X ↪ V` whose semigroup is the block-rotation group with
-`ωₙ = c (n + 1) π`, whose input-to-state map has the modal coordinates of the Dirichlet-controlled
-wave equation (`aₙ' = ωₙ bₙ`, `bₙ' = -ωₙ aₙ + c √2 u`), with `B⋆ η = ∑ₙ c √2 bₙ(η)` on `D(A⋆)`
-and `C x = ∑ₙ qₙ aₙ`, such that `hyp:H1`, `hyp:H2` (every horizon) and `hyp:compat` hold, `B` is
-unbounded on `X` (`B u ∉ X` for `u ≠ 0`), `C` is bounded on `X`, and the semigroup is not
-analytic. -/
-theorem exists_wave (hc : 0 < c) :
-    ∃ (V : Type) (_ : NormedAddCommGroup V) (_ : InnerProductSpace ℝ V) (_ : CompleteSpace V)
-      (sys : System ℝ (WithLp 2 (X₁ × X₂)) (WithLp 2 (X₁ × X₂)) V ℝ),
-      sys.ιW = ContinuousLinearMap.id ℝ _ ∧
-      sys.SX = Rotation.rotGroup s f (freq c) ∧
-      (∀ (T : ℝ) (u : L2 ℝ T) (n : ℕ),
-        ⟪s n, (sys.Lop T u).fst⟫_ℝ =
-            c * Real.sqrt 2 * ∫ r in Ioc 0 T, Real.sin (freq c n * (T - r)) * u r ∧
-          ⟪f n, (sys.Lop T u).snd⟫_ℝ =
-            c * Real.sqrt 2 * ∫ r in Ioc 0 T, Real.cos (freq c n * (T - r)) * u r) ∧
-      (∀ (η : WithLp 2 (X₁ × X₂)) (hη : η ∈ sys.A.adjoint.domain),
-        HasSum (fun n => c * Real.sqrt 2 * ⟪f n, η.snd⟫_ℝ) (sys.Bstar ⟨η, hη⟩)) ∧
-      (∀ x, HasSum (fun n => ⟪s n, q⟫_ℝ * ⟪s n, x.fst⟫_ℝ) (sys.C x)) ∧
-      (∀ T, sys.H1 T) ∧ (∀ T, sys.H2 T) ∧ sys.Compat ∧
-      (∀ u : ℝ, u ≠ 0 → sys.B u ∉ Set.range sys.ιV) ∧
-      (∀ x, ‖sys.C x‖ ≤ ‖q‖ * ‖sys.ιW x‖) ∧
-      ¬ sys.SX.IsAnalytic :=
-  ⟨Vsp, inferInstance, inferInstance, inferInstance, waveSystem s f c q, rfl, rfl,
-    fun _ u n => inner_waveSystem_Lop s f c q hc u n,
-    fun _ hη => hasSum_waveSystem_Bstar s f c q hc hη, hasSum_waveSystem_C s f c q,
-    waveSystem_H1 s f c q hc, waveSystem_H2 s f c q hc, waveSystem_compat s f c q,
-    fun _ hu => waveSystem_B_apply_not_mem_range s f c q hc.ne' hu, norm_waveSystem_C_le s f c q,
-    waveSystem_not_isAnalytic s f c q hc.ne'⟩
 
 end Wave
 

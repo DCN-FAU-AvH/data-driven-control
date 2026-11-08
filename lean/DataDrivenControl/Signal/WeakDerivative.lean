@@ -18,13 +18,12 @@ the weak ODE arguments of `app:pe-necessity` (Step 4) and `app:window-pe-necessi
 
 ## Main statements
 
-* `HasWeakDeriv.integral_deriv_smul`: `∫ φ' • x = -∫ φ • g` for test functions `φ`, and its
-  converse `hasWeakDeriv_iff` (for `x` continuous on `[0, T]`); `HasWeakDeriv.derivMoment_succ`;
+* `HasWeakDeriv.integral_deriv_smul`: `∫ φ' • x = -∫ φ • g` for test functions `φ`;
+  `HasWeakDeriv.derivMoment_succ`;
 * `HasWeakDeriv.ae_eq`: uniqueness of the weak derivative;
 * `HasWeakDeriv.smul`: product rule with a `C¹` scalar function;
 * `exists_ae_eq_const_of_integral_deriv_smul_eq_zero`: du Bois-Reymond;
-* variation of constants for `ẋ = a x + f`, real (`HasWeakDeriv.eq_exp_smul_add_integral`) and
-  complex (`HasWeakDeriv.eq_cexp_smul_add_integral`), and the converse;
+* variation of constants for `ẋ = a x + f`, `a ∈ ℂ` (`HasWeakDeriv.eq_cexp_smul_add_integral`);
 * `ae_eq_sum_exp_of_polyDerivMoment_eq_zero`: a weak solution of `p(D) w = 0`, `p` with distinct
   real roots `ρₙ`, is `∑ κₙ e^{ρₙ t}`;
 * `eq_zero_of_sum_iteratedDeriv_smul_eq_zero`: a compactly supported smooth solution of a
@@ -37,8 +36,6 @@ open MeasureTheory Set Filter Topology Polynomial
 open scoped ContDiff InnerProductSpace ENNReal
 
 noncomputable section
-
-set_option autoImplicit false
 
 set_option linter.unusedSectionVars false
 
@@ -482,32 +479,6 @@ theorem exists_ae_eq_of_integral_deriv_smul (hx : Integrable x (μI T))
   rw [← ht]
   abel
 
-/-- For `x` continuous on `[0, T]` and `g ∈ L²`, the integral form of `H¹` is equivalent to the
-weak form `-∫ φ' • x = ∫ φ • g` for all test functions (`app:willems-gramian`, Step 3). -/
-theorem hasWeakDeriv_iff (hx : ContinuousOn x (Icc 0 T)) (hg : MemLp g 2 (μI T)) :
-    HasWeakDeriv T x g ↔ ∀ φ, IsTestFunction T φ → ∫ t, deriv φ t • x t = -∫ t, φ t • g t := by
-  refine ⟨fun hxg φ hφ => hxg.integral_deriv_smul hφ, fun h => ⟨hg, fun t ht => ?_⟩⟩
-  have hgi : Integrable g (μI T) := hg.integrable one_le_two
-  have hxi : Integrable x (μI T) := (memLp_of_continuousOn (p := 1) hx).integrable le_rfl
-  obtain ⟨c, hc⟩ := exists_ae_eq_of_integral_deriv_smul hxi hgi h
-  have hT : 0 ≤ T := ht.1.trans ht.2
-  rcases hT.eq_or_lt with hT0 | hT0
-  · have : t = 0 := by
-      have := ht.2
-      rw [← hT0] at this
-      exact le_antisymm this ht.1
-    subst this
-    simp
-  have hEq : EqOn x (fun t => c + ∫ s in 0..t, g s) (Icc 0 T) := by
-    have hc' : x =ᵐ[volume.restrict (Icc 0 T)] fun t => c + ∫ s in 0..t, g s := by
-      rw [Measure.restrict_congr_set Ioc_ae_eq_Icc.symm]
-      exact hc
-    exact Measure.eqOn_of_ae_eq hc' hx (continuousOn_const.add (continuousOn_primitive hgi))
-      (by simp [interior_Icc, closure_Ioo hT0.ne])
-  have h0 := hEq ⟨le_rfl, hT0.le⟩
-  simp only [intervalIntegral.integral_same, add_zero] at h0
-  rw [hEq ht, h0]
-
 /-! ### Scalar constant-coefficient ODEs -/
 
 private theorem hasDerivAt_exp_mul (c t : ℝ) :
@@ -517,27 +488,6 @@ private theorem hasDerivAt_exp_mul (c t : ℝ) :
 private theorem hasDerivAt_cexp_mul (c : ℂ) (t : ℝ) :
     HasDerivAt (fun t : ℝ => Complex.exp (c * (t : ℂ))) (Complex.exp (c * (t : ℂ)) * c) t := by
   simpa using (((hasDerivAt_id t).ofReal_comp).const_mul c).cexp
-
-/-- Variation of constants (real): an `H¹` solution of `ẋ = a x + f` is
-`x t = e^{a t} x 0 + ∫₀ᵗ e^{a (t - s)} f s ds` on `[0, T]`. -/
-theorem HasWeakDeriv.eq_exp_smul_add_integral {a : ℝ} {f : ℝ → E}
-    (hx : HasWeakDeriv T x (fun t => a • x t + f t)) :
-    ∀ t ∈ Icc 0 T,
-      x t = Real.exp (a * t) • x 0 + ∫ s in 0..t, Real.exp (a * (t - s)) • f s := by
-  have hz := hx.smul (𝕜 := ℝ) (a := fun t => Real.exp (-a * t))
-    (a' := fun t => Real.exp (-a * t) * (-a)) (hasDerivAt_exp_mul (-a)) (by fun_prop)
-  intro t ht
-  have h1 := hz.eq_add_integral t ht
-  have e : ∀ s, (Real.exp (-a * s) * (-a)) • x s + Real.exp (-a * s) • (a • x s + f s) =
-      Real.exp (-a * s) • f s := fun s => by module
-  simp only [e, mul_zero, Real.exp_zero, one_smul] at h1
-  have hx' : x t = Real.exp (a * t) • (Real.exp (-a * t) • x t) := by
-    rw [smul_smul, ← Real.exp_add, show a * t + -a * t = 0 by ring, Real.exp_zero, one_smul]
-  rw [hx', h1, smul_add, ← intervalIntegral.integral_smul]
-  congr 1
-  refine intervalIntegral.integral_congr fun s _ => ?_
-  simp only [smul_smul, ← Real.exp_add]
-  ring_nf
 
 /-- Variation of constants (real), converse: the formula defines an `H¹` solution of
 `ẋ = a x + f`. -/
@@ -564,14 +514,6 @@ theorem hasWeakDeriv_exp_smul_add_integral {a : ℝ} {f : ℝ → E} (hf : MemLp
   rw [mul_comm, mul_smul, hid, smul_smul, ← Real.exp_add,
     show a * t + -a * t = 0 by ring, Real.exp_zero, one_smul]
 
-/-- An `H¹` solution of `ẋ = a x` is `e^{a t} x 0` on `[0, T]`. -/
-theorem HasWeakDeriv.eq_exp_smul {a : ℝ} (hx : HasWeakDeriv T x (fun t => a • x t)) :
-    ∀ t ∈ Icc 0 T, x t = Real.exp (a * t) • x 0 := by
-  have hx' : HasWeakDeriv T x (fun t => a • x t + (fun _ => (0 : E)) t) :=
-    hx.congr (fun _ _ => rfl) (ae_of_all _ fun t => by simp)
-  intro t ht
-  simpa using hx'.eq_exp_smul_add_integral (f := fun _ => (0 : E)) t ht
-
 /-- Variation of constants (complex `a`). -/
 theorem HasWeakDeriv.eq_cexp_smul_add_integral [NormedSpace ℂ E] [IsScalarTower ℝ ℂ E]
     {a : ℂ} {f : ℝ → E} (hx : HasWeakDeriv T x (fun t => a • x t + f t)) :
@@ -595,37 +537,6 @@ theorem HasWeakDeriv.eq_cexp_smul_add_integral [NormedSpace ℂ E] [IsScalarTowe
   simp only [smul_smul, ← Complex.exp_add]
   push_cast
   ring_nf
-
-/-- Variation of constants (complex `a`), converse. -/
-theorem hasWeakDeriv_cexp_smul_add_integral [NormedSpace ℂ E] [IsScalarTower ℝ ℂ E]
-    {a : ℂ} {f : ℝ → E} (hf : MemLp f 2 (μI T)) (x₀ : E) :
-    HasWeakDeriv T
-      (fun t => Complex.exp (a * (t : ℂ)) • x₀ +
-        ∫ s in 0..t, Complex.exp (a * ((t - s : ℝ) : ℂ)) • f s)
-      (fun t => a • (Complex.exp (a * (t : ℂ)) • x₀ +
-        ∫ s in 0..t, Complex.exp (a * ((t - s : ℝ) : ℂ)) • f s) + f t) := by
-  have hz : HasWeakDeriv T (fun t => x₀ + ∫ s in 0..t, Complex.exp (-a * (s : ℂ)) • f s)
-      (fun t => Complex.exp (-a * (t : ℂ)) • f t) :=
-    ⟨memLp_smul_of_continuousOn
-      (by fun_prop : Continuous fun t : ℝ => Complex.exp (-a * (t : ℂ))).continuousOn hf,
-      fun t _ => by simp⟩
-  have h2 := hz.smul (𝕜 := ℂ) (a := fun t : ℝ => Complex.exp (a * (t : ℂ)))
-    (a' := fun t : ℝ => Complex.exp (a * (t : ℂ)) * a) (hasDerivAt_cexp_mul a) (by fun_prop)
-  have hid : ∀ t : ℝ, Complex.exp (a * (t : ℂ)) •
-      (x₀ + ∫ s in 0..t, Complex.exp (-a * (s : ℂ)) • f s) =
-      Complex.exp (a * (t : ℂ)) • x₀ +
-        ∫ s in 0..t, Complex.exp (a * ((t - s : ℝ) : ℂ)) • f s := by
-    intro t
-    rw [smul_add, ← intervalIntegral.integral_smul]
-    congr 1
-    refine intervalIntegral.integral_congr fun s _ => ?_
-    simp only [smul_smul, ← Complex.exp_add]
-    push_cast
-    ring_nf
-  refine h2.congr (fun t _ => hid t) (ae_of_all _ fun t => ?_)
-  simp only
-  rw [mul_comm, mul_smul, hid, smul_smul, ← Complex.exp_add,
-    show a * (t : ℂ) + -a * (t : ℂ) = 0 by ring, Complex.exp_zero, one_smul]
 
 /-- A complex `H¹` solution of `ẏ = a y` is `e^{a t} y 0` on `[0, T]`
 (`app:data-fattorini-hautus`, `eq:data-fh-exponential`). -/

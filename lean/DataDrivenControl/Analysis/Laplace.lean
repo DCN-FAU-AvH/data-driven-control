@@ -12,8 +12,7 @@ Mathlib has `mellin` but no Laplace transform; the substitution `x = e^{-r}` tur
 into Laplace only for functions with power bounds at `0` and `∞`, which is the wrong class here
 (locally integrable functions of exponential growth), so the transform is set up directly.
 
-All functions take values in a complex Banach space `E`; operator-valued functions
-`f : ℝ → E →L[ℂ] F` are the special case `E := E →L[ℂ] F` (see `laplace_apply`).
+All functions take values in a complex Banach space `E`.
 
 ## Main definitions
 
@@ -26,19 +25,16 @@ All functions take values in a complex Banach space `E`; operator-valued functio
 * `LaplaceIntegrable.integrableOn`: absolute convergence on the closed half-plane `σ ≤ Re s`;
   `laplaceIntegrable_of_le_exp`: locally integrable functions with `‖f r‖ ≤ C e^{σ₀ r}` for
   large `r` are Laplace integrable at every `σ > σ₀`;
-* linearity, `laplace_comp_comm` (commutation with bounded linear maps), `laplace_apply`;
+* `laplace_comp_comm`: commutation with bounded linear maps;
 * `tendsto_intervalIntegral_laplace`, `tendsto_setIntegral_Ioc_laplace`: the transform is the
   limit of the truncated integrals `∫₀ᵗ`;
-* `hasDerivAt_laplace`, `differentiableOn_laplace`, `analyticOnNhd_laplace`: holomorphy on the
-  open half-plane `σ < Re s`, with derivative `-𝓛(r f)`;
-* `tendsto_laplace_atTop`: `𝓛 f x → 0` as the real variable `x → ∞`;
+* `hasDerivAt_laplace`: holomorphy on the open half-plane `σ < Re s`, with derivative
+  `-𝓛(r f)`;
 * uniqueness: `ae_eq_zero_of_integral_Ioi_cexp_smul_nat_eq_zero` (on any half-line `(a, ∞)`,
   vanishing at `σ + n` for all `n : ℕ`), `ae_eq_zero_of_integral_Ioi_cexp_smul_eventually_eq_zero`
   (vanishing at all large real abscissae), and for `laplace`:
-  `ae_eq_zero_of_laplace_nat_eq_zero`, `ae_eq_zero_of_laplace_eventually_eq_zero`,
-  `ae_eq_zero_of_laplace_eq_zero`, `ae_eq_zero_of_laplace_frequently_eq_zero` (zeros with an
-  accumulation point in the half-plane), `ae_eq_of_laplace_eq`, and the weak forms
-  `ae_eq_zero_of_laplace_comp_eq_zero`, `ae_eq_zero_of_laplace_inner_eq_zero`.
+  `ae_eq_zero_of_laplace_eventually_eq_zero`, `ae_eq_zero_of_laplace_eq_zero`, and the weak form
+  `ae_eq_zero_of_laplace_inner_eq_zero`.
 
 The uniqueness proof avoids any change of variables: with `x(r) = e^{-(r-a)}`, the hypothesis
 says that `∫ p(x(r)) e^{-σ r} f r dr = 0` for every real polynomial `p`; a test function `g`
@@ -53,8 +49,6 @@ open MeasureTheory Set Filter Topology
 open scoped Complex Real InnerProductSpace
 
 noncomputable section
-
-set_option autoImplicit false
 
 namespace DataDrivenControl
 
@@ -225,46 +219,11 @@ private theorem LaplaceIntegrable.aestronglyMeasurable_smul {f : ℝ → E} {σ 
 
 /-! ### Algebraic properties -/
 
-/-- The transform only depends on `f` a.e. on `(0, ∞)`. -/
-theorem laplace_congr_ae {f g : ℝ → E} (hfg : f =ᵐ[volume.restrict (Ioi 0)] g) :
-    laplace f = laplace g := by
-  funext s
-  exact integral_congr_ae (hfg.mono fun r hr ↦ by simp only [hr])
-
-/-- The transform is additive on Laplace integrable functions. -/
-theorem laplace_add {f g : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f σ)
-    (hg : LaplaceIntegrable g σ) {s : ℂ} (hs : σ ≤ s.re) :
-    laplace (fun r ↦ f r + g r) s = laplace f s + laplace g s := by
-  simp only [laplace, smul_add]
-  exact integral_add (hf.integrableOn hs) (hg.integrableOn hs)
-
-/-- The transform commutes with negation. -/
-theorem laplace_neg (f : ℝ → E) (s : ℂ) : laplace (fun r ↦ -f r) s = -laplace f s := by
-  simp only [laplace, smul_neg, integral_neg]
-
-/-- The transform is subtractive on Laplace integrable functions. -/
-theorem laplace_sub {f g : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f σ)
-    (hg : LaplaceIntegrable g σ) {s : ℂ} (hs : σ ≤ s.re) :
-    laplace (fun r ↦ f r - g r) s = laplace f s - laplace g s := by
-  simp only [laplace, smul_sub]
-  exact integral_sub (hf.integrableOn hs) (hg.integrableOn hs)
-
-/-- The transform commutes with scalar multiplication. -/
-theorem laplace_const_smul (c : ℂ) (f : ℝ → E) (s : ℂ) :
-    laplace (fun r ↦ c • f r) s = c • laplace f s := by
-  simp only [laplace, smul_comm _ c, integral_smul]
-
 /-- The transform commutes with bounded linear maps (e.g. `⟨η, ·⟩` in
 `eq:analytic-transfer-laplace`). -/
 theorem laplace_comp_comm [CompleteSpace E] [CompleteSpace F] (L : E →L[ℂ] F) {f : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f σ)
     {s : ℂ} (hs : σ ≤ s.re) : laplace (fun r ↦ L (f r)) s = L (laplace f s) := by
   simp only [laplace, ← L.integral_comp_comm (hf.integrableOn hs), map_smul]
-
-/-- The operator-valued case: the transform of `f : ℝ → E →L[ℂ] F` acts pointwise. -/
-theorem laplace_apply {f : ℝ → E →L[ℂ] F} {σ : ℝ} (hf : LaplaceIntegrable f σ) {s : ℂ}
-    (hs : σ ≤ s.re) (v : E) : laplace f s v = laplace (fun r ↦ f r v) s := by
-  rw [laplace, ContinuousLinearMap.integral_apply (hf.integrableOn hs) v]
-  rfl
 
 /-! ### Truncation -/
 
@@ -338,39 +297,6 @@ theorem hasDerivAt_laplace {f : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f 
       _ ≤ ε⁻¹ * (Real.exp (-(σ * r)) * ‖f r‖) := by
           gcongr
           exact mul_exp_neg_le_inv hε r
-
-/-- The transform is holomorphic on the open half-plane `σ < Re s`. -/
-theorem differentiableOn_laplace {f : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f σ) :
-    DifferentiableOn ℂ (laplace f) {s : ℂ | σ < s.re} :=
-  fun _ hs ↦ (hasDerivAt_laplace hf hs).differentiableAt.differentiableWithinAt
-
-/-- The transform is analytic on the open half-plane `σ < Re s`. -/
-theorem analyticOnNhd_laplace [CompleteSpace E] {f : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f σ) :
-    AnalyticOnNhd ℂ (laplace f) {s : ℂ | σ < s.re} :=
-  (differentiableOn_laplace hf).analyticOnNhd
-    (isOpen_lt continuous_const Complex.continuous_re)
-
-/-- The transform tends to `0` along the real axis. -/
-theorem tendsto_laplace_atTop {f : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f σ) :
-    Tendsto (fun x : ℝ ↦ laplace f x) atTop (𝓝 0) := by
-  have key := tendsto_integral_filter_of_dominated_convergence (μ := volume.restrict (Ioi 0))
-    (l := atTop) (F := fun (x : ℝ) (r : ℝ) ↦ cexp (-(x * r)) • f r) (f := fun _ ↦ (0 : E))
-    (fun r ↦ ‖cexp (-(σ * r)) • f r‖) ?_ ?_ (Integrable.norm hf) ?_
-  · simpa [laplace] using key
-  · exact Eventually.of_forall fun x ↦ hf.aestronglyMeasurable_smul (by fun_prop)
-  · filter_upwards [eventually_ge_atTop σ] with x hx
-    refine ae_restrict_of_forall_mem measurableSet_Ioi fun r hr ↦ ?_
-    rw [norm_smul, norm_smul, norm_cexp_neg_mul, norm_cexp_neg_mul, Complex.ofReal_re,
-      Complex.ofReal_re]
-    gcongr
-    exact le_of_lt hr
-  · refine ae_restrict_of_forall_mem measurableSet_Ioi fun r hr ↦ ?_
-    rw [tendsto_zero_iff_norm_tendsto_zero]
-    simp_rw [norm_smul, norm_cexp_neg_mul, Complex.ofReal_re]
-    have : Tendsto (fun x : ℝ ↦ Real.exp (-(x * r))) atTop (𝓝 0) :=
-      Real.tendsto_exp_atBot.comp (tendsto_neg_atTop_atBot.comp
-        (tendsto_id.atTop_mul_const hr))
-    simpa using this.mul_const ‖f r‖
 
 /-! ### Uniqueness -/
 
@@ -501,11 +427,6 @@ theorem ae_eq_zero_of_integral_Ioi_cexp_smul_eventually_eq_zero {f : ℝ → E} 
   push_cast at this
   exact this
 
-/-- Uniqueness of the Laplace transform from its values at `σ + n`, `n : ℕ`. -/
-theorem ae_eq_zero_of_laplace_nat_eq_zero {f : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f σ)
-    (h : ∀ n : ℕ, laplace f (σ + n) = 0) : f =ᵐ[volume.restrict (Ioi 0)] 0 :=
-  ae_eq_zero_of_integral_Ioi_cexp_smul_nat_eq_zero hf h
-
 /-- Uniqueness of the Laplace transform: vanishing for all large real `s` forces `f = 0`
 a.e. on `(0, ∞)`. -/
 theorem ae_eq_zero_of_laplace_eventually_eq_zero {f : ℝ → E} {σ : ℝ}
@@ -519,36 +440,6 @@ theorem ae_eq_zero_of_laplace_eq_zero {f : ℝ → E} {σ : ℝ} (hf : LaplaceIn
     (h : ∀ s : ℂ, σ < s.re → laplace f s = 0) : f =ᵐ[volume.restrict (Ioi 0)] 0 :=
   ae_eq_zero_of_laplace_eventually_eq_zero hf
     ((eventually_gt_atTop σ).mono fun x hx ↦ h x (by simpa using hx))
-
-/-- Uniqueness of the Laplace transform from zeros accumulating at a point of the half-plane
-`σ < Re s` (identity theorem). -/
-theorem ae_eq_zero_of_laplace_frequently_eq_zero {f : ℝ → E} {σ : ℝ}
-    (hf : LaplaceIntegrable f σ) {z₀ : ℂ} (hz₀ : σ < z₀.re)
-    (h : ∃ᶠ z in 𝓝[≠] z₀, laplace f z = 0) : f =ᵐ[volume.restrict (Ioi 0)] 0 := by
-  have := (analyticOnNhd_laplace hf).eqOn_zero_of_preconnected_of_frequently_eq_zero
-    (convex_halfSpace_re_gt σ).isPreconnected hz₀ h
-  exact ae_eq_zero_of_laplace_eq_zero hf fun s hs ↦ this hs
-
-/-- Injectivity of the Laplace transform: equal transforms for all large real `s` force
-`f = g` a.e. on `(0, ∞)`. -/
-theorem ae_eq_of_laplace_eq {f g : ℝ → E} {σ : ℝ} (hf : LaplaceIntegrable f σ)
-    (hg : LaplaceIntegrable g σ) (h : ∀ᶠ x : ℝ in atTop, laplace f x = laplace g x) :
-    f =ᵐ[volume.restrict (Ioi 0)] g := by
-  have := ae_eq_zero_of_laplace_eventually_eq_zero (hf.sub hg)
-    ((h.and (eventually_ge_atTop σ)).mono fun x hx ↦ by
-      rw [laplace_sub hf hg (by simpa using hx.2), hx.1, sub_self])
-  exact this.mono fun r hr ↦ by simpa [sub_eq_zero] using hr
-
-/-- Weak uniqueness: if every scalar transform `𝓛 (L ∘ f)`, `L ∈ E'`, vanishes on the
-half-plane `σ < Re s`, then `f = 0` a.e. on `(0, ∞)`.  (No separability is needed.) -/
-theorem ae_eq_zero_of_laplace_comp_eq_zero {f : ℝ → E} {σ : ℝ}
-    (hf : LaplaceIntegrable f σ)
-    (h : ∀ L : E →L[ℂ] ℂ, ∀ s : ℂ, σ < s.re → laplace (fun r ↦ L (f r)) s = 0) :
-    f =ᵐ[volume.restrict (Ioi 0)] 0 :=
-  ae_eq_zero_of_laplace_eq_zero hf fun s hs ↦
-    SeparatingDual.eq_zero_of_forall_dual_eq_zero (R := ℂ) fun L ↦ by
-      rw [← laplace_comp_comm L hf hs.le]
-      exact h L s hs
 
 /-- Weak uniqueness in a Hilbert space: if `𝓛 ⟪v, f ·⟫` vanishes on the half-plane
 `σ < Re s` for every `v`, then `f = 0` a.e. on `(0, ∞)` (`lem:transfer-laplace`). -/

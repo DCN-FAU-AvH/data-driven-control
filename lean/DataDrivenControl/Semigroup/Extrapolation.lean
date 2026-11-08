@@ -14,11 +14,11 @@ the type `S.Extrap`.  An element `φ ∈ E₋₁` acts on `η ∈ D(A†)` throu
 * `E ↪ E₋₁`, `x ↦ Riesz⁻¹(η ↦ ⟪x, η⟫)`, is `S.toExtrap`, the Hilbert adjoint of the first
   projection `fstG : E₋₁ → E` (`inner_toExtrap_graphVec`);
 * `A₋₁ x = Riesz⁻¹(η ↦ ⟪x, A† η⟫)` is `S.genExtrap : E →L[ℝ] E₋₁`, the adjoint of the second
-  projection (`inner_genExtrap_graphVec`); it extends `A` (`genExtrap_of_mem`);
-* `toExtrap_injective`, `denseRange_toExtrap`;
+  projection (`inner_genExtrap_graphVec`);
+* `denseRange_toExtrap`;
 * `S.extrapSemigroup : C0Semigroup ℝ S.Extrap` extends `S` (`extrapSemigroup_toExtrap`,
-  `consistent_extrapSemigroup`); its generator has domain `range toExtrap` and acts as
-  `A₋₁` (`mem_extrapSemigroup_generator_domain_iff`, `extrapSemigroup_generator_toExtrap`);
+  `consistent_extrapSemigroup`); it is used only to state the control convolution in `X₋₁`
+  (`System.toExtrap_L`);
 * `integral_eq_iff_weak`, `isWeakSol_iff_extrap`: `ẋ = A₋₁ x + f` in `E₋₁` (integral form)
   is exactly the weak formulation of Ball's theorem.
 
@@ -29,12 +29,7 @@ the type `S.Extrap`.  An element `φ ∈ E₋₁` acts on `η ∈ D(A†)` throu
 * `(S t)†` preserves `D(A†)` and commutes with `A†` (`adjoint_mem_adjoint_domain_aux`,
   `generator_adjoint_apply_adjoint_aux`, proved from `S t D(A) ⊆ D(A)`), so
   `(S t)† ⊕ (S t)†` restricts to a C₀-semigroup `S.extrapU` on the graph `E₋₁`; the extended
-  semigroup is its Hilbert adjoint (`extrapSemigroup_eq_adjoint`), i.e.
-  `⟪T t φ, (η, A† η)⟫ = ⟪S t φ₁, η⟫ + ⟪S t φ₂, A† η⟫` (`inner_extrapSemigroup_graphVec`).
-* `E ⊆ D(A_{-1})`: `S h x - x = ∫₀ʰ A₋₁ S s x ds` in `E₋₁` (`toExtrap_real_apply_sub`).
-* `D(A_{-1}) ⊆ E`: `∫₀ˢ T r φ dr` is the image of the explicit element
-  `S.extrapIntegral s φ = ∫₀ˢ S r φ₁ dr + S s φ₂ - φ₂ ∈ E` (`toExtrap_extrapIntegral`), and
-  `φ = ∫₀¹ T s φ ds - ∫₀¹ (T s φ - φ) ds = ∫₀¹ T s φ ds - ∫₀¹ ∫₀ˢ T r (A_{-1} φ) dr ds`.
+  semigroup is its Hilbert adjoint (`extrapSemigroup_eq_adjoint`).
 
 For a system, `V₋₁ = sys.SV.Extrap`; `A ∈ L(X, V₋₁)` is `sys.SV.genExtrap ∘L sys.ιV`,
 `B ∈ L(U, V₋₁)` is `sys.SV.toExtrap ∘L sys.B` and the graph operator of Section 4 is
@@ -97,9 +92,6 @@ variable (S : C0Semigroup ℝ E)
 /-- The graph of `A†` as a subspace of the Hilbert space `WithLp 2 (E × E)`. -/
 def adjGraph : Submodule ℝ (WithLp 2 (E × E)) :=
   S.generator.adjoint.graph.comap (WithLp.linearEquiv 2 ℝ (E × E)).toLinearMap
-
-theorem mem_adjGraph_iff (g : WithLp 2 (E × E)) :
-    g ∈ S.adjGraph ↔ (WithLp.ofLp g) ∈ S.generator.adjoint.graph := Iff.rfl
 
 theorem isClosed_adjGraph : IsClosed (S.adjGraph : Set (WithLp 2 (E × E))) :=
   (S.generator.adjoint_isClosed S.dense_generator_domain).preimage
@@ -176,19 +168,11 @@ theorem extrap_ext {φ ψ : S.Extrap}
 
 /-! ### Basic properties of the embedding `E ↪ E₋₁` -/
 
-/-- `D(A†)` is dense (from closedness of the generator, via the graph of `A†`). -/
-theorem dense_generator_adjoint_domain : Dense (S.generator.adjoint.domain : Set E) :=
-  dense_adjoint_domain_of_isClosed S.generator_isClosed
-
 @[simp] theorem fstG_graphVec (η : S.generator.adjoint.domain) : S.fstG (S.graphVec η) = η :=
   rfl
 
 @[simp] theorem sndG_graphVec (η : S.generator.adjoint.domain) :
     S.sndG (S.graphVec η) = S.generator.adjoint η := rfl
-
-theorem fstG_apply (φ : S.Extrap) : S.fstG φ = (φ : WithLp 2 (E × E)).fst := rfl
-
-theorem sndG_apply (φ : S.Extrap) : S.sndG φ = (φ : WithLp 2 (E × E)).snd := rfl
 
 /-- The first projection `E₋₁ → E` is injective (`A† 0 = 0`). -/
 theorem fstG_injective : Function.Injective S.fstG := by
@@ -207,12 +191,6 @@ theorem inner_graphVec_genExtrap (η : S.generator.adjoint.domain) (x : E) :
     ⟪S.graphVec η, S.genExtrap x⟫_ℝ = ⟪S.generator.adjoint η, x⟫_ℝ := by
   rw [real_inner_comm, inner_genExtrap_graphVec, real_inner_comm]
 
-/-- `E ↪ E₋₁` is injective. -/
-theorem toExtrap_injective : Function.Injective S.toExtrap := by
-  refine (injective_iff_map_eq_zero S.toExtrap).2 fun x hx => ?_
-  refine S.dense_generator_adjoint_domain.eq_zero_of_inner_left ℝ fun η hη => ?_
-  rw [← S.inner_toExtrap_graphVec x ⟨η, hη⟩, hx, inner_zero_left]
-
 /-- `E` is dense in `E₋₁`. -/
 theorem denseRange_toExtrap : DenseRange S.toExtrap := by
   have h : S.toExtrap.rangeᗮ = ⊥ := by
@@ -224,13 +202,6 @@ theorem denseRange_toExtrap : DenseRange S.toExtrap := by
     convert h using 1
     ext; simp
   exact h2
-
-/-- `A₋₁` extends `A`: `A₋₁ x = A x` (in `E₋₁`) for `x ∈ D(A)`. -/
-theorem genExtrap_of_mem (x : S.generator.domain) :
-    S.genExtrap x = S.toExtrap (S.generator x) := by
-  refine S.extrap_ext fun η => ?_
-  rw [inner_genExtrap_graphVec, inner_toExtrap_graphVec, real_inner_comm,
-    LinearPMap.adjoint_isFormalAdjoint S.dense_generator_domain η x, real_inner_comm]
 
 /-! ### The extended semigroup -/
 
@@ -348,128 +319,6 @@ theorem extrapSemigroup_eq_adjoint : S.extrapSemigroup = S.extrapU.adjoint := by
   refine S.denseRange_toExtrap.equalizer (map_continuous _) (map_continuous _)
     (funext fun x => ?_)
   simp only [Function.comp_apply, extrapSemigroup_toExtrap, extrapU_adjoint_toExtrap]
-
-/-- The action of the extended semigroup on test vectors:
-`⟪T t φ, (η, A† η)⟫ = ⟪S t φ₁, η⟫ + ⟪S t φ₂, A† η⟫` for `φ = (φ₁, φ₂) ∈ E₋₁`. -/
-theorem inner_extrapSemigroup_graphVec (t : ℝ≥0) (φ : S.Extrap)
-    (η : S.generator.adjoint.domain) :
-    ⟪S.extrapSemigroup t φ, S.graphVec η⟫_ℝ =
-      ⟪S t (S.fstG φ), (η : E)⟫_ℝ + ⟪S t (S.sndG φ), S.generator.adjoint η⟫_ℝ := by
-  rw [extrapSemigroup_eq_adjoint, inner_adjoint_apply, extrapU_apply, extrapUOp_graphVec,
-    Submodule.coe_inner, WithLp.prod_inner_apply, coe_graphVec,
-    generator_adjoint_apply_adjoint_aux _ η.2]
-  simp only [adjoint_apply, ContinuousLinearMap.adjoint_inner_right, fstG_apply,
-    sndG_apply, WithLp.ofLp_fst, WithLp.ofLp_snd]
-
-/-- Real-time version of `inner_extrapSemigroup_graphVec`. -/
-theorem inner_extrapSemigroup_real_graphVec (t : ℝ) (φ : S.Extrap)
-    (η : S.generator.adjoint.domain) :
-    ⟪S.extrapSemigroup.real t φ, S.graphVec η⟫_ℝ =
-      ⟪S.real t (S.fstG φ), (η : E)⟫_ℝ + ⟪S.real t (S.sndG φ), S.generator.adjoint η⟫_ℝ :=
-  S.inner_extrapSemigroup_graphVec _ φ η
-
-/-- The weak derivative of an orbit: `⟪S s x - x, η⟫ = ∫₀ˢ ⟪S r x, A† η⟫ dr` for
-`η ∈ D(A†)` and `s ≥ 0`. -/
-theorem inner_real_apply_sub_eq_integral_inner (x : E) (η : S.generator.adjoint.domain)
-    {s : ℝ} (hs : 0 ≤ s) :
-    ⟪S.real s x - x, (η : E)⟫_ℝ = ∫ r in (0 : ℝ)..s, ⟪S.real r x, S.generator.adjoint η⟫_ℝ := by
-  have hfa := LinearPMap.adjoint_isFormalAdjoint S.dense_generator_domain η
-    ⟨_, S.integral_mem_generator_domain x hs⟩
-  rw [← S.generator_integral x hs, real_inner_comm, ← hfa,
-    inner_intervalIntegral_aux ((S.continuous_real_apply x).intervalIntegrable 0 s)]
-  exact intervalIntegral.integral_congr fun r _ => real_inner_comm _ _
-
-/-- `S s x - x = ∫₀ˢ A₋₁ S r x dr` in `E₋₁`, for every `x ∈ E` and `s ≥ 0`. -/
-theorem toExtrap_real_apply_sub (x : E) {s : ℝ} (hs : 0 ≤ s) :
-    S.toExtrap (S.real s x - x) = ∫ r in (0 : ℝ)..s, S.genExtrap (S.real r x) := by
-  refine S.extrap_ext fun η => ?_
-  have hint : IntervalIntegrable (fun r => S.genExtrap (S.real r x)) volume 0 s :=
-    (S.genExtrap.continuous.comp (S.continuous_real_apply x)).intervalIntegrable 0 s
-  rw [inner_toExtrap_graphVec, S.inner_real_apply_sub_eq_integral_inner x η hs,
-    real_inner_comm (S.graphVec η), inner_intervalIntegral_aux hint]
-  exact intervalIntegral.integral_congr fun r _ => by
-    rw [inner_graphVec_genExtrap, real_inner_comm]
-
-/-- The difference quotients of the extended semigroup at `x ∈ E` converge to `A₋₁ x`. -/
-theorem tendsto_diffQuot_extrapSemigroup (x : E) :
-    Tendsto (S.extrapSemigroup.diffQuot (S.toExtrap x)) (𝓝[>] 0) (𝓝 (S.genExtrap x)) := by
-  have hc : Continuous fun r => S.genExtrap (S.real r x) :=
-    S.genExtrap.continuous.comp (S.continuous_real_apply x)
-  have hd := (hc.integral_hasStrictDerivAt 0 0).hasDerivAt.tendsto_slope_zero_right
-  simp only [zero_add, intervalIntegral.integral_same, sub_zero, S.real_zero,
-    one_apply_eq_self] at hd
-  refine hd.congr' ?_
-  filter_upwards [self_mem_nhdsWithin] with h (hh : 0 < h)
-  rw [← S.consistent_extrapSemigroup.diffQuot S.extrapSemigroup x h, diffQuot, map_smul,
-    S.toExtrap_real_apply_sub x hh.le]
-
-/-- `E ⊆ D(A_{-1})` for the generator `A_{-1}` of the extended semigroup. -/
-theorem toExtrap_mem_extrapSemigroup_generator_domain (x : E) :
-    S.toExtrap x ∈ S.extrapSemigroup.generator.domain :=
-  S.extrapSemigroup.mem_generator_domain_of_tendsto (S.tendsto_diffQuot_extrapSemigroup x)
-
-/-- `∫₀ˢ S r φ₁ dr + S s φ₂ - φ₂ ∈ E` for `φ = (φ₁, φ₂) ∈ E₋₁`: its image in `E₋₁` is
-`∫₀ˢ T r φ dr` (`toExtrap_extrapIntegral`). -/
-def extrapIntegral (s : ℝ) (φ : S.Extrap) : E :=
-  (∫ r in (0 : ℝ)..s, S.real r (S.fstG φ)) + (S.real s (S.sndG φ) - S.sndG φ)
-
-theorem continuous_extrapIntegral (φ : S.Extrap) : Continuous fun s => S.extrapIntegral s φ :=
-  (intervalIntegral.continuous_primitive
-    (fun a b => (S.continuous_real_apply _).intervalIntegrable a b) 0).add
-    ((S.continuous_real_apply _).sub continuous_const)
-
-/-- Integrals of the extended semigroup lie in `E`: `∫₀ˢ T r φ dr = extrapIntegral s φ`. -/
-theorem toExtrap_extrapIntegral (φ : S.Extrap) {s : ℝ} (hs : 0 ≤ s) :
-    S.toExtrap (S.extrapIntegral s φ) = ∫ r in (0 : ℝ)..s, S.extrapSemigroup.real r φ := by
-  refine S.extrap_ext fun η => ?_
-  have h1 : IntervalIntegrable (fun r => S.real r (S.fstG φ)) volume 0 s :=
-    (S.continuous_real_apply _).intervalIntegrable 0 s
-  have h2 : IntervalIntegrable (fun r => S.extrapSemigroup.real r φ) volume 0 s :=
-    (S.extrapSemigroup.continuous_real_apply φ).intervalIntegrable 0 s
-  have h3 : IntervalIntegrable (fun r => ⟪(η : E), S.real r (S.fstG φ)⟫_ℝ) volume 0 s :=
-    (continuous_const.inner (S.continuous_real_apply _)).intervalIntegrable 0 s
-  have h4 : IntervalIntegrable (fun r => ⟪S.real r (S.sndG φ), S.generator.adjoint η⟫_ℝ)
-      volume 0 s :=
-    ((S.continuous_real_apply _).inner continuous_const).intervalIntegrable 0 s
-  rw [inner_toExtrap_graphVec, extrapIntegral, inner_add_left,
-    S.inner_real_apply_sub_eq_integral_inner _ η hs, real_inner_comm (η : E),
-    inner_intervalIntegral_aux h1, real_inner_comm (S.graphVec η),
-    inner_intervalIntegral_aux h2, ← intervalIntegral.integral_add h3 h4]
-  refine intervalIntegral.integral_congr fun r _ => ?_
-  rw [real_inner_comm _ (S.graphVec η), inner_extrapSemigroup_real_graphVec,
-    real_inner_comm (η : E)]
-
-/-- The domain of the extended generator is (the image of) `E`. -/
-theorem mem_extrapSemigroup_generator_domain_iff (φ : S.Extrap) :
-    φ ∈ S.extrapSemigroup.generator.domain ↔ ∃ x : E, S.toExtrap x = φ := by
-  refine ⟨fun hφ => ?_, ?_⟩
-  · -- `φ = ∫₀¹ T s φ ds - ∫₀¹ (T s φ - φ) ds` and `T s φ - φ = ∫₀ˢ T r (A_{-1} φ) dr`.
-    have h1 : EqOn (fun s => S.extrapSemigroup.real s φ - φ)
-        (fun s => S.toExtrap (S.extrapIntegral s (S.extrapSemigroup.generator ⟨φ, hφ⟩)))
-        (uIcc 0 1) := by
-      intro s hs
-      rw [uIcc_of_le zero_le_one] at hs
-      exact (S.extrapSemigroup.real_apply_sub_eq_integral ⟨φ, hφ⟩ s hs.1).trans
-        (S.toExtrap_extrapIntegral _ hs.1).symm
-    refine ⟨S.extrapIntegral 1 φ -
-      ∫ s in (0 : ℝ)..1, S.extrapIntegral s (S.extrapSemigroup.generator ⟨φ, hφ⟩), ?_⟩
-    rw [map_sub, S.toExtrap_extrapIntegral φ zero_le_one,
-      ← S.toExtrap.intervalIntegral_comp_comm
-        ((S.continuous_extrapIntegral _).intervalIntegrable 0 1),
-      ← intervalIntegral.integral_congr h1,
-      intervalIntegral.integral_sub
-        ((S.extrapSemigroup.continuous_real_apply φ).intervalIntegrable 0 1)
-        intervalIntegrable_const,
-      intervalIntegral.integral_const]
-    simp
-  · rintro ⟨x, rfl⟩
-    exact S.toExtrap_mem_extrapSemigroup_generator_domain x
-
-/-- The extended generator acts on `E` as `A₋₁`. -/
-theorem extrapSemigroup_generator_toExtrap (x : E)
-    (hx : S.toExtrap x ∈ S.extrapSemigroup.generator.domain) :
-    S.extrapSemigroup.generator ⟨S.toExtrap x, hx⟩ = S.genExtrap x :=
-  S.extrapSemigroup.generator_apply_eq hx (S.tendsto_diffQuot_extrapSemigroup x)
 
 /-! ### Weak derivatives in `E₋₁` and Ball's weak formulation -/
 

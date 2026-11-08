@@ -42,8 +42,6 @@ open scoped ContDiff InnerProductSpace
 
 noncomputable section
 
-set_option autoImplicit false
-
 namespace DataDrivenControl
 
 variable {E F : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
@@ -208,10 +206,6 @@ theorem derivMoment_succ (k : ℕ) (u : ℝ → E) (φ : ℝ → ℝ) :
     derivMoment (k + 1) u φ = -derivMoment k u (deriv φ) := by
   simp only [derivMoment, iteratedDeriv_succ', pow_succ, mul_neg_one, neg_smul]
 
-theorem derivMoment_eq_derivMoment_zero (k : ℕ) (u : ℝ → E) (φ : ℝ → ℝ) :
-    derivMoment k u φ = (-1 : ℝ) ^ k • derivMoment 0 u (iteratedDeriv k φ) := by
-  simp [derivMoment]
-
 theorem IsTestFunction.derivMoment_eq_setIntegral (hφ : IsTestFunction T φ) (k : ℕ)
     (u : ℝ → E) :
     derivMoment k u φ = (-1 : ℝ) ^ k • ∫ t, iteratedDeriv k φ t • u t ∂(μI T) := by
@@ -229,17 +223,6 @@ theorem derivMoment_add (hφ : IsTestFunction T φ) (hu : Integrable u (μI T))
   simp only [derivMoment, smul_add]
   rw [integral_add (hφ.integrable_iteratedDeriv_smul hu k)
     (hφ.integrable_iteratedDeriv_smul hv k), smul_add]
-
-theorem derivMoment_sub (hφ : IsTestFunction T φ) (hu : Integrable u (μI T))
-    (hv : Integrable v (μI T)) (k : ℕ) :
-    derivMoment k (fun t => u t - v t) φ = derivMoment k u φ - derivMoment k v φ := by
-  simp only [derivMoment, smul_sub]
-  rw [integral_sub (hφ.integrable_iteratedDeriv_smul hu k)
-    (hφ.integrable_iteratedDeriv_smul hv k), smul_sub]
-
-theorem derivMoment_neg (k : ℕ) (u : ℝ → E) (φ : ℝ → ℝ) :
-    derivMoment k (fun t => -u t) φ = -derivMoment k u φ := by
-  simp [derivMoment, integral_neg]
 
 theorem derivMoment_smul (k : ℕ) (c : ℝ) (u : ℝ → E) (φ : ℝ → ℝ) :
     derivMoment k (fun t => c • u t) φ = c • derivMoment k u φ := by
@@ -373,13 +356,6 @@ section polyDerivMoment
 
 variable {T : ℝ} {u v : ℝ → E} {φ : ℝ → ℝ}
 
-theorem polyDerivMoment_eq_sum_range (p : ℝ[X]) (u : ℝ → E) (φ : ℝ → ℝ) :
-    polyDerivMoment p u φ =
-      ∑ k ∈ Finset.range (p.natDegree + 1), p.coeff k • derivMoment k u φ := by
-  rw [polyDerivMoment, Polynomial.sum_over_range]
-  intro n
-  simp
-
 @[simp] theorem polyDerivMoment_zero (u : ℝ → E) (φ : ℝ → ℝ) :
     polyDerivMoment 0 u φ = 0 := by
   simp [polyDerivMoment]
@@ -424,11 +400,6 @@ theorem polyDerivMoment_smul (p : ℝ[X]) (c : ℝ) (u : ℝ → E) (φ : ℝ �
     polyDerivMoment p (fun t => c • u t) φ = c • polyDerivMoment p u φ := by
   simp only [polyDerivMoment, Polynomial.sum_def, derivMoment_smul, smul_comm _ c,
     Finset.smul_sum]
-
-theorem _root_.ContinuousLinearMap.map_polyDerivMoment [CompleteSpace E] [CompleteSpace F]
-    (L : E →L[ℝ] F) (p : ℝ[X]) (hφ : IsTestFunction T φ) (hu : Integrable u (μI T)) :
-    L (polyDerivMoment p u φ) = polyDerivMoment p (fun t => L (u t)) φ := by
-  simp only [polyDerivMoment, Polynomial.sum_def, map_sum, map_smul, L.map_derivMoment hφ hu]
 
 end polyDerivMoment
 

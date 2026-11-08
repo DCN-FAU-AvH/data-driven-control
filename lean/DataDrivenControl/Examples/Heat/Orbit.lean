@@ -1,6 +1,6 @@
 module
 
-public import DataDrivenControl.Examples.Heat.LocalizedCutoff
+public import DataDrivenControl.Examples.Heat.Cutoff
 public import DataDrivenControl.Examples.Heat.PDE
 
 /-!
@@ -42,8 +42,6 @@ set_option linter.unusedSectionVars false
 namespace DataDrivenControl
 
 namespace BoundaryHeat
-
-namespace Localized
 
 open CosineBasis
 
@@ -577,8 +575,6 @@ theorem abs_orbit_le {ξ₀ : ℝ} (hξ₀ : ξ₀ ∈ Ioo 0 1) (hχ : χ ξ₀ 
         (measure_ne_top (μI 1) _) (1 : ℝ)‖ * ‖toL2 g‖ := abs_real_inner_le_norm _ _
     _ ≤ 1 * ‖locSnd χ t a‖ := by rw [hloc]; gcongr
     _ ≤ Real.exp t * ‖orbitH χ t a‖ := by rw [one_mul]; exact norm_locSnd_le χ t a
-
-end Localized
 
 end BoundaryHeat
 

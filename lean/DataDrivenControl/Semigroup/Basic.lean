@@ -77,10 +77,6 @@ protected theorem map_add (s t : ℝ≥0) : S (s + t) = (S s).comp (S t) := S.ma
 theorem add_apply (s t : ℝ≥0) (x : E) : S (s + t) x = S s (S t x) := by
   rw [S.map_add]; rfl
 
-/-- Semigroup operators commute. -/
-theorem comm (s t : ℝ≥0) : (S s).comp (S t) = (S t).comp (S s) := by
-  rw [← S.map_add, ← S.map_add, add_comm]
-
 theorem comm_apply (s t : ℝ≥0) (x : E) : S s (S t x) = S t (S s x) := by
   rw [← add_apply, ← add_apply, add_comm]
 

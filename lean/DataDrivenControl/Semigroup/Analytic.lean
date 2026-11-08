@@ -16,8 +16,7 @@ holomorphic extension of `S` to a sector, and needs no complexification.
 
 * `C0Semigroup.IsAnalytic`;
 * `IsAnalytic.mem_generator_domain`: `S t x ∈ D(A)` for every `t > 0`;
-* `IsAnalytic.analyticOnNhd`, `IsAnalytic.contDiffOn`: `t ↦ S t x` is real analytic (hence
-  smooth) on `(0, ∞)`; `IsAnalytic.hasDerivAt`: `d/dt S t x = A S(t) x` for `t > 0`;
+* `IsAnalytic.analyticOnNhd`: `t ↦ S t x` is real analytic on `(0, ∞)`; `IsAnalytic.hasDerivAt`: `d/dt S t x = A S(t) x` for `t > 0`;
 * `IsAnalytic.adjoint`: the adjoint semigroup of an analytic semigroup is analytic;
 * system level, under `hyp:compat`: `System.exists_smoothing` (`S δ ∈ L(X, W)` for `δ > 0`)
   and `System.exists_growth_W` (`eq:analytic-W-growth-bound`).
@@ -35,7 +34,7 @@ holomorphic extension of `S` to a sector, and needs no complexification.
   value inequality), `IsAnalytic.hasDerivAt_real_apply`;
 * `IsAnalytic.norm_sub_taylor_le` (Taylor bound) and `IsAnalytic.analyticAt_real_apply`: the
   series `∑ (t - t₀)ⁿ/n! Aⁿ S(t₀) x` converges to `S t x` for `|t - t₀| < ρ`, since
-  `‖Aⁿ S(y) x‖ / n! ≤ K (C e/τ)ⁿ`; `IsAnalytic.analyticAt_gen_apply` (`t ↦ A S(t) x`);
+  `‖Aⁿ S(y) x‖ / n! ≤ K (C e/τ)ⁿ`;
 * `IsAnalytic.adjoint_real_mem_adjoint_domain`: `(S t)† η ∈ D(A†)` with
   `A† (S t)† η = (A S(t))† η`.
 -/
@@ -481,29 +480,12 @@ theorem analyticAt_real_apply (x : E) {t₀ : ℝ} (ht₀ : 0 < t₀) :
     field_simp
     ring
 
-/-- `t ↦ A S(t) x` is real analytic at every `t₀ > 0`. -/
-theorem analyticAt_gen_apply (x : E) {t₀ : ℝ} (ht₀ : 0 < t₀) :
-    AnalyticAt ℝ (fun t => hS.gen t x) t₀ := by
-  have h1 : AnalyticAt ℝ (fun t => S.real (t - t₀ / 2) x) t₀ := by
-    have h := hS.analyticAt_real_apply x (by linarith : (0 : ℝ) < t₀ - t₀ / 2)
-    exact h.comp_of_eq (analyticAt_id.sub analyticAt_const) rfl
-  have h2 := ((hS.gen (t₀ / 2)).restrictScalars ℝ).analyticAt _ |>.comp h1
-  refine h2.congr ?_
-  filter_upwards [lt_mem_nhds (half_lt_self ht₀)] with s hs
-  simp only [Function.comp_apply, ContinuousLinearMap.coe_restrictScalars']
-  rw [← hS.gen_add_apply (half_pos ht₀) (sub_nonneg.2 hs.le), add_sub_cancel]
-
 end IsAnalytic
 
 /-- Orbits of an analytic semigroup are real analytic on `(0, ∞)`. -/
 theorem IsAnalytic.analyticOnNhd (hS : S.IsAnalytic) (x : E) :
     AnalyticOnNhd ℝ (fun t => S.real t x) (Ioi 0) :=
   fun _ ht₀ => hS.analyticAt_real_apply x ht₀
-
-/-- Orbits of an analytic semigroup are smooth on `(0, ∞)`. -/
-theorem IsAnalytic.contDiffOn (hS : S.IsAnalytic) (x : E) :
-    ContDiffOn ℝ ⊤ (fun t => S.real t x) (Ioi 0) :=
-  (hS.analyticOnNhd x).contDiffOn isOpen_Ioi.uniqueDiffOn
 
 /-- `d/dt S t x = A S(t) x` for `t > 0` and every `x` (analytic semigroups). -/
 theorem IsAnalytic.hasDerivAt (hS : S.IsAnalytic) (x : E) {t : ℝ} (ht : 0 < t) :

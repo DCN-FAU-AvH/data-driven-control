@@ -21,8 +21,7 @@ the extended semigroup `sys.SX.extrapSemigroup` on `X₋₁`.
   `L_t e^{-r(t - ·)} v = Q_r v - e^{-r t} S(t) Q_r v`).
 * `sys.BXat a = (a - A_{X,-1}) ι_W Q_a` and `sys.BX : U →L[ℝ] X₋₁` (`B_X`); `BX_eq`
   (independent of `a`), `toExtrap_L` (same control convolution in `X₋₁`).
-* `sys.Bstar : X →ₗ.[ℝ] U`, `B† : D(A†) → U` (`B† η = B_X† (η, A† η)`), with
-  `Bstar_domain : D(B†) = D(A†)`, the graph-norm bound `exists_norm_Bstar_le`, agreement with
+* `sys.Bstar : X →ₗ.[ℝ] U`, `B† : D(A†) → U` (`B† η = B_X† (η, A† η)`), with the graph-norm bound `exists_norm_Bstar_le`, agreement with
   the `V'`-adjoint `inner_Bstar_of_dual`, and the duality formula
   `(L_t† η)(r) = B† S(t - r)† η` (`inner_L_eq_integral`, `adjoint_Lop_ae_eq`).
 * `inner_mild_eq` (`eq:weak-mild-diff`): `⟪η, x̄ t⟫ = ⟪η, x̄ 0⟫ + ∫₀ᵗ (⟪A† η, x̄⟫ + ⟪B† η, ū⟫)`
@@ -507,8 +506,6 @@ def Bstar : X →ₗ.[ℝ] U where
   toFun := (ContinuousLinearMap.adjoint sys.BX).toLinearMap ∘ₗ sys.SX.graphVec
 
 variable {sys}
-
-theorem Bstar_domain : sys.Bstar.domain = sys.A.adjoint.domain := rfl
 
 theorem Bstar_apply (η : sys.A.adjoint.domain) :
     sys.Bstar η = ContinuousLinearMap.adjoint sys.BX (sys.SX.graphVec η) := rfl

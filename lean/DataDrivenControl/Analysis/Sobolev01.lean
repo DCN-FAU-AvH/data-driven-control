@@ -35,7 +35,7 @@ Paper: `ex:intro-wave` (`introduction.tex`): the velocity of the wave equation l
   (`embed_apply_eq_integral`), continuous with `‖embed v‖ ≤ π⁻¹ ‖v‖` (`norm_embed_le`),
   injective and with dense range (`injective_embed`, `denseRange_embed`).
 * The Dirichlet problem `-ζ'' = ℓ`, `ζ(0) = ζ(1) = 0`: `IsDirichletH2` (`ζ ∈ H²(0, 1) ∩ H¹₀`),
-  `riesz_symm_eq_of_weak` (the weak solution is `riesz.symm ℓ`), `riesz_eq_embed`
+  `riesz_eq_embed`
   (`riesz φ = [-φ'']` when `φ' ∈ H¹`), `exists_isDirichletH2_toH10` (for `ℓ = v ∈ L²` the solution
   is in `H²`, with `ζ'' = -v`).
 -/
@@ -100,14 +100,6 @@ theorem hasWeakDeriv_h10Fun (φ : H10) : HasWeakDeriv 1 (h10Fun φ) ((φ : L2 �
 theorem inner_H10 (φ ψ : H10) :
     ⟪φ, ψ⟫_ℝ = ∫ t in (0 : ℝ)..1, (φ : L2 ℝ 1) t * (ψ : L2 ℝ 1) t := by
   rw [Submodule.coe_inner, inner_eq_integral]
-
-/-- The norm of `H¹₀(0, 1)` is `‖φ'‖_{L²}`. -/
-theorem norm_H10 (φ : H10) : ‖φ‖ = ‖(φ : L2 ℝ 1)‖ := rfl
-
-/-- `⟪φ, r • ψ⟫ = r ⟪φ, ψ⟫` in `H10` (stated for `H10`, where `rw [real_inner_smul_right]` does
-not find the scalar action of the subtype). -/
-theorem inner_smul_right_H10 (φ ψ : H10) (r : ℝ) : ⟪φ, r • ψ⟫_ℝ = r * ⟪φ, ψ⟫_ℝ :=
-  real_inner_smul_right (F := H10) _ _ _
 
 /-- `⟪r • φ, ψ⟫ = r ⟪φ, ψ⟫` in `H10`. -/
 theorem inner_smul_left_H10 (φ ψ : H10) (r : ℝ) : ⟪r • φ, ψ⟫_ℝ = r * ⟪φ, ψ⟫_ℝ :=
@@ -190,12 +182,6 @@ theorem h10Fun_sinH10 (n : ℕ) : EqOn (h10Fun (sinH10 n)) (sinFun n) (Icc 0 1) 
       (((continuous_cosFun (n + 1)).const_mul (sinFreq n)).intervalIntegrable _ _),
     sinFun_zero, sub_zero]
 
-/-- `sinH10 n` has coordinates `(n + 1)π` at `n`. -/
-theorem inner_h10Basis_sinH10 (m n : ℕ) :
-    ⟪h10Basis m, sinH10 n⟫_ℝ = if m = n then sinFreq n else 0 := by
-  rw [sinH10, inner_smul_right_H10, orthonormal_iff_ite.1 h10Basis.orthonormal]
-  split_ifs <;> simp
-
 /-- **The sine coordinates of `φ ∈ H¹₀`**: `⟪sₙ, φ⟫ = ⟪e_{n+1}, φ'⟫ / ((n + 1)π)` (integration by
 parts with `φ(0) = φ(1) = 0`). -/
 theorem integral_sinFun_mul_h10Fun (φ : H10) (n : ℕ) :
@@ -261,14 +247,6 @@ theorem ofH10_h10Basis (n : ℕ) : ofH10 (h10Basis n) = (sinFreq n)⁻¹ • sin
 /-- `sinH10 n` is the class `sₙ`. -/
 theorem ofH10_sinH10 (n : ℕ) : ofH10 (sinH10 n) = sinBasis n := by
   rw [sinH10, map_smul, ofH10_h10Basis, smul_smul, mul_inv_cancel₀ (sinFreq_pos n).ne', one_smul]
-
-/-- `H¹₀ ↪ L²` is injective. -/
-theorem injective_ofH10 : Function.Injective ofH10 := by
-  intro φ ψ h
-  refine basis_ext h10Basis fun n => ?_
-  have h1 := congrArg (fun x => ⟪sinBasis n, x⟫_ℝ) h
-  simp only [inner_sinBasis_ofH10] at h1
-  exact mul_left_cancel₀ (inv_ne_zero (sinFreq_pos n).ne') h1
 
 /-! ### `H⁻¹(0, 1)` -/
 
@@ -400,10 +378,6 @@ theorem embed_apply_eq_integral (v : L2 ℝ 1) (φ : H10) :
   filter_upwards [coeFn_ofH10 φ] with t h
   rw [h]
 
-/-- `riesz⁻¹ (embed v) = toH10 v`. -/
-theorem riesz_symm_embed (v : L2 ℝ 1) : riesz.symm (embed v) = toH10 v :=
-  riesz.symm_apply_apply (toH10 v)
-
 /-- `(embed v)(sₙ) = ⟪sₙ, v⟫`. -/
 theorem embed_sinH10 (v : L2 ℝ 1) (n : ℕ) : embed v (sinH10 n) = ⟪sinBasis n, v⟫_ℝ := by
   rw [embed_apply, ofH10_sinH10, real_inner_comm]
@@ -474,25 +448,6 @@ structure IsDirichletH2 (ζ ζ' ζ'' : ℝ → ℝ) : Prop where
   zero : ζ 0 = 0
   /-- The Dirichlet condition at `1`. -/
   one : ζ 1 = 0
-
-/-- **The weak Dirichlet problem**: if `ζ ∈ H¹₀(0, 1)` solves `-ζ'' = ℓ` weakly, i.e.
-`∫₀¹ ζ' ψ' = ℓ ψ` for every `ψ ∈ H¹₀`, then `ζ = (-∂_ξξ)⁻¹ ℓ = riesz⁻¹ ℓ`: its derivative is
-`riesz⁻¹ ℓ` and `ζ = h10Fun (riesz⁻¹ ℓ)` on `[0, 1]`. -/
-theorem riesz_symm_eq_of_weak {ζ ζ' : ℝ → ℝ} (hζ : HasWeakDeriv 1 ζ ζ') (h0 : ζ 0 = 0)
-    (h1 : ζ 1 = 0) {ℓ : Hm1}
-    (hweak : ∀ ψ : H10, ∫ t in (0 : ℝ)..1, ζ' t * (ψ : L2 ℝ 1) t = ℓ ψ) :
-    (((riesz.symm ℓ : H10) : L2 ℝ 1) : ℝ → ℝ) =ᵐ[μI 1] ζ' ∧
-      EqOn (h10Fun (riesz.symm ℓ)) ζ (Icc 0 1) := by
-  obtain ⟨φ, hφ, hφζ⟩ := exists_H10 hζ h0 h1
-  have hr : riesz φ = ℓ := by
-    ext ψ
-    rw [riesz_apply, inner_H10, ← hweak ψ, intervalIntegral.integral_of_le zero_le_one,
-      intervalIntegral.integral_of_le zero_le_one]
-    refine integral_congr_ae ?_
-    filter_upwards [hφ] with t h
-    rw [h]
-  rw [← hr, LinearIsometryEquiv.symm_apply_apply]
-  exact ⟨hφ, hφζ⟩
 
 /-- **`riesz` is `-∂_ξξ`**: if the derivative `φ'` of `φ ∈ H¹₀` has an `H¹` representative `ζ'`
 with weak derivative `ζ''`, then `riesz φ = [-ζ'']` in `H⁻¹`. -/

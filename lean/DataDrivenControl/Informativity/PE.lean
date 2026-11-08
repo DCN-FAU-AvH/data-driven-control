@@ -74,10 +74,6 @@ variable {T : ℝ} {L : ℕ} {u : ℝ → U}
 theorem persistentlyExciting_zero : PersistentlyExciting T 0 u :=
   fun ζ _ => Subsingleton.elim ζ 0
 
-theorem PersistentlyExcitingInfinite.persistentlyExciting (h : PersistentlyExcitingInfinite T u)
-    (L : ℕ) : PersistentlyExciting T L u :=
-  h L
-
 /-- Persistency of excitation of order `L` implies it for every lower order `L' ≤ L` (extend
 the coefficients by zero). -/
 theorem PersistentlyExciting.of_le {L' : ℕ} (h : PersistentlyExciting T L u) (hL : L' ≤ L) :

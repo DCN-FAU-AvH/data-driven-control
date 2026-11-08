@@ -2,27 +2,34 @@ module
 
 public import DataDrivenControl.Examples.Delay.Semigroup
 public import DataDrivenControl.Semigroup.DomainSpace
+public import DataDrivenControl.Semigroup.Inhomogeneous
 public import DataDrivenControl.System.Mild
 
 /-!
 # The delay system fits the framework
 
-* `Delay.Model h E U Y`: the retarded equation (`Delay.Equation`), the input matrix `B₀` and the
-  delayed output `y(t) = ∑ₖ Cₖ x(t - h'ₖ) + C_d x_t` (output delays `h'ₖ ∈ [0, h]`, `C_d`
-  bounded on the `L²` history).
-* `Model.sys : System U W X V Y` with `X = V = E × L²(-h, 0; E)` (`Delay.State`), `W = D(A)` with
-  the graph norm (`C0Semigroup.Dom`, `SW = domSemigroup`), `B = (B₀, 0)` (`Model.Bop`, bounded by
-  construction) and `C = Model.Cop ∈ L(W, Y)`, defined on the graph by
-  `C (v, A v) = ∑ₖ Cₖ (v₁ - ∫_{(h - h'ₖ, h]} (A v)₂) + C_d v₂`; on `v = (g(h), g)`, `g ∈ H¹`, it is
-  the paper's output `∑ₖ Cₖ g(h - h'ₖ) + C_d g` (`Cop_apply`).
-* `ctrlState_eq_conv`, `ιW_L`: `L_T u = (x(T), x_T)` for the zero-history solution forced by
-  `B₀ u` (`ctrlState`); the proof shows that `t ↦ (x(t), x_t)` is a strong solution
-  (`ctrlState_mem_and_generator`, the generator characterisation of `Delay/Semigroup`, and the
-  integrated form `window_sub_window_eq_integral`) and applies
-  `C0Semigroup.eq_mildSol_of_strong` (uniqueness of weak solutions, Ball).
+* `Model h E U Y`: the delay equation (`Equation`), the input matrix `B₀` and the delayed output
+  `y(t) = C x_t`, `C` a delay functional (`DelayOp`: `∑ₖ Cₖ ∫ x(t - δ) dμₖ(δ) + C_d x_t`) of
+  `ex:intro-delay`.
+* `Model.sys : System U W X V Y` with `X = V = E × L²(-h, 0; E)` (`State`), `W = D(A)` with the
+  graph norm (`C0Semigroup.Dom`, `SW = domSemigroup`), `B = (B₀, 0)` (`Model.Bop`, bounded by
+  construction) and `C = Model.Cop ∈ L(W, Y)`.
+* `C` is defined on the graph.  The first component of `v ∈ D(A)` is `g(h) - M g`, so the point
+  values of the history are recovered from `(v₂, (A v)₂) = (g, g')` alone, by the `H¹` point
+  evaluation (`pointEval_eq`)
+  `g(a) = h⁻¹ ∫₀ʰ g + ∫₀ʰ g' - h⁻¹ ∫₀ʰ ∫₀^σ g' dσ - ∫_{(a, h]} g'`, which is bounded on
+  `L² × L²` uniformly in `a ∈ [0, h]` (`Model.evalOp`, `Model.norm_evalOp_le`); integrating it
+  against a finite delay measure gives `Model.measEval`.  `Model.Cop_apply`:
+  `C (g(h) - M g, g) = ∑ₖ Cₖ ∫ g(h - δ) dμₖ(δ) + C_d g`.
+* `Model.ctrlState_eq_conv`, `Model.ιW_L`: `L_T u = (x(T) - M x_T, x_T)` for the zero-history
+  solution forced by `B₀ u`.  The state is a strong solution (regularity,
+  `Equation.IsSolOn.exists_hasWeakDeriv`, and the generator characterisation), so it equals the
+  mild solution (`C0Semigroup.eq_mildSol_of_strong`, Ball).
 * `Model.H1`, `Model.H2` at every horizon, and `Model.compat`.  `hyp:H1`: `L_T u ∈ D(A)`, and the
-  graph-norm bound comes from the closed graph theorem.
-* Unboundedness of `C` on `X` when an output delay is positive: `Delay/Unbounded`.
+  graph-norm bound comes from the closed graph theorem.  `hyp:H2`: the output along `S(t) w` is
+  `C` evaluated along an `H¹` representative of the trajectory, bounded in `L²(0, T)` by the
+  `L²` bound of delay functionals (`DelayOp.eLpNorm_eval_le`) and of the solution
+  (`Equation.eLpNorm_trajOf_le`).
 -/
 
 @[expose] public section
@@ -42,91 +49,50 @@ variable {E U Y : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [Compl
   [NormedAddCommGroup U] [InnerProductSpace ℝ U] [CompleteSpace U]
   [NormedAddCommGroup Y] [InnerProductSpace ℝ Y] [CompleteSpace Y]
 
-/-- Translates of `H¹` signals are `H¹`. -/
-theorem hasWeakDeriv_comp_add {T₁ T t : ℝ} {z z' : ℝ → E} (hz : HasWeakDeriv T₁ z z')
-    (ht : 0 ≤ t) (htT : t + T ≤ T₁) :
-    HasWeakDeriv T (fun σ => z (t + σ)) (fun σ => z' (t + σ)) := by
-  refine ⟨memLp_comp_add hz.memLp_deriv ht htT, fun σ hσ => ?_⟩
-  have hi : IntegrableOn z' (Ioc 0 T₁) := hz.memLp_deriv.integrable one_le_two
-  have h1 : t + σ ∈ Icc 0 T₁ := ⟨by linarith [hσ.1], by linarith [hσ.2]⟩
-  have h2 : t ∈ Icc 0 T₁ := ⟨ht, by linarith [hσ.1, hσ.2]⟩
-  show z (t + σ) = z (t + 0) + ∫ s in (0 : ℝ)..σ, z' (t + s)
-  rw [add_zero, hz.eq_add_integral _ h1, hz.eq_add_integral _ h2, add_assoc,
-    ← intervalIntegral.integral_add_adjacent_intervals (b := t)
-      (intervalIntegrable_of_integrableOn hi h2)
-      ((intervalIntegrable_iff_integrableOn_Ioc_of_le (by linarith [hσ.1])).2
-        (hi.mono_set (Ioc_subset_Ioc ht h1.2))),
-    intervalIntegral.integral_comp_add_left (fun s => z' s) t, add_zero]
+/-! ### `H¹` point evaluation from `(g, g')` -/
 
-/-- `‖f‖_{L²(0, T)} ≤ √T c` when `‖f‖ ≤ c` a.e. -/
-theorem norm_L2_le_of_ae_bound {F : Type*} [NormedAddCommGroup F] {T : ℝ} (hT : 0 ≤ T)
-    (f : L2 F T) {c : ℝ} (hc : 0 ≤ c) (hf : ∀ᵐ t ∂(μI T), ‖f t‖ ≤ c) : ‖f‖ ≤ √T * c := by
-  refine (Lp.norm_le_of_ae_bound hc hf).trans_eq ?_
-  rw [measureUnivNNReal_μI hT, Real.sqrt_eq_rpow]
-  norm_num
-
-/-- The representative of a finite sum in `L²`. -/
-theorem coeFn_sum_L2 {F : Type*} [NormedAddCommGroup F] {T : ℝ} {ι : Type*} (s : Finset ι)
-    (f : ι → L2 F T) : ⇑(∑ i ∈ s, f i) =ᵐ[μI T] fun t => ∑ i ∈ s, f i t := by
-  classical
-  induction s using Finset.induction_on with
-  | empty =>
-    filter_upwards [Lp.coeFn_zero F 2 (μI T)] with t ht
-    rw [Finset.sum_empty, Finset.sum_empty, ht]
-    rfl
-  | insert i s hi ih =>
-    simp only [Finset.sum_insert hi]
-    filter_upwards [Lp.coeFn_add (f i) (∑ j ∈ s, f j), ih] with t h1 h2
-    rw [h1, Pi.add_apply, h2]
-
-/-- The integral over the end segment `(a, h]` of the history, a bounded operator on `L²`. -/
-def segOp (h a : ℝ) : L2 E h →L[ℝ] E :=
-  kernelOp h ((Ioc a h).indicator fun _ => ContinuousLinearMap.id ℝ E)
-
-/-- `segOp h a w = ∫_{(a, h]} w` for `0 ≤ a`. -/
-theorem segOp_apply {h a : ℝ} (ha : 0 ≤ a) (w : L2 E h) : segOp h a w = ∫ s in Ioc a h, w s := by
-  have hA : MemLp ((Ioc a h).indicator fun _ : ℝ => ContinuousLinearMap.id ℝ E) 2 (μI h) :=
-    (memLp_const _).indicator measurableSet_Ioc.nullMeasurableSet
-  rw [segOp, kernelOp_apply hA]
-  have e : (fun s => ((Ioc a h).indicator (fun _ : ℝ => ContinuousLinearMap.id ℝ E) s) (w s)) =
-      (Ioc a h).indicator (fun s => w s) := by
-    funext s
-    by_cases hs : s ∈ Ioc a h <;> simp [hs]
-  rw [e, setIntegral_indicator measurableSet_Ioc,
-    inter_eq_right.2 (Ioc_subset_Ioc_left ha)]
-
-/-- The integral form of `H¹` on an end segment: `g(h) - ∫_{(a, h]} g' = g(a)`. -/
-theorem sub_integral_Ioc_of_hasWeakDeriv {h a : ℝ} {g g' : ℝ → E} (hg : HasWeakDeriv h g g')
-    (ha : a ∈ Icc 0 h) : g h - ∫ s in Ioc a h, g' s = g a := by
-  have hi : IntegrableOn g' (Ioc 0 h) := hg.memLp_deriv.integrable one_le_two
-  have hh : h ∈ Icc 0 h := ⟨ha.1.trans ha.2, le_rfl⟩
-  rw [← intervalIntegral.integral_of_le ha.2, hg.eq_add_integral h hh, hg.eq_add_integral a ha,
-    ← intervalIntegral.integral_add_adjacent_intervals (b := a)
-      (intervalIntegrable_of_integrableOn hi ha)
-      ((intervalIntegrable_iff_integrableOn_Ioc_of_le ha.2).2
-        (hi.mono_set (Ioc_subset_Ioc ha.1 le_rfl)))]
+/-- **`H¹` point evaluation from `(g, g')`**: for `g ∈ H¹(0, h)` with weak derivative `g'` and
+classes `w₁ = g`, `w₂ = g'` in `L²(0, h)`,
+`g(a) = h⁻¹ ∫₀ʰ w₁ + ∫₀ʰ w₂ - h⁻¹ ∫₀ʰ (∫₀^σ w₂) dσ - ∫_{(a, h]} w₂`. -/
+theorem pointEval_eq {h a : ℝ} (hh : 0 < h) (ha : a ∈ Icc 0 h) {g g' : ℝ → E}
+    (hg : HasWeakDeriv h g g') {w₁ w₂ : L2 E h} (h₁ : ⇑w₁ =ᵐ[μI h] g) (h₂ : ⇑w₂ =ᵐ[μI h] g') :
+    h⁻¹ • segOp h 0 w₁ + (segOp h 0 w₂ - h⁻¹ • segOp h 0 (primL h w₂)) - segOp h a w₂ = g a := by
+  have hFc : ContinuousOn (fun σ => ∫ u in (0 : ℝ)..σ, g' u) (Icc 0 h) :=
+    continuousOn_primitive_Ioc (hg.memLp_deriv.integrable one_le_two)
+  have hFi : IntegrableOn (fun σ => ∫ u in (0 : ℝ)..σ, g' u) (Ioc 0 h) :=
+    hFc.integrableOn_Icc.mono_set Ioc_subset_Icc_self
+  have e1 : segOp h 0 w₁ = h • g 0 + ∫ σ in Ioc 0 h, ∫ u in (0 : ℝ)..σ, g' u := by
+    rw [segOp_apply le_rfl, integral_congr_ae h₁,
+      setIntegral_congr_fun measurableSet_Ioc (g := fun σ => g 0 + ∫ u in (0 : ℝ)..σ, g' u)
+        fun σ hσ => hg.eq_add_integral σ (Ioc_subset_Icc_self hσ),
+      integral_add (integrableOn_const (by simp)) hFi, setIntegral_const,
+      Real.volume_real_Ioc_of_le hh.le, sub_zero]
+  have e2 : segOp h 0 (primL h w₂) = ∫ σ in Ioc 0 h, ∫ u in (0 : ℝ)..σ, g' u := by
+    rw [segOp_apply le_rfl]
+    refine integral_congr_ae ?_
+    filter_upwards [coeFn_primL h w₂, ae_restrict_mem measurableSet_Ioc] with σ e₁ e₂
+    rw [e₁, intervalIntegral_congr_μI h₂ (Ioc_subset_Icc_self e₂)]
+  have e3 : segOp h 0 w₂ = ∫ u in (0 : ℝ)..h, g' u := by
+    rw [segOp_apply le_rfl, integral_congr_ae h₂, intervalIntegral.integral_of_le hh.le]
+  have e4 : segOp h a w₂ = ∫ s in Ioc a h, g' s := by
+    rw [segOp_apply ha.1]
+    exact integral_congr_ae (ae_restrict_of_ae_restrict_of_subset (Ioc_subset_Ioc ha.1 le_rfl) h₂)
+  rw [e1, e2, e3, e4, ← sub_integral_Ioc_of_hasWeakDeriv hg ha,
+    hg.eq_add_integral h ⟨hh.le, le_rfl⟩, smul_add, smul_smul, inv_mul_cancel₀ hh.ne', one_smul]
   abel
 
-/-- **Data of the delay system with delayed output** (`ex:intro-delay`, `M = 0`): the retarded
-equation `Equation`, the input matrix `B₀`, and the output
-`y(t) = ∑ₖ Cₖ x(t - h'ₖ) + C_d x_t` with finitely many output delays `h'ₖ ∈ [0, h]` and a
-distributed part `C_d` bounded on the `L²` history (`kernelOp` gives the paper's
-`∫_{-h}^0 C_d(θ) x(t + θ) dθ`). -/
+/-! ### The model -/
+
+/-- **Data of the delay system with delayed output** (`ex:intro-delay`): the delay equation
+`Equation`, the input matrix `B₀`, and the output `y(t) = C x_t` with a delay functional `C`
+(`DelayOp`: finite measures on `[0, h]` plus a part bounded on the `L²` history). -/
 structure Model (h : ℝ) (E U Y : Type*) [NormedAddCommGroup E] [InnerProductSpace ℝ E]
     [NormedAddCommGroup U] [InnerProductSpace ℝ U] [NormedAddCommGroup Y]
     [InnerProductSpace ℝ Y] extends Equation h E where
   /-- The input matrix `B₀`. -/
   B₀ : U →L[ℝ] E
-  /-- The number of point delays in the output. -/
-  NC : ℕ
-  /-- The output coefficients `Cₖ`. -/
-  Cp : Fin NC → E →L[ℝ] Y
-  /-- The output delays `h'ₖ`. -/
-  τC : Fin NC → ℝ
-  /-- The output delays lie in `[0, h]`. -/
-  τC_mem : ∀ k, τC k ∈ Icc 0 h
-  /-- The distributed part of the output, acting on the history. -/
-  Cd : L2 E h →L[ℝ] Y
+  /-- The output functional `C`. -/
+  C : DelayOp h E Y
 
 namespace Model
 
@@ -143,17 +109,106 @@ def Bop : U →L[ℝ] State h E :=
 /-- `B u = (B₀ u, 0)`. -/
 @[simp] theorem Bop_apply (u : U) : m.Bop u = WithLp.toLp 2 (m.B₀ u, 0) := rfl
 
-/-- The observation operator on `W = D(A)` with the graph norm: for `w = (v, A v)`,
-`C w = ∑ₖ Cₖ (v₁ - ∫_{(h - h'ₖ, h]} (A v)₂) + C_d v₂`.  On `v = (g(h), g)`, `g ∈ H¹`, this is
-`∑ₖ Cₖ g(h - h'ₖ) + C_d g` (`Cop_apply`): the paper's `C x_t`. -/
-def Cop : m.S.Dom →L[ℝ] Y :=
-  ∑ k, (m.Cp k) ∘L ((WithLp.fstL 2 ℝ E (L2 E h)) ∘L m.S.domIncl -
-      segOp h (h - m.τC k) ∘L (WithLp.sndL 2 ℝ E (L2 E h)) ∘L m.S.domGen) +
-    m.Cd ∘L (WithLp.sndL 2 ℝ E (L2 E h)) ∘L m.S.domIncl
+/-- The part of the point evaluation on `W = D(A)` that does not depend on the point. -/
+def evalOp₀ : m.S.Dom →L[ℝ] E :=
+  h⁻¹ • (segOp h 0 ∘L (WithLp.sndL 2 ℝ E (L2 E h)) ∘L m.S.domIncl) +
+    (segOp h 0 - h⁻¹ • (segOp h 0 ∘L primL h)) ∘L (WithLp.sndL 2 ℝ E (L2 E h)) ∘L m.S.domGen
 
-/-- **The delay system** `ẋ = A x + B u`, `y = C x` (`ex:intro-delay`) in the framework:
-`W = D(A)` with the graph norm (`C0Semigroup.Dom`), `X = V = E × L²(-h, 0; E)`, `B = (B₀, 0)`
-bounded, `C ∈ L(W, Y)`. -/
+/-- The point evaluation `w ↦ g(a)` on `W = D(A)`, computed from `(v₂, (A v)₂) = (g, g')` for
+`w = (v, A v)` (`pointEval_eq`). -/
+def evalOp (a : ℝ) : m.S.Dom →L[ℝ] E :=
+  m.evalOp₀ - segOp h a ∘L (WithLp.sndL 2 ℝ E (L2 E h)) ∘L m.S.domGen
+
+/-- The bound of the point evaluations on `[0, h]`. -/
+def evalBound : ℝ := ‖m.evalOp₀‖ + √h * ‖(WithLp.sndL 2 ℝ E (L2 E h)) ∘L m.S.domGen‖
+
+/-- The point evaluations are bounded uniformly on `[0, h]`. -/
+theorem norm_evalOp_le {a : ℝ} (ha : 0 ≤ a) : ‖m.evalOp a‖ ≤ m.evalBound := by
+  set K := (WithLp.sndL 2 ℝ E (L2 E h)) ∘L m.S.domGen
+  calc ‖m.evalOp a‖ ≤ ‖m.evalOp₀‖ + ‖segOp h a ∘L K‖ := norm_sub_le m.evalOp₀ (segOp h a ∘L K)
+    _ ≤ ‖m.evalOp₀‖ + ‖(segOp h a : L2 E h →L[ℝ] E)‖ * ‖K‖ :=
+        add_le_add le_rfl (ContinuousLinearMap.opNorm_comp_le _ _)
+    _ ≤ m.evalBound :=
+        add_le_add le_rfl (mul_le_mul_of_nonneg_right (norm_segOp_le m.h_pos.le ha) (norm_nonneg K))
+
+/-- The point evaluation on `W` is the point value of the history. -/
+theorem evalOp_apply (w : m.S.Dom) {g g' : ℝ → E} (hg : HasWeakDeriv h g g')
+    (h2 : ⇑(m.S.domIncl w).snd =ᵐ[μI h] g) {a : ℝ} (ha : a ∈ Icc 0 h) :
+    m.evalOp a w = g a := by
+  have hA : m.S.domGen w = WithLp.toLp 2 (m.L.eval g 0, hg.memLp_deriv.toLp g') := by
+    rw [← m.S.generator_domIncl w]
+    exact m.toEquation.generator_apply _ hg h2
+  have h2' : ⇑(m.S.domGen w).snd =ᵐ[μI h] g' := by
+    rw [hA, WithLp.toLp_snd]
+    exact hg.memLp_deriv.coeFn_toLp
+  rw [← pointEval_eq m.h_pos ha hg h2 h2']
+  simp only [evalOp, evalOp₀, add_apply, smul_apply,
+    ContinuousLinearMap.comp_apply, sub_apply, WithLp.sndL_apply]
+
+/-- The point values `a ↦ g(a)` of the history are continuous on `[0, h]`. -/
+theorem continuousOn_evalOp (w : m.S.Dom) : ContinuousOn (fun a => m.evalOp a w) (Icc 0 h) := by
+  obtain ⟨g, g', hg, -, h2⟩ :=
+    m.toEquation.exists_hasWeakDeriv_of_mem_generator_domain (m.S.domIncl_mem w)
+  exact hg.continuousOn.congr fun a ha => m.evalOp_apply w hg h2 ha
+
+/-- The point values are integrable against a finite delay measure. -/
+theorem integrable_evalOp {ν : Measure ℝ} [IsFiniteMeasure ν] (hν : ν (Icc 0 h)ᶜ = 0)
+    (w : m.S.Dom) : Integrable (fun δ => m.evalOp (h - δ) w) ν :=
+  integrable_of_continuousOn hν ((m.continuousOn_evalOp w).comp (f := fun δ => h - δ)
+    (by fun_prop) fun δ hδ => ⟨by linarith [hδ.2], by linarith [hδ.1]⟩)
+
+/-- A finite delay measure `ν` on `[0, h]` evaluated on `W = D(A)`: `w ↦ ∫ g(h - δ) dν(δ)` for
+`w = (v, A v)`, `v₂ = g ∈ H¹`, with the point values computed by `evalOp` (`measEval_apply`). -/
+def measEval (ν : Measure ℝ) [IsFiniteMeasure ν] (hν : ν (Icc 0 h)ᶜ = 0) : m.S.Dom →L[ℝ] E :=
+  LinearMap.mkContinuous
+    { toFun := fun w => ∫ δ, m.evalOp (h - δ) w ∂ν
+      map_add' := fun w₁ w₂ => by
+        simp only [map_add]
+        exact integral_add (m.integrable_evalOp hν w₁) (m.integrable_evalOp hν w₂)
+      map_smul' := fun c w => by
+        simp only [map_smul, RingHom.id_apply]
+        exact integral_smul c _ }
+    (m.evalBound * ν.real univ) fun w => by
+      show ‖∫ δ, m.evalOp (h - δ) w ∂ν‖ ≤ _
+      refine (norm_integral_le_of_norm_le_const (C := m.evalBound * ‖w‖) ?_).trans_eq (by ring)
+      filter_upwards [ae_mem_Icc_of_compl hν] with δ hδ
+      exact (m.evalOp (h - δ)).le_of_opNorm_le (m.norm_evalOp_le (by linarith [hδ.2])) w
+
+/-- The measure evaluation on `W` integrates the history: `∫ g(h - δ) dν(δ)`. -/
+theorem measEval_apply {ν : Measure ℝ} [IsFiniteMeasure ν] (hν : ν (Icc 0 h)ᶜ = 0)
+    (w : m.S.Dom) {g g' : ℝ → E} (hg : HasWeakDeriv h g g')
+    (h2 : ⇑(m.S.domIncl w).snd =ᵐ[μI h] g) : m.measEval ν hν w = ∫ δ, g (h - δ) ∂ν := by
+  show ∫ δ, m.evalOp (h - δ) w ∂ν = _
+  exact integral_congr_ae ((ae_mem_Icc_of_compl hν).mono fun δ hδ =>
+    m.evalOp_apply w hg h2 ⟨by linarith [hδ.2], by linarith [hδ.1]⟩)
+
+/-- The observation operator on `W = D(A)` with the graph norm:
+`C w = ∑ₖ Cₖ ∫ g(h - δ) dμₖ(δ) + C_d g` for `w = (v, A v)`, `v₂ = g ∈ H¹` (`Cop_apply`). -/
+def Cop : m.S.Dom →L[ℝ] Y :=
+  ∑ k, (m.C.P k) ∘L m.measEval (m.C.μ k) (m.C.μ_compl k) +
+    m.C.D ∘L (WithLp.sndL 2 ℝ E (L2 E h)) ∘L m.S.domIncl
+
+/-- **The output on `D(A)`** is the paper's `y = C x_t`: for `w = (v, A v)` with `v₂ = g`,
+`g ∈ H¹(0, h; E)` (so `v₁ = g(h) - M g`), `C w = ∑ₖ Cₖ ∫ g(h - δ) dμₖ(δ) + C_d g`. -/
+theorem Cop_apply (w : m.S.Dom) {g g' : ℝ → E} (hg : HasWeakDeriv h g g')
+    (h2 : ⇑(m.S.domIncl w).snd =ᵐ[μI h] g) :
+    m.Cop w = ∑ k, m.C.P k (∫ δ, g (h - δ) ∂(m.C.μ k)) + m.C.D (hg.memLp.toLp g) := by
+  have hsnd : (m.S.domIncl w).snd = hg.memLp.toLp g :=
+    Lp.ext (h2.trans hg.memLp.coeFn_toLp.symm)
+  simp only [Cop, FunLike.coe_add, FunLike.coe_sum, Pi.add_apply, Finset.sum_apply,
+    ContinuousLinearMap.comp_apply, WithLp.sndL_apply, hsnd]
+  congr 1
+  exact Finset.sum_congr rfl fun k _ => by rw [m.measEval_apply (m.C.μ_compl k) w hg h2]
+
+/-- The output on `D(A)` as the delay functional `C` evaluated on the history. -/
+theorem Cop_apply_eval (w : m.S.Dom) {g g' : ℝ → E} (hg : HasWeakDeriv h g g')
+    (h2 : ⇑(m.S.domIncl w).snd =ᵐ[μI h] g) : m.Cop w = m.C.eval g 0 := by
+  rw [m.Cop_apply w hg h2, DelayOp.eval, window_zero_eq_toLp hg.memLp]
+  simp only [mconv, add_zero]
+
+/-- **The delay system** `d/dt (x - M x_t) = L x_t + B₀ u`, `y = C x_t`
+(`ex:intro-delay`) in the framework: `W = D(A)` with the graph norm (`C0Semigroup.Dom`),
+`X = V = E × L²(-h, 0; E)`, `B = (B₀, 0)` bounded, `C ∈ L(W, Y)`. -/
 def sys : System U m.S.Dom (State h E) (State h E) Y where
   ιW := m.S.domIncl
   ιV := ContinuousLinearMap.id ℝ _
@@ -171,37 +226,19 @@ def sys : System U m.S.Dom (State h E) (State h E) Y where
 
 /-- The semigroup of the system on `X` is the delay semigroup. -/
 @[simp] theorem sys_SX : m.sys.SX = m.toEquation.semigroup := rfl
+/-- The semigroup of the system on `V = X` is the delay semigroup. -/
 @[simp] theorem sys_SV : m.sys.SV = m.toEquation.semigroup := rfl
+/-- `W ↪ X` is the inclusion of the generator domain. -/
 @[simp] theorem sys_ιW : m.sys.ιW = m.S.domIncl := rfl
+/-- `X ↪ V` is the identity. -/
 @[simp] theorem sys_ιV : m.sys.ιV = ContinuousLinearMap.id ℝ _ := rfl
+/-- The control operator of the system. -/
 @[simp] theorem sys_B : m.sys.B = m.Bop := rfl
+/-- The observation operator of the system. -/
 @[simp] theorem sys_C : m.sys.C = m.Cop := rfl
 
 /-- `ιWV = ιW` since `V = X`. -/
 theorem sys_ιWV (w : m.S.Dom) : m.sys.ιWV w = m.S.domIncl w := rfl
-
-/-- **The output on `D(A)`** is the paper's `y = ∑ₖ Cₖ x(t - h'ₖ) + C_d x_t`: for
-`w = (v, A v)` with `v = (g(h), g)`, `g ∈ H¹(0, h; E)`, `C w = ∑ₖ Cₖ g(h - h'ₖ) + C_d g`. -/
-theorem Cop_apply (w : m.S.Dom) {g g' : ℝ → E} (hg : HasWeakDeriv h g g')
-    (h1 : (m.S.domIncl w).fst = g h) (h2 : ⇑(m.S.domIncl w).snd =ᵐ[μI h] g) :
-    m.Cop w = ∑ k, m.Cp k (g (h - m.τC k)) + m.Cd (hg.memLp.toLp g) := by
-  have hA : m.S.domGen w = WithLp.toLp 2 (m.rhs g 0, hg.memLp_deriv.toLp g') := by
-    rw [← m.S.generator_domIncl w]
-    exact m.toEquation.generator_apply _ hg h1 h2
-  have hsnd : (m.S.domIncl w).snd = hg.memLp.toLp g :=
-    Lp.ext (h2.trans hg.memLp.coeFn_toLp.symm)
-  simp only [Cop, FunLike.coe_add, FunLike.coe_sum, Pi.add_apply, Finset.sum_apply,
-    ContinuousLinearMap.comp_apply, FunLike.coe_sub, Pi.sub_apply, WithLp.fstL_apply,
-    WithLp.sndL_apply, hA, WithLp.toLp_snd, hsnd, h1]
-  congr 1
-  refine Finset.sum_congr rfl fun k _ => ?_
-  have hk : h - m.τC k ∈ Icc 0 h := ⟨by linarith [(m.τC_mem k).2], by linarith [(m.τC_mem k).1]⟩
-  rw [segOp_apply hk.1]
-  have e : ∫ s in Ioc (h - m.τC k) h, (hg.memLp_deriv.toLp g') s =
-      ∫ s in Ioc (h - m.τC k) h, g' s :=
-    integral_congr_ae (ae_restrict_of_ae_restrict_of_subset (Ioc_subset_Ioc hk.1 le_rfl)
-      hg.memLp_deriv.coeFn_toLp)
-  rw [e, sub_integral_Ioc_of_hasWeakDeriv hg hk]
 
 /-- **`hyp:compat`** holds trivially: `D_V(A) = D(A) = W`. -/
 theorem compat : m.sys.Compat := by
@@ -213,20 +250,20 @@ theorem compat : m.sys.Compat := by
     rw [this]
     exact dense_univ
 
-/-! ### The control convolution: `L_T u = (x(T), x_T)` -/
+/-! ### The control convolution: `L_T u = (x(T) - M x_T, x_T)` -/
 
 /-- The forcing `B₀ u` of an input on `(0, T]`, extended by `0`. -/
 def forcing (T : ℝ) (u : ℝ → U) : ℝ → E := (Ioc 0 T).indicator fun s => m.B₀ (u s)
 
-/-- The zero-history solution of `ẋ = L x_t + B₀ u` on `[0, T]`. -/
-def ctrlSol (T : ℝ) (u : ℝ → U) : ℝ → E := m.sol 0 0 (m.forcing T u)
+/-- The zero-history solution of `d/dt (x - M x_t) = L x_t + B₀ u`. -/
+def ctrlSol (T : ℝ) (u : ℝ → U) : ℝ → E := m.toEquation.sol 0 0 (m.forcing T u)
 
 /-- The trajectory (in shifted time) of the zero-history solution. -/
 def ctrlTraj (T : ℝ) (u : ℝ → U) : ℝ → E := traj h 0 (m.ctrlSol T u)
 
-/-- The state `(x(t), x_t)` of the zero-history solution forced by `B₀ u`. -/
+/-- The state `(x(t) - M x_t, x_t)` of the zero-history solution forced by `B₀ u`. -/
 def ctrlState (T : ℝ) (u : ℝ → U) (t : ℝ) : State h E :=
-  WithLp.toLp 2 (m.ctrlSol T u t, window h (m.ctrlTraj T u) t)
+  WithLp.toLp 2 (m.prim 0 0 (m.forcing T u) (m.ctrlSol T u) t, window h (m.ctrlTraj T u) t)
 
 variable {T : ℝ} {u : ℝ → U}
 
@@ -239,101 +276,127 @@ theorem integrableOn_forcing (hu : MemLp u 2 (μI T)) (τ : ℝ) :
     IntegrableOn (m.forcing T u) (Ioc 0 τ) :=
   (m.memLp_forcing hu τ).integrable one_le_two
 
-/-- The zero-history solution solves the forced delay equation on every `[0, τ]`. -/
-theorem isSolOn_ctrlSol (hu : MemLp u 2 (μI T)) (τ : ℝ) :
-    m.IsSolOn τ ((0 : ℝ → E) h) 0 (m.forcing T u) (m.ctrlSol T u) :=
-  m.isSolOn_sol MemLp.zero (m.integrableOn_forcing hu τ)
+/-- The zero-history solution solves the forced delay equation. -/
+theorem isSolOn_ctrlSol (hu : MemLp u 2 (μI T)) {τ : ℝ} (hτ : 0 ≤ τ) :
+    m.toEquation.IsSolOn τ 0 0 (m.forcing T u) (m.ctrlSol T u) :=
+  m.toEquation.isSolOn_sol MemLp.zero (m.integrableOn_forcing hu) hτ
 
-/-- The trajectory of the zero-history solution is `H¹` on `[0, h + T]`. -/
-theorem hasWeakDeriv_ctrlTraj (hu : MemLp u 2 (μI T)) (hT : 0 ≤ T) :
-    HasWeakDeriv (h + T) (m.ctrlTraj T u)
-      (traj h 0 fun s => m.rhs (m.ctrlTraj T u) s + m.forcing T u s) :=
-  m.hasWeakDeriv_traj hT (HasWeakDeriv.const (T := h) (0 : E) : HasWeakDeriv h (0 : ℝ → E) 0)
-    (m.memLp_forcing hu T) (m.isSolOn_ctrlSol hu T)
+/-- **Regularity of the control trajectory**: an `H¹` representative `X` of the zero-history
+solution, with `X(0) = 0` and the integral form at every `t ∈ [0, T]`. -/
+theorem exists_ctrl_regular (hu : MemLp u 2 (μI T)) (hT : 0 ≤ T) :
+    ∃ X y : ℝ → E, m.ctrlSol T u =ᵐ[μI T] X ∧ X 0 = 0 ∧
+      (∀ t ∈ Icc 0 T, X t = m.M.eval (traj h 0 X) t + m.prim 0 0 (m.forcing T u) X t) ∧
+      HasWeakDeriv (h + T) (traj h 0 X) (traj h 0 y) := by
+  have e : ((0 : ℝ → E) h - m.M.eval 0 0) = 0 := by simp
+  have hs := m.isSolOn_ctrlSol hu hT
+  rw [← e] at hs
+  obtain ⟨X, y, h1, h2, h3, h4⟩ := hs.exists_hasWeakDeriv (g := (0 : ℝ → E)) (g' := 0) hT
+    (HasWeakDeriv.const (T := h) (0 : E)) (m.memLp_forcing hu T)
+  rw [e] at h3
+  exact ⟨X, y, h1, h2, h3, h4⟩
 
-/-- `z(t + h) = x(t)` for the zero-history trajectory. -/
-theorem ctrlTraj_add_h (t : ℝ) (ht : 0 ≤ t) : m.ctrlTraj T u (t + h) = m.ctrlSol T u t := by
-  rcases ht.eq_or_lt with rfl | ht
-  · rw [zero_add, ctrlTraj, traj_of_le _ _ le_rfl, ctrlSol, Equation.sol_zero_time]
-    rfl
-  · rw [ctrlTraj, traj_of_lt _ _ (by linarith), add_sub_cancel_right]
-
-/-- **The control state is in `D(A)`**, with `A (x(t), x_t) = (L x_t, ẋ_t)`. -/
-theorem ctrlState_mem_and_generator (hu : MemLp u 2 (μI T)) {t : ℝ} (ht : t ∈ Icc 0 T) :
-    ∃ hmem : m.ctrlState T u t ∈ m.S.generator.domain,
-      m.S.generator ⟨_, hmem⟩ = WithLp.toLp 2 (m.rhs (m.ctrlTraj T u) t,
-        window h (traj h 0 fun s => m.rhs (m.ctrlTraj T u) s + m.forcing T u s) t) := by
-  have hT : 0 ≤ T := ht.1.trans ht.2
-  have hz := m.hasWeakDeriv_ctrlTraj hu hT
-  have hgt := hasWeakDeriv_comp_add hz ht.1 (by linarith [ht.2] : t + h ≤ h + T)
-  have h1 : (m.ctrlState T u t).fst = m.ctrlTraj T u (t + h) :=
-    (m.ctrlTraj_add_h t ht.1).symm
-  have h2 : ⇑(m.ctrlState T u t).snd =ᵐ[μI h] fun σ => m.ctrlTraj T u (t + σ) :=
-    coeFn_window (memLp_comp_add hz.memLp ht.1 (by linarith [ht.2]))
-  have hmem : m.ctrlState T u t ∈ m.S.generator.domain :=
-    (m.mem_generator_domain_iff _).2 ⟨_, _, hgt, h1, h2⟩
-  refine ⟨hmem, ?_⟩
-  rw [m.generator_apply hmem hgt h1 h2, m.rhs_shift, add_zero,
-    window_eq_toLp (memLp_comp_add hz.memLp_deriv ht.1 (by linarith [ht.2]))]
+/-- **The control state is in `D(A)`** and is a strong solution: with an `H¹` representative `Z`
+of the trajectory (derivative `Z'`), `(ρ(t), x_t) ∈ D(A)` and `A (ρ(t), x_t) = (L Z_t, Z'_t)`,
+and `(ρ(t), x_t) = ∫₀ᵗ ((L Z_s, Z'_s) + B u(s)) ds`. -/
+theorem exists_ctrlState_strong (hu : MemLp u 2 (μI T)) (hT : 0 ≤ T) :
+    ∃ Z Z' : ℝ → E, HasWeakDeriv (h + T) Z Z' ∧
+      (∀ t ∈ Icc 0 T, ∃ hmem : m.ctrlState T u t ∈ m.S.generator.domain,
+        m.S.generator ⟨_, hmem⟩ = WithLp.toLp 2 (m.L.eval Z t, window h Z' t)) ∧
+      (∀ t ∈ Icc 0 T, m.ctrlState T u t =
+        WithLp.toLp 2 (∫ s in (0 : ℝ)..t, (m.L.eval Z s + m.B₀ (u s)), window h Z t)) ∧
+      window h Z 0 = 0 := by
+  obtain ⟨X, y, hxX, hX0, hXeq, hZ⟩ := m.exists_ctrl_regular hu hT
+  set Z := traj h 0 X with hZdef
+  have htr : m.ctrlTraj T u =ᵐ[μI (h + T)] Z := traj_ae_congr_right 0 hxX
+  have hZ0 : window h Z 0 = 0 := by
+    rw [← window_zero (T := h) 0]
+    exact window_congr (ae_restrict_of_forall_mem measurableSet_Ioc fun σ hσ => by
+      rw [hZdef, traj_of_le _ _ (by linarith [hσ.2])])
+  have hfst : ∀ t ∈ Icc 0 T,
+      m.prim 0 0 (m.forcing T u) (m.ctrlSol T u) t = X t - m.M.eval Z t := by
+    intro t ht
+    rw [m.prim_congr hxX ht, hXeq t ht]
+    abel
+  refine ⟨Z, traj h 0 y, hZ, fun t ht => ?_, fun t ht => ?_, hZ0⟩
+  · have hgt := hasWeakDeriv_comp_add hZ ht.1 (by linarith [ht.2] : t + h ≤ h + T)
+    have hZt : Z (t + h) = X t := by
+      rcases ht.1.eq_or_lt with h0 | h0
+      · rw [← h0, zero_add, hZdef, traj_of_le _ _ le_rfl, hX0]
+        rfl
+      · rw [hZdef, traj_of_lt _ _ (by linarith), add_sub_cancel_right]
+    have hw : window h (m.ctrlTraj T u) t = window h Z t :=
+      window_congr_ae htr ht.1 (by linarith [ht.2])
+    have h1 : (m.ctrlState T u t).fst = Z (t + h) - m.M.eval (fun σ => Z (t + σ)) 0 := by
+      rw [ctrlState, WithLp.toLp_fst, hfst t ht, hZt, m.M.eval_shift, add_zero]
+    have h2 : ⇑(m.ctrlState T u t).snd =ᵐ[μI h] fun σ => Z (t + σ) := by
+      rw [ctrlState, WithLp.toLp_snd, hw]
+      exact coeFn_window (memLp_comp_add hZ.memLp ht.1 (by linarith [ht.2]))
+    have hmem : m.ctrlState T u t ∈ m.S.generator.domain :=
+      (m.toEquation.mem_generator_domain_iff _).2 ⟨_, _, hgt, h1, h2⟩
+    refine ⟨hmem, ?_⟩
+    rw [m.toEquation.generator_apply hmem hgt h2, m.L.eval_shift, add_zero,
+      window_eq_toLp (memLp_comp_add hZ.memLp_deriv ht.1 (by linarith [ht.2]))]
+  · refine state_ext ?_ ?_
+    · rw [ctrlState, WithLp.toLp_fst, WithLp.toLp_fst, Equation.prim, zero_add]
+      have hL := m.L.ae_eval_eq (τ := T) htr
+      show ∫ s in (0 : ℝ)..t, (m.L.eval (m.ctrlTraj T u) s + m.forcing T u s) = _
+      rw [intervalIntegral_congr_μI (x₁ := fun s => m.L.eval (m.ctrlTraj T u) s +
+        m.forcing T u s) (x₂ := fun s => m.L.eval Z s + m.forcing T u s)
+        (hL.mono fun s hs => by simp only [hs]) ht]
+      refine intervalIntegral.integral_congr_ae (ae_of_all _ fun s hs => ?_)
+      rw [uIoc_of_le ht.1] at hs
+      simp only [forcing, indicator_of_mem (Ioc_subset_Ioc_right ht.2 hs)]
+    · rw [ctrlState, WithLp.toLp_snd, WithLp.toLp_snd]
+      exact window_congr_ae htr ht.1 (by linarith [ht.2])
 
 /-- The zero-history state vanishes at `t = 0`. -/
 theorem ctrlState_zero : m.ctrlState T u 0 = 0 := by
   refine state_ext ?_ ?_
-  · simp [ctrlState, ctrlSol]
+  · simp [ctrlState]
   · rw [ctrlState, WithLp.toLp_snd, WithLp.zero_snd, ← window_zero (T := h) 0]
     exact window_congr (ae_restrict_of_forall_mem measurableSet_Ioc fun σ hσ => by
       rw [ctrlTraj, traj_of_le _ _ (by linarith [hσ.2])])
 
-/-- **`L_T u = (x(T), x_T)`**: the mild solution `∫₀ᵗ S(t - r) B u(r) dr` is the state of the
-zero-history solution of the delay equation forced by `B₀ u` (integrated form and uniqueness of
-weak solutions, `C0Semigroup.eq_mildSol_of_strong`). -/
+/-- **`L_T u = (x(T) - M x_T, x_T)`**: the mild solution `∫₀ᵗ S(t - r) B u(r) dr` is the state of
+the zero-history solution of the delay equation forced by `B₀ u` (strong solution and
+uniqueness of weak solutions, `C0Semigroup.eq_mildSol_of_strong`). -/
 theorem ctrlState_eq_conv (hu : MemLp u 2 (μI T)) {t : ℝ} (ht : t ∈ Icc 0 T) :
     m.ctrlState T u t = ∫ r in Ioc 0 t, m.S.real (t - r) (m.Bop (u r)) := by
   have hT : 0 ≤ T := ht.1.trans ht.2
-  have hz := m.hasWeakDeriv_ctrlTraj hu hT
-  set z := m.ctrlTraj T u with hzdef
-  set z' := traj h 0 fun s => m.rhs z s + m.forcing T u s with hz'def
-  set G : ℝ → State h E := fun s => WithLp.toLp 2 (m.rhs z s, window h z' s) with hGdef
+  obtain ⟨Z, Z', hZ, hgen, hint, hZ0⟩ := m.exists_ctrlState_strong hu hT
+  set G : ℝ → State h E := fun s => WithLp.toLp 2 (m.L.eval Z s, window h Z' s) with hGdef
   have hGc : ContinuousOn G (Icc 0 T) :=
     (WithLp.prod_continuous_toLp (p := 2) (α := E) (β := L2 E h)).comp_continuousOn
-      ((m.continuousOn_rhs hz.continuousOn).prodMk (continuousOn_window hz.memLp_deriv))
+      ((m.L.continuousOn_eval hZ.continuousOn).prodMk (continuousOn_window hZ.memLp_deriv))
   have hGi : IntegrableOn G (Ioc 0 T) := (hGc.integrableOn_Icc).mono_set Ioc_subset_Icc_self
   have hBi : IntegrableOn (fun s => m.Bop (u s)) (Ioc 0 T) :=
     m.Bop.integrable_comp (hu.integrable one_le_two)
   have hstrong := m.S.eq_mildSol_of_strong (τ := T) (x := m.ctrlState T u) (g := G)
-    (f := fun s => m.Bop (u s)) (fun s hs => (m.ctrlState_mem_and_generator hu hs).1)
-    (fun s hs => (m.ctrlState_mem_and_generator hu hs).2) hGi hBi ?_ t ht
+    (f := fun s => m.Bop (u s)) (fun s hs => (hgen s hs).1) (fun s hs => (hgen s hs).2) hGi hBi
+    ?_ t ht
   · rw [hstrong, C0Semigroup.mildSol, ctrlState_zero, map_zero, zero_add]
   intro t ht
   have hGBi : IntervalIntegrable (fun s => G s + m.Bop (u s)) volume 0 t :=
     intervalIntegrable_of_integrableOn (hGi.add hBi) ht
-  rw [ctrlState_zero, zero_add]
   have kf : (∫ s in (0 : ℝ)..t, (G s + m.Bop (u s))).fst =
       ∫ s in (0 : ℝ)..t, (G s + m.Bop (u s)).fst :=
     ((WithLp.fstL 2 ℝ E (L2 E h)).intervalIntegral_comp_comm hGBi).symm
   have ks : (∫ s in (0 : ℝ)..t, (G s + m.Bop (u s))).snd =
       ∫ s in (0 : ℝ)..t, (G s + m.Bop (u s)).snd :=
     ((WithLp.sndL 2 ℝ E (L2 E h)).intervalIntegral_comp_comm hGBi).symm
+  rw [ctrlState_zero, zero_add, hint t ht]
   refine state_ext ?_ ?_
   · rw [kf]
-    simp only [WithLp.add_fst, hGdef, WithLp.toLp_fst, Bop_apply, ctrlState]
-    rw [(m.isSolOn_ctrlSol hu T).2 t ht, Pi.zero_apply, zero_add]
-    · refine intervalIntegral.integral_congr_ae (ae_of_all _ fun s hs => ?_)
-      rw [uIoc_of_le ht.1] at hs
-      simp only [forcing, indicator_of_mem (Ioc_subset_Ioc_right ht.2 hs)]
-      rfl
+    simp only [WithLp.add_fst, hGdef, WithLp.toLp_fst, Bop_apply]
   · rw [ks]
-    simp only [WithLp.add_snd, hGdef, WithLp.toLp_snd, Bop_apply, add_zero, ctrlState]
-    have hw0 : window h z 0 = 0 := by
-      have := congrArg WithLp.snd (m.ctrlState_zero (T := T) (u := u))
-      simpa [ctrlState] using this
-    rw [← window_sub_window_eq_integral hz m.h_pos.le ht.1 (by linarith [ht.2]), hw0, sub_zero]
+    simp only [WithLp.add_snd, hGdef, WithLp.toLp_snd, Bop_apply, add_zero]
+    rw [← window_sub_window_eq_integral hZ m.h_pos.le ht.1 (by linarith [ht.2]), hZ0,
+      sub_zero]
 
 /-! ### The standing assumptions -/
 
-/-- **`hyp:H1`** at every horizon: `L_T u = (x(T), x_T) ∈ D(A)` (`ctrlState_eq_conv`,
-`ctrlState_mem_and_generator`), and the graph-norm bound follows from the closed graph theorem
-(`u ↦ (L_T u, A L_T u)` is linear with closed graph, since `L_T ∈ L(L², X)` and `A` is closed). -/
+/-- **`hyp:H1`** at every horizon: `L_T u = (x(T) - M x_T, x_T) ∈ D(A)` (`ctrlState_eq_conv`,
+`exists_ctrlState_strong`), and the graph-norm bound follows from the closed graph theorem. -/
 theorem H1 (T : ℝ) : m.sys.H1 T := by
   rcases le_or_gt T 0 with hT | hT
   · refine ⟨0, fun u => ⟨0, ?_, by simp⟩⟩
@@ -348,7 +411,8 @@ theorem H1 (T : ℝ) : m.sys.H1 T := by
     exact e2
   have hmem : ∀ u : L2 U T, Lb u ∈ m.S.generator.domain := fun u => by
     rw [hLb u, ← m.ctrlState_eq_conv (Lp.memLp u) ⟨hT.le, le_rfl⟩]
-    exact (m.ctrlState_mem_and_generator (Lp.memLp u) ⟨hT.le, le_rfl⟩).1
+    obtain ⟨Z, Z', -, hgen, -, -⟩ := m.exists_ctrlState_strong (Lp.memLp u) hT.le
+    exact (hgen T ⟨hT.le, le_rfl⟩).1
   let Φ : L2 U T →ₗ[ℝ] m.S.Dom :=
     { toFun := fun u => m.S.toDom ⟨Lb u, hmem u⟩
       map_add' := fun u v => m.S.dom_ext (by simp only [map_add, m.S.domIncl_toDom])
@@ -369,8 +433,8 @@ theorem H1 (T : ℝ) : m.sys.H1 T := by
   rw [sys_ιWV, show Φc u = Φ u from rfl, hΦ, hLb]
   rfl
 
-/-- **`L_T u = (x(T), x_T)`** (`ex:intro-delay`): the control-to-state map of the system is the
-state of the zero-history solution of the delay equation forced by `B₀ u`. -/
+/-- **`L_T u = (x(T) - M x_T, x_T)`** (`ex:intro-delay`): the control-to-state map of the system
+is the state of the zero-history solution of the delay equation forced by `B₀ u`. -/
 theorem ιW_L {T : ℝ} (hT : 0 < T) (u : L2 U T) :
     m.sys.ιW (m.sys.L T u) = m.ctrlState T u T := by
   have := m.sys.ιWV_L (m.H1 T) hT (Lp.memLp u)
@@ -378,128 +442,45 @@ theorem ιW_L {T : ℝ} (hT : 0 < T) (u : L2 U T) :
   rw [sys_ιW, this, m.ctrlState_eq_conv (Lp.memLp u) ⟨hT.le, le_rfl⟩]
   rfl
 
-/-- **`hyp:H2`** at every horizon: for `w = (v, A v)`, `v = (g(h), g)`, the output
-`C S(t) w = ∑ₖ Cₖ x(t - h'ₖ) + C_d x_t` is bounded in `L²(0, T; Y)` by the `L²` norm of the
-trajectory on `(-h, T)`, hence by `‖v‖_X` (Grönwall). -/
+/-- **`hyp:H2`** at every horizon: for `w ∈ W` with `v = ιW w = (g(h) - M g, g)`, the output
+`C S(t) w = C x_t` is `C` evaluated along an `H¹` representative `Z` of the
+trajectory, so `‖C S(·) w‖_{L²(0, T)} ≤ (∑ₖ ‖Cₖ‖ μₖ([0, h]) + √T ‖C_d‖) ‖Z‖_{L²(0, h + T)}`, and
+`‖Z‖ ≤ (1 + 2 ‖(1 - 𝒦)⁻¹‖ c(T)) ‖v‖_X` (`Equation.eLpNorm_trajOf_le`). -/
 theorem H2 (T : ℝ) : m.sys.H2 T := by
   rcases le_or_gt T 0 with hT | hT
   · refine ⟨0, fun w => ?_⟩
     have : μI T = 0 := by simp [μI, Ioc_eq_empty (not_lt.2 hT)]
     simp [this]
-  set Kc : ℝ := ∑ k, ‖m.Cp k‖ + √T * ‖m.Cd‖ with hKc
-  have hKc0 : 0 ≤ Kc := by positivity
-  set c₁ : ℝ := 1 + √(h + T) * ((1 + m.Kψ T) * Real.exp (m.K * T)) with hc₁
-  refine ⟨Kc * c₁, fun w => ?_⟩
-  obtain ⟨g, g', hg, h1, h2⟩ :=
-    m.exists_hasWeakDeriv_of_mem_generator_domain (m.S.domIncl_mem w)
-  have hx : m.IsSolOn T (g h) g 0 (m.sol (g h) g 0) :=
-    m.isSolOn_sol hg.memLp (Equation.integrableOn_zero_forcing T)
-  have hz := m.hasWeakDeriv_traj hT.le hg MemLp.zero hx
-  have hzL : MemLp (traj h g (m.sol (g h) g 0)) 2 (μI (h + T)) := hz.memLp
-  set z := traj h g (m.sol (g h) g 0) with hzdef
-  set Z := (eLpNorm z 2 (μI (h + T))).toReal with hZdef
-  have hZ0 : 0 ≤ Z := ENNReal.toReal_nonneg
+  refine ⟨m.C.bound T * (1 + 2 * m.toEquation.solBound T), fun w => ?_⟩
   set v := m.S.domIncl w with hvdef
-  -- Step 1: `Z ≤ c₁ ‖v‖`.
-  have hgv : (eLpNorm g 2 (μI h)).toReal = ‖v.snd‖ := by
-    rw [Lp.norm_def, eLpNorm_congr_ae h2]
-  have hv1 : ‖v.fst‖ ≤ ‖v‖ := WithLp.norm_fst_le (x := v)
-  have hv2 : ‖v.snd‖ ≤ ‖v‖ := WithLp.norm_snd_le (x := v)
-  have hKψ := m.Kψ_nonneg hT.le
-  set M := (1 + m.Kψ T) * Real.exp (m.K * T) * ‖v‖ with hMdef
-  have hM0 : 0 ≤ M := by positivity
-  have hxM : ∀ t ∈ Icc 0 T, ‖m.sol (g h) g 0 t‖ ≤ M := by
-    intro t ht
-    refine (m.norm_sol_le hg.memLp (Equation.integrableOn_zero_forcing T) ht).trans ?_
-    simp only [Pi.zero_apply, norm_zero, integral_zero, add_zero]
-    rw [hgv, ← h1]
-    have : ‖v.fst‖ + m.Kψ T * ‖v.snd‖ ≤ (1 + m.Kψ T) * ‖v‖ := by nlinarith
-    calc (‖v.fst‖ + m.Kψ T * ‖v.snd‖) * Real.exp (m.K * T)
-        ≤ ((1 + m.Kψ T) * ‖v‖) * Real.exp (m.K * T) :=
-          mul_le_mul_of_nonneg_right this (Real.exp_pos _).le
-      _ = M := by rw [hMdef]; ring
-  have hZ : Z ≤ c₁ * ‖v‖ := by
-    have hg0 : MemLp (traj h g 0) 2 (μI (h + T)) :=
-      memLp_traj m.h_pos.le hT.le hg.memLp continuous_zero.continuousOn
-    have hx0 : MemLp (traj h 0 (m.sol (g h) g 0)) 2 (μI (h + T)) :=
-      memLp_traj m.h_pos.le hT.le MemLp.zero hx.1
-    have e : z = traj h g 0 + traj h 0 (m.sol (g h) g 0) := by
-      rw [hzdef, ← traj_add, add_zero, zero_add]
-    have hZe : Z = ‖hzL.toLp z‖ := by rw [Lp.norm_toLp]
-    have hsplit : hzL.toLp z = hg0.toLp _ + hx0.toLp _ := by
-      rw [← MemLp.toLp_add]
-      exact MemLp.toLp_congr _ _ (ae_of_all _ fun σ => by rw [e])
-    have b1 : ‖hg0.toLp (traj h g 0)‖ = ‖v.snd‖ := by
-      rw [Lp.norm_toLp, Equation.eLpNorm_traj_zero hT.le, hgv]
-    have b2 : ‖hx0.toLp (traj h 0 (m.sol (g h) g 0))‖ ≤ √(h + T) * M := by
-      refine norm_L2_le_of_ae_bound (by linarith [m.h_pos]) _ hM0 ?_
-      filter_upwards [hx0.coeFn_toLp, ae_restrict_mem measurableSet_Ioc] with σ hσ hσI
-      rw [hσ]
-      exact norm_traj_zero_le hM0 hxM (by linarith [hσI.2])
-    rw [hZe, hsplit]
-    refine (norm_add_le _ _).trans ?_
-    rw [b1]
-    calc ‖v.snd‖ + ‖hx0.toLp (traj h 0 (m.sol (g h) g 0))‖ ≤ ‖v‖ + √(h + T) * M :=
-          add_le_add hv2 b2
-      _ = c₁ * ‖v‖ := by rw [hc₁, hMdef]; ring
-  -- Step 2: the output formula.
-  have hy : ∀ᵐ t ∂(μI T), m.sys.C (m.sys.SW.real t w) =
-      ∑ k, m.Cp k (z (h - m.τC k + t)) + m.Cd (window h z t) := by
+  obtain ⟨g, g', hg, h1, h2⟩ :=
+    m.toEquation.exists_hasWeakDeriv_of_mem_generator_domain (m.S.domIncl_mem w)
+  have hso : m.toEquation.IsSolOn T (g h - m.M.eval g 0) g 0 (m.toEquation.orbit v) := by
+    rw [← h1]
+    exact (m.toEquation.isSolOn_orbit v hT.le).congr_hist h2
+  obtain ⟨X, y, hxX, -, -, hZ⟩ := hso.exists_hasWeakDeriv hT.le hg MemLp.zero
+  set Z := traj h g X with hZdef
+  have htr : m.toEquation.trajOf v =ᵐ[μI (h + T)] Z :=
+    (traj_ae_congr h2 _ _).trans (traj_ae_congr_right g hxX)
+  have hy : (fun t => m.sys.C (m.sys.SW.real t w)) =ᵐ[μI T] m.C.eval Z := by
     filter_upwards [ae_restrict_mem measurableSet_Ioc] with t ht
-    have hst : m.S.domIncl (m.sys.SW.real t w) =
-        WithLp.toLp 2 (m.sol (g h) g 0 t, window h z t) := by
+    have hst : m.S.domIncl (m.sys.SW.real t w) = m.toEquation.stateAt v t := by
       show m.S.domIncl (m.S.domSemigroup.real t w) = _
-      rw [C0Semigroup.domIncl_domSemigroup_real, ← hvdef, Equation.semigroup_real_apply _ ht.1.le,
-        Equation.eq_toLp_of_hasWeakDeriv hg h1 h2, Equation.stateAt_of_hasWeakDeriv _ hg ht.1.le]
-    have hgt := hasWeakDeriv_comp_add hz ht.1.le (by linarith [ht.2] : t + h ≤ h + T)
-    have h1' : (m.S.domIncl (m.sys.SW.real t w)).fst = z (t + h) := by
-      rw [hst, WithLp.toLp_fst, hzdef, traj_of_lt _ _ (by linarith [ht.1]), add_sub_cancel_right]
-    have hzw : MemLp (fun σ => z (t + σ)) 2 (μI h) :=
-      memLp_comp_add hzL ht.1.le (by linarith [ht.2])
-    have h2' : ⇑(m.S.domIncl (m.sys.SW.real t w)).snd =ᵐ[μI h] fun σ => z (t + σ) := by
-      rw [hst, WithLp.toLp_snd]
-      exact coeFn_window hzw
-    rw [sys_C, m.Cop_apply _ hgt h1' h2', ← window_eq_toLp hzw]
-    congr 1
-    exact Finset.sum_congr rfl fun k _ => by rw [add_comm t]
-  -- Step 3: the output as an element of `L²(0, T; Y)`.
-  have hQ : MemLp (fun t => m.Cd (window h z t)) 2 (μI T) :=
-    memLp_μI_of_continuousOn (m.Cd.continuous.comp_continuousOn (continuousOn_window hzL))
-  set Yw : L2 Y T := ∑ k, (m.Cp k).compLp (window T z (h - m.τC k)) + hQ.toLp _ with hYw
-  have hk0 : ∀ k, 0 ≤ h - m.τC k := fun k => by linarith [(m.τC_mem k).2]
-  have hkT : ∀ k, h - m.τC k + T ≤ h + T := fun k => by linarith [(m.τC_mem k).1]
-  have hYe : ⇑Yw =ᵐ[μI T] fun t => ∑ k, m.Cp k (z (h - m.τC k + t)) + m.Cd (window h z t) := by
-    have hc : ∀ᵐ t ∂(μI T), ∀ k,
-        ((m.Cp k).compLp (window T z (h - m.τC k))) t = m.Cp k (z (h - m.τC k + t)) := by
-      refine ae_all_iff.2 fun k => ?_
-      filter_upwards [(m.Cp k).coeFn_compLp' (window T z (h - m.τC k)),
-        coeFn_window_of_memLp hzL (hk0 k) (hkT k)] with t e1 e2
-      rw [e1, e2]
-    filter_upwards [Lp.coeFn_add (∑ k, (m.Cp k).compLp (window T z (h - m.τC k))) (hQ.toLp _),
-      coeFn_sum_L2 Finset.univ fun k => (m.Cp k).compLp (window T z (h - m.τC k)),
-      hQ.coeFn_toLp, hc] with t e1 e2 e3 e4
-    rw [hYw, e1, Pi.add_apply, e2, e3]
-    simp only [e4]
-  have hYn : ‖Yw‖ ≤ Kc * Z := by
-    have b1 : ‖∑ k, (m.Cp k).compLp (window T z (h - m.τC k))‖ ≤ ∑ k, ‖m.Cp k‖ * Z :=
-      (norm_sum_le _ _).trans (Finset.sum_le_sum fun k _ =>
-        ((m.Cp k).norm_compLp_le _).trans (mul_le_mul_of_nonneg_left
-          (norm_window_le hzL (hk0 k) (hkT k)) (norm_nonneg _)))
-    have b2 : ‖hQ.toLp (fun t => m.Cd (window h z t))‖ ≤ √T * (‖m.Cd‖ * Z) := by
-      refine norm_L2_le_of_ae_bound hT.le _ (by positivity) ?_
-      filter_upwards [hQ.coeFn_toLp, ae_restrict_mem measurableSet_Ioc] with t e1 e2
-      rw [e1]
-      exact m.Cd.le_opNorm_of_le (norm_window_le hzL e2.1.le (by linarith [e2.2]))
-    refine (norm_add_le _ _).trans ((add_le_add b1 b2).trans_eq ?_)
-    rw [hKc, add_mul, Finset.sum_mul]
-    ring
-  have hy' : (fun t => m.sys.C (m.sys.SW.real t w)) =ᵐ[μI T]
-      fun t => ∑ k, m.Cp k (z (h - m.τC k + t)) + m.Cd (window h z t) := hy
-  rw [eLpNorm_congr_ae (hy'.trans hYe.symm), ← ENNReal.ofReal_toReal (Lp.eLpNorm_ne_top Yw),
-    ← Lp.norm_def, sys_ιWV, ← hvdef]
-  refine ENNReal.ofReal_le_ofReal (hYn.trans ?_)
-  calc Kc * Z ≤ Kc * (c₁ * ‖v‖) := mul_le_mul_of_nonneg_left hZ hKc0
-    _ = Kc * c₁ * ‖v‖ := by ring
+      rw [C0Semigroup.domIncl_domSemigroup_real, ← hvdef, Equation.semigroup_real_apply _ ht.1.le]
+    have hgt := hasWeakDeriv_comp_add hZ ht.1.le (by linarith [ht.2] : t + h ≤ h + T)
+    have h2' : ⇑(m.S.domIncl (m.sys.SW.real t w)).snd =ᵐ[μI h] fun σ => Z (t + σ) := by
+      rw [hst, Equation.stateAt_snd, window_congr_ae htr ht.1.le (by linarith [ht.2])]
+      exact coeFn_window (memLp_comp_add hZ.memLp ht.1.le (by linarith [ht.2]))
+    rw [sys_C, m.Cop_apply_eval _ hgt h2', m.C.eval_shift, add_zero]
+  have hb := m.C.eLpNorm_eval_le hT.le hZ.memLp
+  have hZn : (eLpNorm Z 2 (μI (h + T))).toReal ≤ (1 + 2 * m.toEquation.solBound T) * ‖v‖ := by
+    rw [← eLpNorm_congr_ae htr]
+    exact m.toEquation.eLpNorm_trajOf_le v hT.le
+  rw [eLpNorm_congr_ae hy, ← ENNReal.ofReal_toReal (m.C.memLp_eval hZ.memLp).eLpNorm_ne_top,
+    sys_ιWV, ← hvdef]
+  refine ENNReal.ofReal_le_ofReal (hb.trans ?_)
+  rw [mul_assoc]
+  exact mul_le_mul_of_nonneg_left hZn (m.C.bound_nonneg T)
 
 end Model
 

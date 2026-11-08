@@ -14,21 +14,16 @@ observability map `𝓞_T` (`eq:io-state-recovery`).
 Normed spaces (`E` complete where needed):
 * `IsBoundedBelow.isClosedEmbedding`, `IsBoundedBelow.isClosed_range`: a bounded-below map is a
   homeomorphism onto its closed range; `IsBoundedBelow.equivRange` is that homeomorphism;
-* `IsBoundedBelow.isClosed_map`, `IsBoundedBelow.map_topologicalClosure`: it maps closed
-  subspaces to closed subspaces and commutes with closures of subspaces;
+* `IsBoundedBelow.isClosed_map`: it maps closed subspaces to closed subspaces;
 * constructors: `IsBoundedBelow.of_bound`, `IsBoundedBelow.of_norm_le` (`‖x‖ ≤ ‖T x‖`),
-  `IsBoundedBelow.mono`, `IsBoundedBelow.comp`, `IsBoundedBelow.of_antilipschitzWith`;
-* `isBoundedBelow_iff_exists_antilipschitzWith`,
-  `IsBoundedBelow.of_injective_of_isClosed_range` (the converse, for Banach spaces),
-  `isBoundedBelow_iff_injective` (finite dimensions).
+  `IsBoundedBelow.mono`, `IsBoundedBelow.comp`.
 
 Hilbert spaces:
 * `IsBoundedBelow.adjoint_comp_self`: `T† ∘L T` is bounded below, and
   `IsBoundedBelow.adjointCompSelfEquiv` is `T† ∘L T` as a `ContinuousLinearEquiv`; with
   `IsBoundedBelow.adjointCompSelfEquiv_symm_adjoint_apply` this is `eq:io-state-recovery`,
   `x = (T† T)⁻¹ (T†) (T x)`;
-* `IsBoundedBelow.adjoint_surjective`: `T†` is onto;
-* `IsBoundedBelow.range_eq_orthogonal_ker_adjoint`: `range T = (ker T†)ᗮ`.
+* `IsBoundedBelow.adjoint_surjective`: `T†` is onto.
 -/
 
 @[expose] public section
@@ -92,13 +87,6 @@ theorem exists_antilipschitzWith (hT : IsBoundedBelow T) : ∃ K, AntilipschitzW
   rw [le_inv_mul_iff₀ hc]
   exact h x
 
-/-- An anti-Lipschitz continuous linear map is bounded below. -/
-theorem of_antilipschitzWith {K : ℝ≥0} (h : AntilipschitzWith K T) : IsBoundedBelow T := by
-  refine ⟨((K : ℝ) + 1)⁻¹, by positivity, fun x => ?_⟩
-  rw [inv_mul_le_iff₀ (by positivity)]
-  calc ‖x‖ ≤ K * ‖T x‖ := T.bound_of_antilipschitz h x
-    _ ≤ (K + 1) * ‖T x‖ := by gcongr; linarith
-
 /-- A bounded-below map is injective. -/
 theorem injective (hT : IsBoundedBelow T) : Injective T := by
   obtain ⟨K, hK⟩ := hT.exists_antilipschitzWith
@@ -118,13 +106,6 @@ theorem isClosedEmbedding [CompleteSpace E] (hT : IsBoundedBelow T) : IsClosedEm
 theorem isClosed_range [CompleteSpace E] (hT : IsBoundedBelow T) : IsClosed (range T) :=
   hT.isClosedEmbedding.isClosed_range
 
-/-- The range of a bounded-below map on a Banach space is a closed subspace. -/
-theorem range_topologicalClosure [CompleteSpace E] (hT : IsBoundedBelow T) :
-    T.range.topologicalClosure = T.range := by
-  refine IsClosed.submodule_topologicalClosure_eq ?_
-  rw [LinearMap.coe_range, ContinuousLinearMap.coe_coe]
-  exact hT.isClosed_range
-
 /-- A bounded-below map on a Banach space maps closed sets to closed sets. -/
 theorem isClosed_image [CompleteSpace E] (hT : IsBoundedBelow T) {s : Set E} (hs : IsClosed s) :
     IsClosed (T '' s) :=
@@ -134,14 +115,6 @@ theorem isClosed_image [CompleteSpace E] (hT : IsBoundedBelow T) {s : Set E} (hs
 theorem isClosed_map [CompleteSpace E] (hT : IsBoundedBelow T) {K : Submodule 𝕜 E}
     (hK : IsClosed (K : Set E)) : IsClosed (K.map (T : E →ₗ[𝕜] F) : Set F) := by
   simpa using hT.isClosed_image hK
-
-/-- A bounded-below map on a Banach space commutes with closures of subspaces:
-`T (closure K) = closure (T K)` (Step 2 of `app:willems-gramian`). -/
-theorem map_topologicalClosure [CompleteSpace E] (hT : IsBoundedBelow T) (K : Submodule 𝕜 E) :
-    K.topologicalClosure.map (T : E →ₗ[𝕜] F) = (K.map (T : E →ₗ[𝕜] F)).topologicalClosure := by
-  refine SetLike.ext' ?_
-  simp only [Submodule.map_coe, Submodule.topologicalClosure_coe, ContinuousLinearMap.coe_coe]
-  exact (hT.isClosedEmbedding.closure_image_eq _).symm
 
 /-- The homeomorphism of `E` onto the range of a bounded-below map (closed when `E` is
 complete, `isClosed_range`). -/
@@ -167,25 +140,7 @@ theorem equivRange_symm_apply (hT : IsBoundedBelow T) (x : E) :
   rw [ContinuousLinearEquiv.symm_apply_eq]
   rfl
 
-/-- Conversely, an injective map with closed range between Banach spaces is bounded below. -/
-theorem of_injective_of_isClosed_range [CompleteSpace E] [CompleteSpace F]
-    (hinj : Injective T) (hcl : IsClosed (range T)) : IsBoundedBelow T := by
-  obtain ⟨K, hK⟩ := T.antilipschitz_of_injective_of_isClosed_range hinj hcl
-  exact of_antilipschitzWith hK
-
 end IsBoundedBelow
-
-/-- Bounded below is the same as anti-Lipschitz. -/
-theorem isBoundedBelow_iff_exists_antilipschitzWith {T : E →L[𝕜] F} :
-    IsBoundedBelow T ↔ ∃ K, AntilipschitzWith K T :=
-  ⟨fun h => h.exists_antilipschitzWith, fun ⟨_, h⟩ => .of_antilipschitzWith h⟩
-
-/-- In finite dimensions, a continuous linear map is bounded below iff it is injective. -/
-theorem isBoundedBelow_iff_injective [CompleteSpace 𝕜] [FiniteDimensional 𝕜 E]
-    {T : E →L[𝕜] F} : IsBoundedBelow T ↔ Injective T := by
-  refine ⟨fun h => h.injective, fun h => ?_⟩
-  obtain ⟨K, -, hK⟩ := ((T : E →ₗ[𝕜] F).injective_iff_antilipschitz).1 h
-  exact .of_antilipschitzWith hK
 
 end Normed
 
@@ -253,18 +208,6 @@ theorem adjoint_surjective (hT : IsBoundedBelow T) :
   intro y
   refine ⟨T (hT.adjointCompSelfEquiv.symm y), ?_⟩
   rw [← adjointCompSelfEquiv_apply hT, ContinuousLinearEquiv.apply_symm_apply]
-
-/-- The adjoint of a bounded-below map has full range. -/
-theorem range_adjoint (hT : IsBoundedBelow T) :
-    (T†).range = ⊤ :=
-  LinearMap.range_eq_top.mpr hT.adjoint_surjective
-
-/-- The (closed) range of a bounded-below map is the orthogonal complement of the kernel of its
-adjoint. -/
-theorem range_eq_orthogonal_ker_adjoint (hT : IsBoundedBelow T) :
-    T.range = (T†).kerᗮ := by
-  rw [ContinuousLinearMap.orthogonal_ker, ContinuousLinearMap.adjoint_adjoint,
-    hT.range_topologicalClosure]
 
 end IsBoundedBelow
 

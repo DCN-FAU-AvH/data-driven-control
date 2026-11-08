@@ -18,8 +18,7 @@ appeal to `prop:fattorini-hautus` for the explicit systems of `prop:hilbert-pe-n
 
 * `diagSemigroup e lam hlam : C0Semigroup ℝ X`, chosen from `exists_diagSemigroup` (built from
   the bounded diagonal operators `Diagonal.diagOp`, strong continuity by dominated convergence
-  on the coordinates); `diagSemigroup_apply_basis`,
-  `diagSemigroup_real_apply_basis`, `inner_diagSemigroup`, `inner_diagSemigroup_real`,
+  on the coordinates); `diagSemigroup_apply_basis`, `inner_diagSemigroup`, `inner_diagSemigroup_real`,
   `norm_diagSemigroup_le`;
 * self-adjointness: `isSelfAdjoint_diagSemigroup`, `adjoint_diagSemigroup`,
   `generator_adjoint_diag`;
@@ -402,10 +401,6 @@ variable (e : HilbertBasis ι ℝ X) (lam : ι → ℝ) (hlam : BddAbove (Set.ra
 theorem diagSemigroup_apply_basis (t : ℝ≥0) (n : ι) :
     diagSemigroup e lam hlam t (e n) = Real.exp (lam n * t) • e n :=
   (exists_diagSemigroup e lam hlam).choose_spec t n
-
-theorem diagSemigroup_real_apply_basis {t : ℝ} (ht : 0 ≤ t) (n : ι) :
-    (diagSemigroup e lam hlam).real t (e n) = Real.exp (lam n * t) • e n := by
-  rw [C0Semigroup.real, diagSemigroup_apply_basis, Real.coe_toNNReal t ht]
 
 /-- Coordinates: `⟪eₙ, S t x⟫ = e^{λₙ t} ⟪eₙ, x⟫`. -/
 theorem inner_diagSemigroup (t : ℝ≥0) (x : X) (n : ι) :

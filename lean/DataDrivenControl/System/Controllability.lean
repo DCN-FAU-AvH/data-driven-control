@@ -10,7 +10,7 @@ Paper: `def:controllability`, `def:observability`.
 ## Main declarations
 
 * `System.reachable T x₀`: the reachable set `ℛ_T(x₀) = {x(T; x₀, u) : u ∈ L²(0, T; U)}`;
-  `reachable_zero_eq_range`: `ℛ_T(0) = im L_T`; `reachable_eq_image`.
+  `reachable_zero_eq_range`: `ℛ_T(0) = im L_T`.
 * `System.ExactlyControllable T` (`ℛ_T(0) = X`), `System.ApproxControllable T`
   (`ℛ_T(0)` dense in `X`); `approxControllable_iff`: no nonzero `η ∈ X` annihilates `im L_T`.
 * `System.ApproxObservable T` (`ker 𝓞_T = 0`), `System.ExactlyObservable T`
@@ -60,10 +60,6 @@ def ExactlyObservable (T : ℝ) : Prop := ∃ c > 0, ∀ x : X, c * ‖x‖ ≤ 
 
 variable {sys}
 
-theorem mild_mem_reachable {T : ℝ} {u : ℝ → U} (hu : MemLp u 2 (μI T)) (x₀ : X) :
-    sys.mild x₀ u T ∈ sys.reachable T x₀ :=
-  ⟨u, hu, rfl⟩
-
 /-- `ℛ_T(0) = im L_T` (`def:controllability`). -/
 theorem reachable_zero_eq_range {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T) :
     sys.reachable T 0 = Set.range (sys.ιW.comp (sys.Lop T)) := by
@@ -76,16 +72,6 @@ theorem reachable_zero_eq_range {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T) :
   · rintro ⟨u, rfl⟩
     refine ⟨u, Lp.memLp u, ?_⟩
     simp only [ContinuousLinearMap.comp_apply, Lop_apply hH1 hT, mild_zero_left]
-
-/-- `ℛ_T(x₀) = S(T) x₀ + ℛ_T(0)`. -/
-theorem reachable_eq_image (T : ℝ) (x₀ : X) :
-    sys.reachable T x₀ = (fun x => sys.SX.real T x₀ + x) '' sys.reachable T 0 := by
-  ext x
-  constructor
-  · rintro ⟨u, hu, rfl⟩
-    exact ⟨sys.mild 0 u T, ⟨u, hu, rfl⟩, by simp [mild]⟩
-  · rintro ⟨_, ⟨u, hu, rfl⟩, rfl⟩
-    exact ⟨u, hu, by simp [mild]⟩
 
 /-- Approximate controllability in time `T` iff no nonzero `η ∈ X` is orthogonal to `im L_T`. -/
 theorem approxControllable_iff {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T) :

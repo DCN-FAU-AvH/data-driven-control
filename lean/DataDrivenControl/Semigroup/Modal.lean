@@ -13,16 +13,14 @@ Extends `Semigroup/Diagonal`.
 
 * `Diagonal.diagMap e f d C hd : X →L[ℝ] Y` for Hilbert bases `e` of `X` and `f` of `Y`
   indexed by the same `ι` and a bounded multiplier `|dₙ| ≤ C`: the bounded map with
-  `⟪fₙ, diagMap x⟫ = dₙ ⟪eₙ, x⟫` (`inner_diagMap`, `diagMap_apply_basis`, `norm_diagMap_le`,
-  `eq_diagMap_iff`, `diagMap_comp`, `adjoint_diagMap`, `diagOp_eq_diagMap`); it is injective
+  `⟪fₙ, diagMap x⟫ = dₙ ⟪eₙ, x⟫` (`inner_diagMap`, `diagMap_apply_basis`, `norm_diagMap_le`); it
+  is injective
   and has dense range when every `dₙ ≠ 0` (`injective_diagMap`, `denseRange_diagMap`), and it
   intertwines the diagonal semigroups with the same eigenvalues (`consistent_diagMap`).  All
   embeddings of the heat example are of this form.
 * `Diagonal.separableSpace`: a space with a countable Hilbert basis is separable.
 * `resolventSet_complexify_diag`, `mem_resolventSet_complexify_diag_of_notMem_closure`:
-  `ρ(A_ℂ) ⊇ ℂ \ closure {λₙ}` for the real diagonal generator `A`; the resolvent is diagonal
-  (`pairing_resolvent_complexify_diag`: `⟪eₙ, R(s) z⟫ = (s - λₙ)⁻¹ ⟪eₙ, z⟫` for the bilinear
-  pairing).
+  `ρ(A_ℂ) ⊇ ℂ \ closure {λₙ}` for the real diagonal generator `A`.
 * `System.approxControllable_of_modal`: approximate controllability from the modal coordinates
   `⟪eₙ, L_T u⟫ = ∫₀ᵀ e^{λₙ (T - r)} ⟪βₙ, u r⟫ dr`, for distinct `λₙ` with
   `∑ₙ e^{λₙ s} < ∞` (`s > 0`) and a bounded family `βₙ ≠ 0` that need not be square summable
@@ -92,16 +90,6 @@ variable (e : HilbertBasis ι ℝ X) (f : HilbertBasis ι ℝ Y) {d : ι → ℝ
 theorem inner_diagMap (x : X) (n : ι) : ⟪f n, diagMap e f d C hd x⟫_ℝ = d n * ⟪e n, x⟫_ℝ :=
   inner_diagMapFun e f hd x n
 
-/-- A bounded map is the diagonal map iff it has the diagonal coordinates. -/
-theorem eq_diagMap_iff (T : X →L[ℝ] Y) :
-    T = diagMap e f d C hd ↔ ∀ x n, ⟪f n, T x⟫_ℝ = d n * ⟪e n, x⟫_ℝ := by
-  constructor
-  · rintro rfl x n
-    exact inner_diagMap e f hd x n
-  · intro h
-    ext x
-    exact ext_inner f fun n => by rw [h, inner_diagMap]
-
 /-- `diagMap eₙ = dₙ fₙ`. -/
 theorem diagMap_apply_basis (n : ι) : diagMap e f d C hd (e n) = d n • f n := by
   classical
@@ -115,26 +103,6 @@ theorem diagMap_apply_basis (n : ι) : diagMap e f d C hd (e n) = d n • f n :=
 /-- `‖diagMap‖ ≤ |C|`. -/
 theorem norm_diagMap_le : ‖diagMap e f d C hd‖ ≤ |C| :=
   LinearMap.mkContinuous_norm_le _ (abs_nonneg C) _
-
-/-- Diagonal maps compose: `diagMap f g d' ∘ diagMap e f d = diagMap e g (d' d)`. -/
-theorem diagMap_comp {Z : Type*} [NormedAddCommGroup Z] [InnerProductSpace ℝ Z]
-    (g : HilbertBasis ι ℝ Z) {d' : ι → ℝ} {C' : ℝ} (hd' : ∀ n, |d' n| ≤ C') {C'' : ℝ}
-    (hd'' : ∀ n, |d' n * d n| ≤ C'') :
-    (diagMap f g d' C' hd').comp (diagMap e f d C hd) =
-      diagMap e g (fun n => d' n * d n) C'' hd'' :=
-  (eq_diagMap_iff e g hd'' _).2 fun x n => by
-    simp only [ContinuousLinearMap.comp_apply, inner_diagMap]
-    ring
-
-/-- The bounded diagonal operator `diagOp` is the diagonal map from a basis to itself. -/
-theorem diagOp_eq_diagMap : diagOp e d C hd = diagMap e e d C hd :=
-  (eq_diagMap_iff e e hd _).2 fun x n => inner_diagOp e hd x n
-
-/-- The adjoint of a diagonal map is the diagonal map in the opposite direction. -/
-theorem adjoint_diagMap [CompleteSpace X] [CompleteSpace Y] :
-    ContinuousLinearMap.adjoint (diagMap e f d C hd) = diagMap f e d C hd :=
-  (eq_diagMap_iff f e hd _).2 fun y n => by
-    rw [ContinuousLinearMap.adjoint_inner_right, diagMap_apply_basis, real_inner_smul_left]
 
 /-- A diagonal map with nonzero multipliers is injective. -/
 theorem injective_diagMap (h0 : ∀ n, d n ≠ 0) : Function.Injective (diagMap e f d C hd) := by
@@ -356,15 +324,6 @@ theorem mem_resolventSet_complexify_diag_of_notMem_closure {s : ℂ}
   refine resolventSet_complexify_diag e lam hlam hε fun n => ?_
   have := h _ ⟨n, rfl⟩
   rwa [dist_eq_norm] at this
-
-/-- The resolvent of a real diagonal generator is diagonal: for `s` at positive distance from
-the eigenvalues, `⟪eₙ, R(s, A_ℂ) z⟫ = (s - λₙ)⁻¹ ⟪eₙ, z⟫` (bilinear pairing). -/
-theorem pairing_resolvent_complexify_diag {s : ℂ} {δ : ℝ} (hδ : 0 < δ)
-    (hs : ∀ n, δ ≤ ‖s - (lam n : ℂ)‖) (z : Complexification X) (n : ι) :
-    ⟪(e n : Complexification X),
-        resolvent (diagSemigroup e lam hlam).generator.complexify s z⟫_bil =
-      (s - lam n)⁻¹ * ⟪(e n : Complexification X), z⟫_bil := by
-  rw [resolvent_eq (isResolvent_complexify_diag e hlam hδ hs), Diagonal.pairing_cdiagOp]
 
 end Resolvent
 

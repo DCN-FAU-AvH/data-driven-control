@@ -26,13 +26,11 @@ coefficients of a harmonic signal are recovered by the Bohr mean `ĥ(ωₗ) = v�
   (the free-response step of `lem:bohr-annihilator`: `e^{-sₗ t}⟨ζ, S t c⟩` is the derivative of
   the bounded `e^{-sₗ t}⟨ζ, S t d⟩`);
 * `hasMeanValue_tsum`: termwise averaging of a uniformly dominated series;
-* `hasMeanValue_of_tendsto` (continuous Cesàro), `hasMeanValue_zero_of_norm_le_exp`: functions
-  that are `o(1)`, or bounded by `M e^{-δ t}`, have mean `0`, and so have Bohr mean `0` at every
-  frequency;
+* `hasMeanValue_of_tendsto` (continuous Cesàro): functions that are `o(1)` have mean `0`, and so
+  have Bohr mean `0` at every frequency;
 * `hasBohrMean_bohrSeries`: `ĥ(ωₗ) = vₗ` for an absolutely convergent series with pairwise
   distinct frequencies, and `hasBohrMean_bohrSeries_of_ne`: `ĥ(ω) = 0` at other frequencies;
-* uniqueness of the coefficients: `eq_of_bohrSeries_ae_eq`, `eq_zero_of_bohrSeries_ae_eq_zero`,
-  and the form used by `lem:bohr-annihilator`, `eq_zero_of_add_bohrSeries_ae_eq_zero`
+* uniqueness of the coefficients: `eq_zero_of_bohrSeries_ae_eq_zero`, and the form used by `lem:bohr-annihilator`, `eq_zero_of_add_bohrSeries_ae_eq_zero`
   (`g t + ∑ dₗ e^{i ωₗ t} = 0` with `g` of Bohr mean `0` at every `ωₗ` forces `d = 0`).
 
 Everything is stated for functions on `ℝ`; only their values for `t > 0` matter.
@@ -44,8 +42,6 @@ open MeasureTheory Set Filter Topology
 open scoped Complex Real
 
 noncomputable section
-
-set_option autoImplicit false
 
 namespace DataDrivenControl
 
@@ -196,15 +192,6 @@ theorem hasMeanValue_of_tendsto [CompleteSpace E] {g : ℝ → E} {v : E} (hg : 
   simpa using h0.add (hasMeanValue_const v) (fun S ↦ (hgi S).sub intervalIntegrable_const)
     fun _ ↦ intervalIntegrable_const
 
-/-- A locally integrable function bounded by `M e^{-δ t}`, `δ > 0`, for large `t` has mean `0`. -/
-theorem hasMeanValue_zero_of_norm_le_exp [CompleteSpace E] {g : ℝ → E} {δ M : ℝ} (hδ : 0 < δ)
-    (hb : ∀ᶠ t in atTop, ‖g t‖ ≤ M * Real.exp (-(δ * t)))
-    (hgi : ∀ S : ℝ, IntervalIntegrable g volume 0 S) : HasMeanValue g 0 := by
-  refine hasMeanValue_of_tendsto (squeeze_zero_norm' hb ?_) hgi
-  have : Tendsto (fun t : ℝ ↦ Real.exp (-(δ * t))) atTop (𝓝 0) :=
-    Real.tendsto_exp_atBot.comp (tendsto_neg_atTop_atBot.comp (tendsto_id.const_mul_atTop hδ))
-  simpa using this.const_mul M
-
 /-- **Termwise averaging**: if `‖F l t‖ ≤ b l` with `b` summable and each `F l` has mean
 `m l`, then `∑' l, F l` has mean `∑' l, m l`. -/
 theorem hasMeanValue_tsum [CompleteSpace E] {ι : Type*} [Countable ι] {F : ι → ℝ → E}
@@ -247,11 +234,6 @@ def HasBohrMean (h : ℝ → E) (ω : ℝ) (v : E) : Prop :=
 limit does not exist. -/
 def bohrMean (h : ℝ → E) (ω : ℝ) : E :=
   meanValue (fun t : ℝ ↦ cexp (-(ω * t * Complex.I)) • h t)
-
-/-- Unfolding `HasBohrMean`: the mean value of `e^{-iωt} h t`. -/
-theorem hasBohrMean_iff {h : ℝ → E} {ω : ℝ} {v : E} :
-    HasBohrMean h ω v ↔ HasMeanValue (fun t : ℝ ↦ cexp (-(ω * t * Complex.I)) • h t) v :=
-  Iff.rfl
 
 /-- Bohr means are unique. -/
 theorem HasBohrMean.unique {h : ℝ → E} {ω : ℝ} {v w : E} (hv : HasBohrMean h ω v)
@@ -330,16 +312,6 @@ theorem hasBohrMean_zero_of_tendsto_zero [CompleteSpace E] {h : ℝ → E}
   refine squeeze_zero_norm (fun t ↦ (norm_smul _ _).trans_le ?_) (tendsto_norm_zero.comp hh)
   rw [norm_cexp_neg_mul_I, one_mul]
   rfl
-
-/-- A locally integrable function bounded by `M e^{-δ t}`, `δ > 0`, for large `t` has Bohr
-mean `0` at every frequency. -/
-theorem hasBohrMean_zero_of_norm_le_exp [CompleteSpace E] {h : ℝ → E} {δ M : ℝ} (hδ : 0 < δ)
-    (hb : ∀ᶠ t in atTop, ‖h t‖ ≤ M * Real.exp (-(δ * t)))
-    (hhi : ∀ S : ℝ, IntervalIntegrable h volume 0 S) (ω : ℝ) : HasBohrMean h ω 0 := by
-  refine hasMeanValue_zero_of_norm_le_exp (M := M) hδ ?_ (intervalIntegrable_cexp_smul hhi)
-  filter_upwards [hb] with t ht
-  rw [norm_smul, norm_cexp_neg_mul_I, one_mul]
-  exact ht
 
 /-- The Bohr mean of a single exponential `e^{iαt} v`: `v` at `ω = α`, `0` elsewhere. -/
 theorem hasBohrMean_cexp [CompleteSpace E] (α ω : ℝ) (v : E) :
@@ -434,18 +406,6 @@ theorem hasBohrMean_bohrSeries_of_ne [CompleteSpace E] {ι : Type*} [Countable �
     HasBohrMean (bohrSeries ω v) ω₀ 0 := by
   simpa [hω₀] using hasBohrMean_bohrSeries_aux (ω := ω) hv ω₀
 
-/-- `bohrMean` form of `hasBohrMean_bohrSeries`: `ĥ(ωₗ) = vₗ`. -/
-theorem bohrMean_bohrSeries [CompleteSpace E] {ι : Type*} [Countable ι] {ω : ι → ℝ}
-    {v : ι → E} (hv : Summable fun l ↦ ‖v l‖) (hω : Function.Injective ω) (l : ι) :
-    bohrMean (bohrSeries ω v) (ω l) = v l :=
-  (hasBohrMean_bohrSeries hv hω l).bohrMean_eq
-
-/-- `bohrMean` form of `hasBohrMean_bohrSeries_of_ne`. -/
-theorem bohrMean_bohrSeries_of_ne [CompleteSpace E] {ι : Type*} [Countable ι] {ω : ι → ℝ}
-    {v : ι → E} (hv : Summable fun l ↦ ‖v l‖) {ω₀ : ℝ} (hω₀ : ∀ l, ω l ≠ ω₀) :
-    bohrMean (bohrSeries ω v) ω₀ = 0 :=
-  (hasBohrMean_bohrSeries_of_ne hv hω₀).bohrMean_eq
-
 /-- **Vanishing of the coefficients** (`lem:bohr-annihilator`): if
 `g t + ∑ dₗ e^{i ωₗ t} = 0` for a.e. `t > 0`, the series converges absolutely with pairwise
 distinct frequencies, and `g` has Bohr mean `0` at every `ωₗ`, then every `dₗ` vanishes. -/
@@ -467,23 +427,6 @@ theorem eq_zero_of_bohrSeries_ae_eq_zero [CompleteSpace E] {ι : Type*} [Countab
   refine eq_zero_of_add_bohrSeries_ae_eq_zero (g := fun _ ↦ 0) hd hω (fun l ↦ ?_)
     (h.mono fun t ht ↦ by simpa using ht)
   simpa [HasBohrMean] using hasMeanValue_const (0 : E)
-
-/-- **Uniqueness of the Bohr coefficients**: two absolutely convergent series with the same
-pairwise distinct frequencies that agree a.e. on `(0, ∞)` have the same coefficients. -/
-theorem eq_of_bohrSeries_ae_eq [CompleteSpace E] {ι : Type*} [Countable ι] {ω : ι → ℝ}
-    {v w : ι → E} (hv : Summable fun l ↦ ‖v l‖) (hw : Summable fun l ↦ ‖w l‖)
-    (hω : Function.Injective ω)
-    (h : ∀ᵐ t ∂(volume.restrict (Ioi 0)), bohrSeries ω v t = bohrSeries ω w t) : v = w := by
-  have hvw : Summable fun l ↦ ‖(v - w) l‖ :=
-    (hv.add hw).of_nonneg_of_le (fun _ ↦ norm_nonneg _) fun l ↦ norm_sub_le _ _
-  have hsub : ∀ t, bohrSeries ω (v - w) t = bohrSeries ω v t - bohrSeries ω w t := by
-    intro t
-    simp only [bohrSeries, Pi.sub_apply, smul_sub]
-    exact Summable.tsum_sub (Summable.of_norm (by simpa only [norm_cexp_smul] using hv))
-      (Summable.of_norm (by simpa only [norm_cexp_smul] using hw))
-  have := eq_zero_of_bohrSeries_ae_eq_zero hvw hω
-    (h.mono fun t ht ↦ by rw [hsub, ht, sub_self])
-  exact sub_eq_zero.1 this
 
 end Bohr
 

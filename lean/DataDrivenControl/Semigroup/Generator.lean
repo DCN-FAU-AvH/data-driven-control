@@ -22,12 +22,11 @@ and for complex spaces).
 * `integral_mem_generator_domain`, `generator_integral`, `real_apply_sub_eq_integral`:
   `A ∫₀ᵗ S s x ds = S t x - x` and `S t x - x = ∫₀ᵗ S s (A x) ds`;
 * `eigen_iff_real`, `eigen_iff`: `S t η = e^{μ t} η` for all `t` iff `A η = μ η`;
-* `ext_of_generator`: a C₀-semigroup is determined by its generator;
 * `Consistent.mem_generator_domain`, `Consistent.generator_apply`: consistent semigroups have
   consistent generators.
 
 `dense_generator_domain`, `generator_isClosed`, `hasDerivAt_real_apply`, `generator_integral`,
-`real_apply_sub_eq_integral` (for `0 ≤ t`) and `ext_of_generator` assume `[CompleteSpace E]`: on
+and `real_apply_sub_eq_integral` (for `0 ≤ t`) assume `[CompleteSpace E]`: on
 incomplete spaces Bochner integrals vanish, uniform boundedness fails, and these statements
 are false (see `Semigroup/Basic`).  Extra API:
 `diffQuot_apply`, `tendsto_diffQuot_apply`, `real_mem_generator_domain`, `generator_real_apply`,
@@ -98,8 +97,6 @@ def generator : E →ₗ.[𝕜] E where
         refine tendsto_nhds_unique (S.tendsto_limUnder_diffQuot (c • x).2) ?_
         exact ((S.tendsto_limUnder_diffQuot x.2).const_smul c).congr
           fun h => (S.diffQuot_smul c x h).symm }
-
-theorem generator_domain : S.generator.domain = S.generatorDomain := rfl
 
 theorem mem_generator_domain_iff {x : E} :
     x ∈ S.generator.domain ↔ ∃ y, Tendsto (S.diffQuot x) (𝓝[>] 0) (𝓝 y) := Iff.rfl
@@ -388,27 +385,6 @@ theorem eq_real_apply_of_hasDerivWithinAt [CompleteSpace E] {w : ℝ → E} {t :
       (mul_le_mul_of_nonneg_right (hK _ (by linarith [hr.1, hs.1])) (norm_nonneg _))
   have := constant_of_has_deriv_right_zero hφc hφd t ⟨ht, le_rfl⟩
   simpa using this
-
-/-- A C₀-semigroup on a Banach space is determined by its generator. -/
-theorem ext_of_generator [CompleteSpace E] {S' : C0Semigroup 𝕜 E}
-    (h : S.generator = S'.generator) : S = S' := by
-  obtain ⟨hdom, hval⟩ := LinearPMap.ext_iff.1 h
-  have hdom' : ∀ {y : E}, y ∈ S'.generator.domain → y ∈ S.generator.domain := fun hy =>
-    hdom ▸ hy
-  refine C0Semigroup.ext fun t => ContinuousLinearMap.ext fun x => ?_
-  -- equality on the dense set `D(A)`
-  have key : ∀ x ∈ (S.generator.domain : Set E), S t x = S' t x := by
-    intro x hx
-    have hx' : x ∈ S'.generator.domain := hdom ▸ hx
-    have := S.eq_real_apply_of_hasDerivWithinAt (w := fun s => S'.real s x) t.2
-      (S'.continuous_real_apply x).continuousOn
-      (fun s _ => hdom' (S'.real_mem_generator_domain hx' s))
-      (fun s hs => by
-        have h2 := S'.hasDerivWithinAt_real_apply ⟨x, hx'⟩ hs.1
-        rwa [← S'.generator_real_apply hx' s, ← hval] at h2)
-    simpa using this.symm
-  exact congrFun (Continuous.ext_on S.dense_generator_domain (S t).continuous
-    (S' t).continuous key) x
 
 /-! ### Consistent semigroups have consistent generators -/
 

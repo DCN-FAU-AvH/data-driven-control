@@ -19,7 +19,7 @@ the coefficients `2^{-(k+2)}` (the paper's `2^{-k-1}`) in `U_ℂ = Complexificat
 ## Main declarations
 
 * `heatFreq`, `heatInput : HarmonicSignal ℝ`; `heatInput_apply`
-  (`ū(t) = ∑ₖ 2^{-(k+1)} cos(heatFreq k · t)`), `memLp_heatInput`;
+  (`ū(t) = ∑ₖ 2^{-(k+1)} cos(heatFreq k · t)`);
 * `isHarmonicPE_heatInput`: `ū` is harmonically persistently exciting, with the total family
   `{1}` in `U_ℂ`, the frequencies `ω_k → 1` and the coefficients `2^{-(k+2)}`;
 * `abs_mem_closure_range_freq_heatInput`: every `ω` in the closure of the frequency set
@@ -147,10 +147,6 @@ theorem heatInput_apply (t : ℝ) :
   rw [tsum_fintype, Fintype.sum_bool]
   simp only [hF, ↓reduceIte, Bool.false_eq_true, neg_mul, Real.cos_neg]
   ring
-
-/-- The input is square integrable on every window (`HarmonicSignal.memLp`). -/
-theorem memLp_heatInput (T : ℝ) : MemLp heatInput 2 (μI T) :=
-  heatInput.memLp T
 
 /-- **`ū` is harmonically persistently exciting** (`def:harmonic-pe`;
 `app:boundary-heat-informative`): the total family is `{1}` in `U_ℂ`, and along `ℓ k = (k, +)`

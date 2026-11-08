@@ -1,25 +1,23 @@
 module
 
-public import DataDrivenControl.Examples.BoundaryHeat
-public import DataDrivenControl.Examples.Heat.LocalizedKernel
+public import DataDrivenControl.Examples.Heat.Modal
 
 /-!
-# The cut-off `χ` and analytic tools for the localised heat space
+# The cut-off `χ` and analytic tools for the localised space `V`
 
-Paper: `ex:boundary-heat-informative` (`informativity.tex`), `app:boundary-heat-informative`
-(`appendix_proofs.tex`): the cut-off `χ ∈ C_c^∞(0, 1)` equal to one near `ξ₀` in
-`eq:heat-localized-V`, and the tools behind the paper's claims about `V`: continuity of right
-translations in `L²` (strong continuity of `S` on `V`), the orthogonality of the derivatives of
-the eigenfunctions (`∫₀^∞ e^{-2t} ‖S(t) z‖²_{H¹} dt = ½ ‖z‖²_X`), and eigenfunction series as
-bounded continuous functions.
+Paper: `app:boundary-heat-informative` (`appendix_proofs.tex`): the cut-off `χ ∈ C_c^∞(0, 1)`
+equal to one near `ξ₀` in `eq:heat-localized-V`, and the tools behind the claims about `V`:
+continuity of right translations in `L²` (strong continuity of `S` on `V`), the orthogonality of
+the derivatives of the eigenfunctions (`∫₀^∞ e^{-2t} ‖S(t) z‖²_{H¹} dt = ½ ‖z‖²_X`), and
+eigenfunction series as bounded continuous functions.
 
 ## Main declarations
 
 * `Cutoff`: a `C¹` function `χ` with `tsupport χ ⊆ (0, 1)`; `Cutoff.exists_pos_le` (`d_χ > 0`),
-  `Cutoff.eq_zero_of_notMem`, `Cutoff.deriv_eq_zero_of_notMem`, the bounded continuous functions
-  `Cutoff.bcf` (`χ`) and `Cutoff.derivBcf` (`χ'`).
+  `Cutoff.apply_zero` (`χ(0) = 0`), the bounded continuous functions `Cutoff.bcf` (`χ`) and
+  `Cutoff.derivBcf` (`χ'`).
 * `exists_smooth_cutoff`: **a cut-off exists**: for `ξ₀ ∈ (0, 1)` there is `χ ∈ C_c^∞(0, 1)` with
-  `χ = 1` near `ξ₀` (a `ContDiffBump`); `exists_cutoff` packages it as a `Cutoff`.
+  `χ = 1` near `ξ₀` (a `ContDiffBump`).
 * `tendsto_eLpNorm_comp_add_sub`: **continuity of translation in `L²(ℝ; E)`**, and
   `tendsto_eLpNorm_comp_add_sub_Ioi`, its right-translation form on `L²(0, ∞; E)`;
   `memLp_comp_add_Ioi`, `eLpNorm_comp_add_Ioi_le`.
@@ -27,13 +25,9 @@ bounded continuous functions.
 * `hasSum_sq_of_orthogonal`: `‖∑ₙ cₙ uₙ‖² = ∑ₙ cₙ² rₙ` for `⟪uₙ, uₘ⟫ = [n = m] rₙ`.
 * `cosDerivBCF`, `integral_cosDeriv_mul_cosDeriv` (`∫₀¹ eₙ' eₘ' = -λₙ [n = m]`),
   `inner_toL2_cosDerivBCF`.
-* `heatModal`: the modal data `λₙ = -(nπ)²` of `Examples/Heat/Spaces`, without an observation
-  (`X₋₁`, `S_{X₋₁}`, `X ↪ X₋₁`, `A_{X,-1}` do not depend on it).
 
-## Deviation from the paper
-
-The paper takes `χ ∈ C_c^∞(0, 1)`.  A `Cutoff` only needs `χ ∈ C¹` with compact support in
-`(0, 1)`, which every `χ ∈ C_c^∞(0, 1)` satisfies; `exists_smooth_cutoff` provides a smooth one.
+The paper takes `χ ∈ C_c^∞(0, 1)`; a `Cutoff` only needs `χ ∈ C¹` with compact support in
+`(0, 1)`, which every `χ ∈ C_c^∞(0, 1)` satisfies.
 -/
 
 @[expose] public section
@@ -48,8 +42,6 @@ set_option linter.unusedSectionVars false
 namespace DataDrivenControl
 
 namespace BoundaryHeat
-
-namespace Localized
 
 open CosineBasis
 
@@ -142,11 +134,6 @@ theorem exists_smooth_cutoff {ξ₀ : ℝ} (hξ₀ : ξ₀ ∈ Ioo 0 1) :
     constructor <;> linarith [hξ.1, hξ.2]
   · filter_upwards [Metric.ball_mem_nhds ξ₀ (by positivity : (0 : ℝ) < r / 4)] with ξ hξ
     exact f.one_of_mem_closedBall (Metric.ball_subset_closedBall hξ)
-
-/-- A `Cutoff` equal to one near `ξ₀ ∈ (0, 1)` exists. -/
-theorem exists_cutoff {ξ₀ : ℝ} (hξ₀ : ξ₀ ∈ Ioo 0 1) : ∃ χ : Cutoff, ⇑χ =ᶠ[𝓝 ξ₀] 1 := by
-  obtain ⟨χ, hχ, hs, h1⟩ := exists_smooth_cutoff hξ₀
-  exact ⟨⟨χ, hχ.of_le (by exact_mod_cast le_top), hs⟩, h1⟩
 
 /-! ### Continuity of translation in `L²` -/
 
@@ -445,26 +432,6 @@ theorem inner_toL2_cosBCF (n m : ℕ) :
 theorem norm_toL2_sq (f : ℝ →ᵇ ℝ) : ‖toL2 f‖ ^ 2 = ∫ ξ in Ioc 0 1, f ξ ^ 2 := by
   rw [← real_inner_self_eq_norm_sq, inner_toL2, intervalIntegral.integral_of_le zero_le_one]
   exact integral_congr_ae (Eventually.of_forall fun ξ => by simp only [sq])
-
-/-! ### The modal data -/
-
-/-- The modal data of the Neumann heat equation without an observation: `λₙ = -(nπ)²`.  The
-extrapolation space `X₋₁`, `S_{X₋₁}`, `X ↪ X₋₁`, `A_{X,-1}` and the smoothing `S(t) : X₋₁ → X` of
-`Examples/Heat/Spaces` depend only on the eigenvalues. -/
-def heatModal : ModalData where
-  lam := eig
-  c := fun _ => 0
-  lam_nonpos := eig_nonpos
-  summable_inv_wt := summable_inv_one_sub_eig
-  exists_abs_c_le := ⟨0, fun _ => by simp⟩
-
-/-- The weights `wₙ = 1 - λₙ`. -/
-theorem heatModal_wt (n : ℕ) : heatModal.wt n = 1 - eig n := rfl
-
-/-- The eigenvalues `λₙ`. -/
-theorem heatModal_lam : heatModal.lam = eig := rfl
-
-end Localized
 
 end BoundaryHeat
 

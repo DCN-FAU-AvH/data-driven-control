@@ -239,10 +239,6 @@ def prim (f : ℝ → ℝ) (ξ : ℝ) : ℝ := ∫ t in (0 : ℝ)..ξ, f t
 theorem hasWeakDeriv_prim {f : ℝ → ℝ} (hf : MemLp f 2 (μI 1)) : HasWeakDeriv 1 (prim f) f :=
   ⟨hf, fun t _ => by simp [prim]⟩
 
-/-- Primitives of representatives of the same class agree on `[0, 1]`. -/
-theorem prim_congr_ae {f g : ℝ → ℝ} (h : f =ᵐ[μI 1] g) : EqOn (prim f) (prim g) (Icc 0 1) :=
-  fun _ ht => intervalIntegral_congr_of_ae_eq h ht
-
 /-! ### Completeness -/
 
 /-- A vector is determined by its coordinates in a real Hilbert basis. -/

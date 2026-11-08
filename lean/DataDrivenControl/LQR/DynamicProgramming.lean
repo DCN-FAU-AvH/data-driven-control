@@ -14,8 +14,7 @@ proved through first-order conditions, which avoids comparing costs:
 
 * `System.foc_lqTail_cut`: the cut-off control `cut t u` satisfies the first-order condition of
   the tail problem started at `(t, x(t))` (cocycle identities `tailState`, `tailOutput`,
-  causality `cut_𝓕_cut`, and `R̃ cut t = cut t R̃`), so it is the optimal tail control
-  (`System.uopt_lqTail_eq_cut`);
+  causality `cut_𝓕_cut`, and `R̃ cut t = cut t R̃`);
 * `System.Pop_lqTail_mildW`: the value operator applied to the optimal state is the costate,
   `Pop_t (x(t)) = S_V(T - t)† 𝔾 x(T) + c_t† y` for `t ∈ [0, T]`.
 -/
@@ -26,8 +25,6 @@ open MeasureTheory Set Filter Topology
 open scoped InnerProductSpace InnerProduct
 
 noncomputable section
-
-set_option autoImplicit false
 
 set_option linter.unusedSectionVars false
 
@@ -104,15 +101,6 @@ theorem foc_lqTail_cut {T : ℝ} (hH1 : sys.H1 T) (hH2 : sys.H2 T) (hT : 0 < T)
   rw [hb, hd, tailState hH1 hT x₀ u ht, tailOutput hH1 hH2 hT x₀ u ht, adjoint_tailB_apply,
     adjoint_tailD_apply, cut_adjoint_𝓕_cut hH1 hT ht, ← cut_rOp wts ht.1, ← map_add, ← map_add,
     hu, map_zero]
-
-/-- The optimal tail control from `(t, x(t))` is the cut-off optimal control (`R4`). -/
-theorem uopt_lqTail_eq_cut {T : ℝ} (hH1 : sys.H1 T) (hH2 : sys.H2 T) (hT : 0 < T)
-    (wts : LQRWeights U V) (x₀ : W) {u : L2 U T}
-    (hu : (sys.lqTail wts T 0).K u + (sys.lqTail wts T 0).M (sys.ιWV x₀) = 0) {t : ℝ}
-    (ht : t ∈ Icc 0 T) :
-    (sys.lqTail wts T t).uopt (sys.ιWV (sys.mildW x₀ u t)) = cut T t u := by
-  obtain ⟨ε, -, hwf⟩ := exists_lqTail_wf (sys := sys) wts T
-  exact ((hwf t).eq_uopt_of_foc (foc_lqTail_cut hH1 hH2 hT wts x₀ hu ht)).symm
 
 /-- **The value operator along an optimal trajectory is the costate** (`R4`): for
 `t ∈ [0, T]`, `Pop_t (x(t)) = S_V(T - t)† 𝔾 x(T) + c_t† y`, where `y = 𝓞_V x₀ + 𝓕_T u`. -/

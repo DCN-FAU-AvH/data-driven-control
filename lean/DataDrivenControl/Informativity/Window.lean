@@ -42,8 +42,6 @@ open scoped InnerProductSpace ENNReal
 
 noncomputable section
 
-set_option autoImplicit false
-
 namespace DataDrivenControl
 
 variable {U X : Type*}

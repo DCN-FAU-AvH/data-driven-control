@@ -142,8 +142,6 @@ theorem generator_S₀_e (n : ℕ) :
 theorem sys_A : sys.A = ((B.comp K : ℓ2 →L[ℝ] ℓ2) : ℓ2 →ₗ[ℝ] ℓ2) +ᵥ S₀.generator :=
   S₀.generator_perturb (B.comp K)
 
-theorem B_comp_K_apply (x : ℓ2) : B.comp K x = ⟪b, x⟫_ℝ • b := rfl
-
 /-- The input `ū(t) = -∑_{n ≥ 1} 4^{-n} e^{-nt}` (`eq:pe-counterexample-input`), in our
 `0`-based indexing `-∑ₙ 4^{-(n+1)} e^{-(n+1) t}`. -/
 def input (t : ℝ) : ℝ := -∑' n : ℕ, (4 : ℝ)⁻¹ ^ (n + 1) * Real.exp (-(((n : ℝ) + 1) * t))

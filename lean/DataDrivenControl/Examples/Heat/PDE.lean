@@ -3,37 +3,30 @@ module
 public import Mathlib
 public import DataDrivenControl.Analysis.CosineBasis
 public import DataDrivenControl.Signal.WeakDerivative
-public import DataDrivenControl.Examples.BoundaryHeat
+public import DataDrivenControl.Examples.Heat.Modal
 
 /-!
 # The boundary-controlled heat equation on `L²(0, 1)`: the dictionary
 
-Paper: `ex:intro-pde` (`introduction.tex`), `ex:boundary-heat-informative`
-(`informativity.tex`), `app:boundary-heat-informative` (`appendix_proofs.tex`).
+Paper: `ex:intro-pde` (`introduction.tex`), `app:boundary-heat-informative`
+(`appendix_proofs.tex`).
 
-`Examples/BoundaryHeat` proves the paper's claims for the modal model on any Hilbert space `X`
-with a Hilbert basis `e`.  This file instantiates it with `X = L²(0, 1) = L2 ℝ 1` and the cosine
-basis `e = cosBasis` (`Analysis/CosineBasis`), and states its ties to the PDE
-`∂ₜx = ∂_ξξ x`, `∂_ξ x(t, 0) = u(t)`, `∂_ξ x(t, 1) = 0`, `y(t) = x(t, ξ₀)` in function language.
+The ties of the modal objects (cosine basis `eₙ`, `λₙ = -(nπ)²`, `bₙ = -eₙ(0)`, `cₙ = eₙ(ξ₀)`) to
+the PDE `∂ₜx = ∂_ξξ x`, `∂_ξ x(t, 0) = u(t)`, `∂_ξ x(t, 1) = 0`, `y(t) = x(t, ξ₀)` on
+`X = L²(0, 1)`, in function language.
 
 ## Main declarations
 
-* `obsCoeff_eq_cosFun`, `ctrlCoeff_eq_neg_cosFun`, `eig_eq_cosEig`: the modal numbers of
-  `Examples/Heat/Kernel` are `cₙ = eₙ(ξ₀)`, `bₙ = -eₙ(0)` and `λₙ = -(nπ)²`.
 * `HasH2 φ φ' φ''` (`φ ∈ H²(0, 1)`, two `HasWeakDeriv` layers) and `IsNeumannH2 φ φ' φ''`
   (`φ'(0) = φ'(1) = 0`).
 * `integral_cosFun_mul_deriv2`: `∫₀¹ eₙ φ'' = λₙ ∫₀¹ eₙ φ - eₙ(0) φ'(0) + eₙ(1) φ'(1)`;
   `inner_cosBasis_neumann_control`: **the weak form of the Neumann control**
   `⟪eₙ, φ''⟫ = λₙ ⟪eₙ, φ⟫ + bₙ φ'(0)` when `φ'(1) = 0`.
-* **The generator is the Neumann Laplacian**: `mem_generator_domain_iff`
+* **The generator of `heatSemigroup` is the Neumann Laplacian**: `mem_generator_domain_iff`
   (`D(A) = H²_N(0, 1)`), `generator_ae_eq` (`A φ = φ''`), `mem_graph_generator_iff`.
 * `hasSum_cosFun_mul_inner_of_isNeumannH2`: `∑ₙ eₙ(ξ) ⟪eₙ, φ⟫ = φ(ξ)` on `[0, 1]`, hence
   `hasSum_obsCoeff_mul_inner` (`∑ₙ cₙ φₙ = φ(ξ₀)`) and `hasSum_ctrlCoeff_mul_inner`
   (`∑ₙ bₙ ηₙ = -η(0)`).
-* `heatSystemL2 hξ₀ = heatSystem cosBasis hξ₀` and its ties: `heatSystemL2_A_graph`,
-  `heatSystemL2_A_adjoint`, `heatSystemL2_C` (`C w = φ(ξ₀)`), `heatSystemL2_Bstar`
-  (`B⋆η = -η(0)`), and `exists_boundaryHeat_L2`, **`ex:boundary-heat-informative` on
-  `L²(0, 1)`**.
 
 ## Proof of `D(A) ⊆ H²_N(0, 1)`
 
@@ -57,23 +50,6 @@ namespace BoundaryHeat
 namespace PDE
 
 open CosineBasis
-
-/-! ### The modal numbers -/
-
-/-- `λₙ = -(nπ)²` are the eigenvalues of the cosine basis. -/
-theorem eig_eq_cosEig : eig = cosEig := rfl
-
-/-- `cₙ = eₙ(ξ₀)`: the observation coefficients are the values of the eigenfunctions at `ξ₀`. -/
-theorem obsCoeff_eq_cosFun (ξ₀ : ℝ) (n : ℕ) : obsCoeff ξ₀ n = cosFun n ξ₀ := by
-  rcases eq_or_ne n 0 with rfl | hn
-  · simp [obsCoeff]
-  · rw [cosFun_of_ne_zero hn]
-    simp [obsCoeff, hn]
-
-/-- `bₙ = -eₙ(0)`: the control coefficients are minus the values of the eigenfunctions at `0`. -/
-theorem ctrlCoeff_eq_neg_cosFun (n : ℕ) : ctrlCoeff n = -cosFun n 0 := by
-  rw [cosFun_apply_zero, ctrlCoeff, cosNorm]
-  split_ifs <;> rfl
 
 /-! ### `H²(0, 1)` and integration by parts -/
 
@@ -299,117 +275,6 @@ theorem hasSum_ctrlCoeff_mul_inner {φ φ' φ'' : ℝ → ℝ} (h : IsNeumannH2 
     HasSum (fun n => ctrlCoeff n * ⟪cosBasis n, x⟫_ℝ) (-φ 0) := by
   have := (hasSum_cosFun_mul_inner_of_isNeumannH2 h hx ⟨le_rfl, zero_le_one⟩).neg
   simpa only [ctrlCoeff_eq_neg_cosFun, neg_mul] using this
-
-/-! ### The heat system on `L²(0, 1)` -/
-
-variable {ξ₀ : ℝ} (hξ₀ : ξ₀ ∈ Ioo 0 1)
-
-/-- **The boundary-controlled heat system on `L²(0, 1)`** (`ex:intro-pde`): `heatSystem` with
-the cosine basis. -/
-abbrev heatSystemL2 : System ℝ (heatData hξ₀).W (L2 ℝ 1) (heatData hξ₀).V ℝ :=
-  heatSystem cosBasis hξ₀
-
-/-- The state-space semigroup is the heat semigroup of the cosine basis. -/
-theorem heatSystemL2_SX : (heatSystemL2 hξ₀).SX = heatSemigroup := rfl
-
-/-- **The generator is the Neumann Laplacian** (`ex:intro-pde`): the graph of `A` is
-`{([φ], [φ'']) : φ ∈ H²_N(0, 1)}`. -/
-theorem heatSystemL2_A_graph (p : L2 ℝ 1 × L2 ℝ 1) :
-    p ∈ (heatSystemL2 hξ₀).A.graph ↔
-      ∃ φ φ' φ'' : ℝ → ℝ, IsNeumannH2 φ φ' φ'' ∧ (p.1 : ℝ → ℝ) =ᵐ[μI 1] φ ∧
-        (p.2 : ℝ → ℝ) =ᵐ[μI 1] φ'' :=
-  mem_graph_generator_iff p
-
-/-- `D(A) = H²_N(0, 1)`. -/
-theorem heatSystemL2_A_domain (x : L2 ℝ 1) :
-    x ∈ (heatSystemL2 hξ₀).A.domain ↔
-      ∃ φ φ' φ'' : ℝ → ℝ, IsNeumannH2 φ φ' φ'' ∧ (x : ℝ → ℝ) =ᵐ[μI 1] φ :=
-  mem_generator_domain_iff x
-
-/-- `A φ = φ''` on `H²_N(0, 1)`. -/
-theorem heatSystemL2_A_apply {φ φ' φ'' : ℝ → ℝ} (h : IsNeumannH2 φ φ' φ'') {x : L2 ℝ 1}
-    (hx : x ∈ (heatSystemL2 hξ₀).A.domain) (hxφ : (x : ℝ → ℝ) =ᵐ[μI 1] φ) :
-    ((heatSystemL2 hξ₀).A ⟨x, hx⟩ : ℝ → ℝ) =ᵐ[μI 1] φ'' :=
-  generator_ae_eq h hx hxφ
-
-/-- `A⋆ = A`: the Neumann Laplacian is self-adjoint. -/
-theorem heatSystemL2_A_adjoint : (heatSystemL2 hξ₀).A.adjoint = (heatSystemL2 hξ₀).A :=
-  generator_adjoint_diag cosBasis eig bddAbove_eig
-
-/-- `D(A⋆) = H²_N(0, 1)`. -/
-theorem heatSystemL2_A_adjoint_domain (η : L2 ℝ 1) :
-    η ∈ (heatSystemL2 hξ₀).A.adjoint.domain ↔
-      ∃ φ φ' φ'' : ℝ → ℝ, IsNeumannH2 φ φ' φ'' ∧ (η : ℝ → ℝ) =ᵐ[μI 1] φ := by
-  rw [heatSystemL2_A_adjoint]
-  exact heatSystemL2_A_domain hξ₀ η
-
-/-- Every `φ ∈ H²_N(0, 1)` is the state `ι_W w` of some `w ∈ W` (`D(A) ⊆ W`). -/
-theorem exists_heatSystemL2_ιW_ae_eq {φ φ' φ'' : ℝ → ℝ} (h : IsNeumannH2 φ φ' φ'') :
-    ∃ w : (heatData hξ₀).W, ((heatSystemL2 hξ₀).ιW w : ℝ → ℝ) =ᵐ[μI 1] φ := by
-  obtain ⟨w, hw⟩ := (heatData hξ₀).exists_ιW_eq cosBasis
-    (mem_generator_domain_of_isNeumannH2 h h.memLp.coeFn_toLp)
-  refine ⟨w, ?_⟩
-  rw [ControlData.sys_ιW, hw]
-  exact h.memLp.coeFn_toLp
-
-/-- **`C` is point evaluation at `ξ₀`** (`ex:intro-pde`, `y(t) = x(t, ξ₀)`): if the state
-`ι_W w ∈ L²(0, 1)` of `w ∈ W` is the class of `φ ∈ H²_N(0, 1)`, then `C w = φ(ξ₀)`. -/
-theorem heatSystemL2_C {φ φ' φ'' : ℝ → ℝ} (h : IsNeumannH2 φ φ' φ'') (w : (heatData hξ₀).W)
-    (hw : ((heatSystemL2 hξ₀).ιW w : ℝ → ℝ) =ᵐ[μI 1] φ) :
-    (heatSystemL2 hξ₀).C w = φ ξ₀ :=
-  (hasSum_heatSystem_C cosBasis hξ₀ w (mem_generator_domain_of_isNeumannH2 h hw)).unique
-    (hasSum_obsCoeff_mul_inner h hw (Ioo_subset_Icc_self hξ₀))
-
-/-- **`B⋆` is minus the trace at `0`** (`app:boundary-heat-informative`, `B⋆φ = -φ(0)`): for
-`η ∈ D(A⋆) = H²_N(0, 1)` the class of `φ`, `B⋆ η = -φ(0)`. -/
-theorem heatSystemL2_Bstar {φ φ' φ'' : ℝ → ℝ} (h : IsNeumannH2 φ φ' φ'') {η : L2 ℝ 1}
-    (hη : η ∈ (heatSystemL2 hξ₀).A.adjoint.domain) (hηφ : (η : ℝ → ℝ) =ᵐ[μI 1] φ) :
-    (heatSystemL2 hξ₀).Bstar ⟨η, hη⟩ = -φ 0 :=
-  (hasSum_heatSystem_Bstar cosBasis hξ₀ hη).unique (hasSum_ctrlCoeff_mul_inner h hηφ)
-
-include hξ₀ in
-/-- **`ex:boundary-heat-informative` on `L²(0, 1)`** (`ex:intro-pde`): there are spaces
-`W ↪ L²(0, 1) ↪ V` and a system on them whose generator is the Neumann Laplacian
-(`D(A) = H²_N(0, 1)`, `A φ = φ''`, `A⋆ = A`), whose `B⋆` is minus the trace at `0` (`B` is the
-Neumann control `∂_ξ x(t, 0) = u(t)`, see `inner_cosBasis_neumann_control`) and whose `C` is the
-point evaluation at `ξ₀` on `H²_N(0, 1) ⊆ W`, such that `hyp:H1`, `hyp:H2` and `hyp:compat` hold
-while `B` and `C` are unbounded on `L²(0, 1)`; `ū` is harmonically persistently exciting, `(A, B)`
-is approximately controllable in every positive time, and `(ū, x̄)` is informative in `U × W` for
-every `x̄₀ ∈ W` and window informative for every `x̄₀ ∈ L²(0, 1)`. -/
-theorem exists_boundaryHeat_L2 :
-    ∃ (W V : Type) (_ : NormedAddCommGroup W) (_ : InnerProductSpace ℝ W) (_ : CompleteSpace W)
-      (_ : NormedAddCommGroup V) (_ : InnerProductSpace ℝ V) (_ : CompleteSpace V)
-      (sys : System ℝ W (L2 ℝ 1) V ℝ),
-      sys.SX = diagSemigroup cosBasis eig bddAbove_eig ∧
-      (∀ p : L2 ℝ 1 × L2 ℝ 1, p ∈ sys.A.graph ↔
-        ∃ φ φ' φ'' : ℝ → ℝ, IsNeumannH2 φ φ' φ'' ∧ (p.1 : ℝ → ℝ) =ᵐ[μI 1] φ ∧
-          (p.2 : ℝ → ℝ) =ᵐ[μI 1] φ'') ∧
-      sys.A.adjoint = sys.A ∧
-      (∀ (η : L2 ℝ 1) (hη : η ∈ sys.A.adjoint.domain) (φ φ' φ'' : ℝ → ℝ),
-        IsNeumannH2 φ φ' φ'' → (η : ℝ → ℝ) =ᵐ[μI 1] φ → sys.Bstar ⟨η, hη⟩ = -φ 0) ∧
-      (∀ φ φ' φ'' : ℝ → ℝ, IsNeumannH2 φ φ' φ'' → ∃ w : W, (sys.ιW w : ℝ → ℝ) =ᵐ[μI 1] φ) ∧
-      (∀ (w : W) (φ φ' φ'' : ℝ → ℝ), IsNeumannH2 φ φ' φ'' →
-        (sys.ιW w : ℝ → ℝ) =ᵐ[μI 1] φ → sys.C w = φ ξ₀) ∧
-      (∀ T, sys.H1 T) ∧ (∀ T, sys.H2 T) ∧ sys.Compat ∧
-      sys.B 1 ∉ Set.range sys.ιV ∧
-      (¬ ∃ K : ℝ, ∀ w : W, sys.ιW w ∈ sys.A.domain → ‖sys.C w‖ ≤ K * ‖sys.ιW w‖) ∧
-      heatInput.IsHarmonicPE ∧
-      (∀ T > 0, sys.ApproxControllable T) ∧
-      (∀ T > 0, ∀ w₀ : W, Informative T heatInput (sys.mildW w₀ heatInput)) ∧
-      (∀ T > 0, ∀ T' > 0, ∀ x₀ : L2 ℝ 1,
-        WindowInformative T T' heatInput (sys.mild x₀ heatInput)) :=
-  ⟨(heatData hξ₀).W, (heatData hξ₀).V, inferInstance, inferInstance, inferInstance,
-    inferInstance, inferInstance, inferInstance, heatSystemL2 hξ₀, heatSystemL2_SX hξ₀,
-    heatSystemL2_A_graph hξ₀, heatSystemL2_A_adjoint hξ₀,
-    fun _ hη _ _ _ h hηφ => heatSystemL2_Bstar hξ₀ h hη hηφ,
-    fun _ _ _ h => exists_heatSystemL2_ιW_ae_eq hξ₀ h,
-    fun w _ _ _ h hw => heatSystemL2_C hξ₀ h w hw,
-    heatSystem_H1 cosBasis hξ₀, heatSystem_H2 cosBasis hξ₀, heatSystem_compat cosBasis hξ₀,
-    heatSystem_B_not_mem_range cosBasis hξ₀, heatSystem_C_unbounded cosBasis hξ₀,
-    isHarmonicPE_heatInput,
-    fun _ hT => heatSystem_approxControllable cosBasis hξ₀ hT,
-    fun _ hT w₀ => heatSystem_informative cosBasis hξ₀ hT w₀,
-    fun _ hT _ hT' x₀ => heatSystem_windowInformative cosBasis hξ₀ hT hT' x₀⟩
 
 end PDE
 

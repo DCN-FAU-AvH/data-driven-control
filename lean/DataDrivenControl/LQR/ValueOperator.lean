@@ -17,10 +17,10 @@ and coercive (`LQ.WF`), the cost `J(x, u)` is minimised by completing the square
 * `K = b†𝔾b + d†d + R̃` (control Hessian, coercive), `M = b†𝔾a + d†c` (cross term),
   `Q = a†𝔾a + c†c`, `Kinv = K⁻¹`, `uopt = -K⁻¹M`, `Pop = Q - M†K⁻¹M` (the value operator);
 * `LQ.cost_eq`: `J(x, u) = ⟪Pop x, x⟫ + ⟪K (u - uopt x), u - uopt x⟫`; hence `uopt x` is the
-  unique minimiser (`LQ.isMinOn_cost`) and `⟪Pop x, x⟫` the value; `Pop` is self-adjoint and
-  nonnegative;
-* first-order characterisation: `K u + M x = 0 ↔ u = uopt x` (`LQ.eq_uopt_of_foc`), and then
-  `Pop x = a†𝔾(a x + b u) + c†(c x + d u)` (`LQ.Pop_eq_of_foc`, the costate at the start).
+  unique minimiser (`LQ.isMinOn_cost`) and `⟪Pop x, x⟫` the value; `Pop` is symmetric and
+  nonnegative (`LQ.WF.inner_Pop_comm`, `LQ.WF.inner_Pop_nonneg`);
+* if `K u + M x = 0` then `Pop x = a†𝔾(a x + b u) + c†(c x + d u)` (`LQ.WF.Pop_eq_of_foc`, the
+  costate at the start).
 
 ## R3: strong continuity
 
@@ -42,8 +42,6 @@ open MeasureTheory Set Filter Topology
 open scoped InnerProductSpace InnerProduct
 
 noncomputable section
-
-set_option autoImplicit false
 
 set_option linter.unusedSectionVars false
 
@@ -195,12 +193,6 @@ theorem WF.inner_Kinv_comm (hp : p.WF ε) (h h' : H) :
   conv_lhs => rw [← hp.K_Kinv h']
   rw [← hp.inner_K_comm, hp.K_Kinv]
 
-/-- `K⁻¹` is self-adjoint. -/
-theorem WF.adjoint_Kinv (hp : p.WF ε) : p.Kinv† = p.Kinv := by
-  symm
-  rw [ContinuousLinearMap.eq_adjoint_iff]
-  exact hp.inner_Kinv_comm
-
 /-- `𝔾` is symmetric. -/
 theorem WF.inner_g_comm (hp : p.WF ε) (v w : V) : ⟪p.g v, w⟫_ℝ = ⟪v, p.g w⟫_ℝ := by
   rw [← ContinuousLinearMap.adjoint_inner_right, hp.g_adj]
@@ -209,13 +201,6 @@ theorem WF.inner_g_comm (hp : p.WF ε) (v w : V) : ⟪p.g v, w⟫_ℝ = ⟪v, p.
 theorem WF.foc (hp : p.WF ε) (x : V) : p.K (p.uopt x) + p.M x = 0 := by
   simp only [uopt, neg_apply, ContinuousLinearMap.comp_apply, map_neg,
     hp.K_Kinv, neg_add_cancel]
-
-/-- The first-order condition characterises the optimal control. -/
-theorem WF.eq_uopt_of_foc (hp : p.WF ε) {x : V} {u : H} (h : p.K u + p.M x = 0) :
-    u = p.uopt x := by
-  have hu : p.K u = p.K (p.uopt x) := by
-    rw [eq_neg_of_add_eq_zero_left h, eq_neg_of_add_eq_zero_left (hp.foc x)]
-  rw [← hp.Kinv_K u, hu, hp.Kinv_K]
 
 /-- The first-order expression `K u + M x = b†𝔾(a x + b u) + d†(c x + d u) + R̃ u`. -/
 theorem K_add_M (u : H) (x : V) :
@@ -252,12 +237,6 @@ theorem WF.inner_Pop_comm (hp : p.WF ε) (x y : V) : ⟪p.Pop x, y⟫_ℝ = ⟪x
   congr 1
   simp only [Q_apply, inner_add_left, ContinuousLinearMap.adjoint_inner_left]
   rw [hp.inner_g_comm, real_inner_comm (p.a x), real_inner_comm (p.c x)]
-
-/-- `Pop` is self-adjoint. -/
-theorem WF.adjoint_Pop (hp : p.WF ε) : p.Pop† = p.Pop := by
-  symm
-  rw [ContinuousLinearMap.eq_adjoint_iff]
-  exact hp.inner_Pop_comm
 
 /-- **Completing the square** (`R2`): `J(x, u) = ⟪Pop x, x⟫ + ⟪K (u - uopt x), u - uopt x⟫`. -/
 theorem WF.cost_eq (hp : p.WF ε) (x : V) (u : H) :

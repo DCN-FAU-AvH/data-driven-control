@@ -13,10 +13,9 @@ Paper: `eq:hilbert-gramian`, `eq:gramian-kernel`, `rmk:gramian-not-coercive`,
   integrable for `MemLp z 2 μ` (`integrable_rankOne_self`);
 * `gramian_apply`, `inner_gramian_apply_self`, `re_inner_gramian_apply_self`:
   `⟪𝒢 ζ, ζ⟫ = ∫ |⟪z t, ζ⟫|²`;
-* `isPositive_gramian`, `isSelfAdjoint_gramian`, `gramian_nonneg`: self-adjoint and nonnegative;
+* `isPositive_gramian`: self-adjoint and nonnegative;
 * `ker_gramian` (`ker 𝒢 = annihilator z`), `ker_gramian_eq_orthogonal_cspan`
-  (`eq:gramian-kernel`, `ker 𝒢 = (cspan z)ᗮ`), `orthogonal_ker_gramian` (`(ker 𝒢)ᗮ = cspan z`),
-  `topologicalClosure_range_gramian` (`closure (range 𝒢) = cspan z`);
+  (`eq:gramian-kernel`, `ker 𝒢 = (cspan z)ᗮ`), `orthogonal_ker_gramian` (`(ker 𝒢)ᗮ = cspan z`);
 * `gramian_injective_iff`, `gramian_injective_iff_cspan_eq_top` (the core of
   `lem:informative-gramian`);
 * `gramian_injective_iff_coercive`: in finite dimensions injectivity is equivalent to
@@ -66,10 +65,6 @@ theorem integrable_rankOne_self (hz : MemLp z 2 μ) :
   refine h2.mono' (hc.comp_aestronglyMeasurable hz.aestronglyMeasurable)
     (Eventually.of_forall fun t => ?_)
   simp [sq]
-
-theorem gramian_congr (h : z =ᵐ[μ] w) : gramian 𝕜 μ z = gramian 𝕜 μ w := by
-  rw [gramian, gramian]
-  exact integral_congr_ae (h.mono fun t ht => by simp only [ht])
 
 variable [CompleteSpace E]
 
@@ -138,14 +133,6 @@ theorem isPositive_gramian : (gramian 𝕜 μ z).IsPositive := by
   · rw [gramian, integral_undef hz]
     exact ContinuousLinearMap.isPositive_zero
 
-/-- The Gramian is self-adjoint. -/
-theorem isSelfAdjoint_gramian : IsSelfAdjoint (gramian 𝕜 μ z) :=
-  isPositive_gramian.isSelfAdjoint
-
-/-- The Gramian is nonnegative in the Loewner order. -/
-theorem gramian_nonneg : 0 ≤ gramian 𝕜 μ z :=
-  ContinuousLinearMap.nonneg_iff_isPositive.mpr isPositive_gramian
-
 /-- `re ⟪𝒢(z) ζ, ζ⟫ = 0` iff `ζ` annihilates `z`. -/
 theorem re_inner_gramian_apply_self_eq_zero_iff (hz : MemLp z 2 μ) {ζ : E} :
     RCLike.re ⟪gramian 𝕜 μ z ζ, ζ⟫_𝕜 = 0 ↔ ζ ∈ annihilator 𝕜 μ z := by
@@ -179,12 +166,6 @@ theorem ker_gramian_eq_orthogonal_cspan (hz : MemLp z 2 μ) :
 /-- `(ker 𝒢(z))ᗮ = cspan z` (the form used in `thm:willems-gramian`). -/
 theorem orthogonal_ker_gramian (hz : MemLp z 2 μ) : (gramian 𝕜 μ z).kerᗮ = cspan 𝕜 μ z := by
   rw [ker_gramian hz, cspan_def]
-
-/-- The closure of the range of the Gramian is the closed span of the signal. -/
-theorem topologicalClosure_range_gramian (hz : MemLp z 2 μ) :
-    (gramian 𝕜 μ z).range.topologicalClosure = cspan 𝕜 μ z := by
-  rw [← orthogonal_ker_gramian hz, ContinuousLinearMap.orthogonal_ker,
-    isSelfAdjoint_gramian.adjoint_eq]
 
 /-- The Gramian is injective iff only `0` annihilates the signal. -/
 theorem gramian_injective_iff (hz : MemLp z 2 μ) :

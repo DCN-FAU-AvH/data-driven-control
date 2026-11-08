@@ -1,41 +1,49 @@
 module
 
-public import DataDrivenControl.Examples.Heat.Estimates
-public import DataDrivenControl.System.ControlRealization
+public import DataDrivenControl.Examples.Heat.UnitSystem
+public import DataDrivenControl.Examples.Heat.Input
+public import DataDrivenControl.Informativity.AnalyticSufficiency
+public import DataDrivenControl.System.TimeScale
 
 /-!
-# The boundary-controlled heat equation as a `System`
+# The boundary-controlled heat equation
 
 Paper: `ex:intro-pde` (`introduction.tex`), `ex:boundary-heat-informative` (`informativity.tex`),
-`app:boundary-heat-informative` (`appendix_proofs.tex`): the point observation on `W`,
-`eq:heat-control-X`, `hyp:H1`, `hyp:H2`, `hyp:compat`, and `B⋆φ = -φ(0)`;
-`app:control-realization` for `B⋆`.
+`app:boundary-heat-informative` (`appendix_proofs.tex`).
 
-## Setting
-
-`ControlData` extends the modal data of `Examples/Heat/Spaces` by control coefficients `bₙ`
-(bounded) and the boundedness on `(0, ∞)` of the impulse response `h(t) = ∑ₙ cₙ bₙ e^{λₙ t}`
-and of its termwise derivative `h'(t) = ∑ₙ cₙ bₙ λₙ e^{λₙ t}` (`eq:heat-separated-kernel`,
-scalar form; `Examples/Heat/Kernel` proves both for the heat equation).  The spaces are
-`W ↪ X ↪ V` of `Examples/Heat/Spaces`; indices start at `0`.
+The heat equation `∂ₜx = ν ∂_ξξ x` on `(0, 1)` with diffusivity `ν > 0`, Neumann control
+`∂_ξ x(t, 0) = u(t)`, `∂_ξ x(t, 1) = 0` and point observation `y(t) = x(t, ξ₀)`, `ξ₀ ∈ (0, 1)`.
+The paper's `ex:boundary-heat-informative` takes `ν = 1`; everything here holds for every
+`ν > 0`.
 
 ## Main declarations
 
-* `d.B : ℝ →L[ℝ] d.V`, `B 1 = b = (bₙ / wₙ)ₙ ∈ X₋₁` (`ctrlVec`), which lies in `V` because `h` is
-  bounded (`memLp_obs_ctrlVec`).
-* `d.C : d.W →L[ℝ] ℝ`, **the trace formula in time**
-  `C w = ∫₀¹ g - ∫₀¹ (1 - s) g'(s) ds`, `g = C S(·) w`, `g' = C S(·) A_V w` (`C_apply`); on `D(A)`
-  it is the modal formula `C w = ∑ₙ cₙ ⟪eₙ, ι_W w⟫` (`hasSum_C`, from `hasSum_trace`).
-* `d.sys e : System ℝ d.W X d.V ℝ` with `SX = diagSemigroup e λ` (`sys_SX`).
-* `compat` (`hyp:compat`, `W = D(A_V)` by construction), `H2` (`hyp:H2` with constant `1`:
-  `C S(t) w` is the second component of `w ∈ V`, `C_SW`), `H1` (`hyp:H1` in every `T > 0`:
-  `eq:heat-control-X` and the `V`-bound of `A_{X,-1} L_T u` from `exists_control_bound`, then
-  `eq:heat-W-domain`).
-* `inner_ιW_Lop`: `⟪eₙ, L_T u⟫ = ∫₀ᵀ e^{λₙ (T - r)} ⟪bₙ, u(r)⟫ dr`, and `approxControllable`
-  (distinct `λₙ`, `bₙ ≠ 0`) from `System.approxControllable_of_modal`.
-* `hasSum_Bstar`: `B⋆ η = ∑ₙ bₙ ⟪eₙ, η⟫` on `D(A⋆)` (`System.inner_Bstar_of_dual`).
-* Unboundedness: `B_one_not_mem_range` (`∑ bₙ² = ∞ ⇒ B 1 ∉ X`) and
-  `not_exists_bound_C` (`∑ cₙ² = ∞ ⇒ C` is not bounded by `‖·‖_X` on `D(A)`).
+* **`heatSystem hξ₀ χ hχ ν : System ℝ (W χ) (L2 ℝ 1) (V χ) ℝ`**: the time rescaling
+  (`System.timeScale`) of `unitHeatSystem` (`Examples/Heat/UnitSystem`): `S_ν(t) = S(ν t)`,
+  `A_ν = ν A`, `B_ν = ν B` (the Neumann boundary term carries the factor `ν`) and the same `C`,
+  on the spaces `W ↪ L²(0, 1) ↪ V` of `ν = 1`.
+* The ties to the PDE: `heatSystem_SX` (`S_X` is the diagonal semigroup with `λₙ = -ν (nπ)²`),
+  `heatSystem_A_graph`, `heatSystem_A_domain`, `heatSystem_A_apply`, `heatSystem_A_adjoint`
+  (`D(A) = H²_N(0, 1)`, `A φ = ν φ''`, `A⋆ = A`), `heatSystem_Bstar` (`B⋆η = -ν η(0)`),
+  `exists_heatSystem_ιW_ae_eq` (`H²_N(0, 1) ⊆ W`) and `heatSystem_C` (`C w = φ(ξ₀)` there),
+  `heatSystem_B_not_mem_range` and `heatSystem_C_unbounded` (`B` and `C` are unbounded on `X`).
+* `heatSystem_H1`, `heatSystem_H2` (every horizon), `heatSystem_compat`.
+* `heatSystem_approxControllable` (every `T > 0`), `heatSystem_TFAE`
+  (`thm:analytic-universal-sufficiency` for `ū = heatInput`, `σ = 0`, `M = 1`),
+  `heatSystem_informative`, `heatSystem_windowInformative`, and **`exists_boundaryHeat`**:
+  `ex:boundary-heat-informative` for every `ν > 0`.
+
+## The space `V` for a general `ν`
+
+`V` carries the norm `eq:heat-localized-V` of the unit-diffusivity semigroup `S(t) = S_ν(t/ν)`.
+In terms of `S_ν` (substitute `t = ν s`) it is
+`‖z‖²_V = ‖z‖²_{X₋₁} + ν ∫₀^∞ e^{-2νs} ‖χ S_ν(s) z‖²_{H¹(0,1)} ds`, the form stated in
+`exists_boundaryHeat`; for `ν = 1` it is the paper's formula.
+
+## Indexing
+
+The paper numbers the Neumann modes from `0` (`λ₀ = 0`, `e₀ = 1`), as Lean does.  The paper's
+input index `k ≥ 1` is `k + 1` in `heatInput` (`heatInput_apply`).
 -/
 
 @[expose] public section
@@ -51,359 +59,136 @@ namespace DataDrivenControl
 
 namespace BoundaryHeat
 
-/-- **Control data**: modal data (`ModalData`) with bounded control coefficients `bₙ`, such that
-the impulse response `h(t) = ∑ₙ cₙ bₙ e^{λₙ t}` and its termwise derivative
-`h'(t) = ∑ₙ cₙ bₙ λₙ e^{λₙ t}` are bounded on `(0, ∞)` (`eq:heat-separated-kernel`, scalar form).
-The heat equation has `bₙ = -eₙ(0)` (`app:boundary-heat-informative`, `b = -δ₀`). -/
-structure ControlData extends ModalData where
-  /-- The control coefficients `bₙ`. -/
-  b : ℕ → ℝ
-  exists_abs_b_le : ∃ K, ∀ n, |b n| ≤ K
-  exists_abs_kernel_le : ∃ M, ∀ t > 0, |∑' n, c n * b n * Real.exp (lam n * t)| ≤ M
-  exists_abs_kernelDeriv_le :
-    ∃ M, ∀ t > 0, |∑' n, c n * b n * lam n * Real.exp (lam n * t)| ≤ M
+open CosineBasis
 
-namespace ControlData
+/-- The eigenvalues `ν λₙ = -ν (nπ)²` are bounded above. -/
+theorem bddAbove_mul_eig {ν : ℝ} (hν : 0 ≤ ν) : BddAbove (Set.range fun n => ν * eig n) :=
+  ⟨0, by rintro _ ⟨n, rfl⟩; nlinarith [eig_nonpos n]⟩
 
-variable (d : ControlData)
-
-/-- `b = (bₙ / wₙ)ₙ ∈ X₋₁`. -/
-theorem summable_ctrl_sq : Summable fun n => (d.b n / d.wt n) ^ 2 := by
-  obtain ⟨K, hK⟩ := d.exists_abs_b_le
-  refine (d.summable_inv_wt.mul_left (K ^ 2)).of_nonneg_of_le (fun n => sq_nonneg _)
-    fun n => ?_
-  have hw := d.wt_pos n
-  have h1 := d.one_le_wt n
-  have hb : d.b n ^ 2 ≤ K ^ 2 := by
-    rw [← sq_abs]; exact pow_le_pow_left₀ (abs_nonneg _) (hK n) 2
-  show (d.b n / d.wt n) ^ 2 ≤ K ^ 2 * (d.wt n)⁻¹
-  rw [div_pow, div_eq_mul_inv]
-  have : (d.wt n ^ 2)⁻¹ ≤ (d.wt n)⁻¹ := by
-    rw [inv_le_inv₀ (by positivity) hw]; nlinarith
-  exact mul_le_mul hb this (by positivity) (by positivity)
-
-/-- The control vector `b = B 1 ∈ X₋₁`, coordinates `bₙ / wₙ`. -/
-def ctrlVec : Xm1 := mkL2 (fun n => d.b n / d.wt n) d.summable_ctrl_sq
-
-/-- Coordinates of `b ∈ X₋₁`. -/
-theorem ctrlVec_apply (n : ℕ) : d.ctrlVec n = d.b n / d.wt n := rfl
-
-/-- The free output of `b` is the impulse response `h(t) = ∑ₙ cₙ bₙ e^{λₙ t}`. -/
-theorem hasSum_obs_ctrlVec {t : ℝ} (ht : 0 < t) :
-    HasSum (fun n => d.c n * d.b n * Real.exp (d.lam n * t)) (d.obs d.ctrlVec t) := by
-  convert d.hasSum_obs ht d.ctrlVec using 1
-  funext n
-  rw [ctrlVec_apply]
-  field_simp [(d.wt_pos n).ne']
-
-/-- `h` is square integrable on `(0, 1]` (it is bounded), so `b ∈ V`. -/
-theorem memLp_obs_ctrlVec : MemLp (d.obs d.ctrlVec) 2 (μI 1) := by
-  obtain ⟨M, hM⟩ := d.exists_abs_kernel_le
-  refine MemLp.of_bound (d.aestronglyMeasurable_obs _ measurableSet_Ioc fun t ht => ht.1) M ?_
-  refine ae_restrict_of_forall_mem measurableSet_Ioc fun t ht => ?_
-  rw [Real.norm_eq_abs, (d.hasSum_obs_ctrlVec ht.1).tsum_eq.symm]
-  exact hM t ht.1
-
-/-- `b ∈ V`. -/
-def ctrlV : d.V := d.mkV d.ctrlVec d.memLp_obs_ctrlVec
-
-/-- The control operator `B ∈ L(ℝ, V)`, `r ↦ r b` (Neumann boundary control). -/
-def B : ℝ →L[ℝ] d.V := ContinuousLinearMap.toSpanSingleton ℝ d.ctrlV
-
-/-- `B r = r b`. -/
-theorem B_apply (r : ℝ) : d.B r = r • d.ctrlV := rfl
-
-/-- The `X₋₁` component of `B r`. -/
-theorem fstV_B (r : ℝ) : d.fstV (d.B r) = r • d.ctrlVec := by
-  rw [B_apply, map_smul]; rfl
-
-/-! ### The observation operator -/
-
-/-- The constant `1` is square integrable on `(0, 1]`. -/
-theorem memLp_one : MemLp (fun _ : ℝ => (1 : ℝ)) 2 (μI 1) := memLp_const 1
-
-/-- The ramp `1 - s` is square integrable on `(0, 1]`. -/
-theorem memLp_ramp : MemLp (fun s : ℝ => 1 - s) 2 (μI 1) := by
-  refine MemLp.of_bound ((by fun_prop : Continuous fun s : ℝ => 1 - s).aestronglyMeasurable) 1 ?_
-  refine ae_restrict_of_forall_mem measurableSet_Ioc fun s hs => ?_
-  rw [Real.norm_eq_abs, abs_le]
-  constructor <;> linarith [hs.1, hs.2]
-
-/-- The constant `1 ∈ L²(0, 1)`. -/
-def oneL2 : L2 ℝ 1 := memLp_one.toLp _
-
-/-- The ramp `s ↦ 1 - s ∈ L²(0, 1)`. -/
-def rampL2 : L2 ℝ 1 := memLp_ramp.toLp _
-
-/-- **The observation operator `C ∈ L(W, ℝ)`**: `C w = ⟪1, g⟫ - ⟪1 - s, g'⟫` in `L²(0, 1)`, with
-`(g, g')` the second components of `w` and `A_V w` in `V` (the trace inequality in time). -/
-def C : d.W →L[ℝ] ℝ :=
-  (innerSL ℝ oneL2).comp (d.sndV.comp d.SV.domIncl) -
-    (innerSL ℝ rampL2).comp (d.sndV.comp d.SV.domGen)
-
-variable {X : Type*} [NormedAddCommGroup X] [InnerProductSpace ℝ X] [CompleteSpace X]
-  (e : HilbertBasis ℕ ℝ X)
-
-/-- **The trace formula in time**: `C w = ∫₀¹ g - ∫₀¹ (1 - s) g'(s) ds` with `g = C S(·) ι_W w`
-and `g' = C S(·) A_{X,-1} ι_W w` (`app:boundary-heat-informative`). -/
-theorem C_apply (w : d.W) :
-    d.C w = (∫ s in Ioc 0 1, d.obs (d.toXm1 e (d.ιW e w)) s) -
-      ∫ s in Ioc 0 1, (1 - s) * d.obs (d.genXm1 e (d.ιW e w)) s := by
-  simp only [C, sub_apply, ContinuousLinearMap.comp_apply, innerSL_apply_apply,
-    MeasureTheory.L2.inner_def]
-  congr 1
-  · refine integral_congr_ae ?_
-    filter_upwards [memLp_one.coeFn_toLp, d.sndV_domIncl_ae e w] with s h1 h2
-    rw [oneL2, h1, h2, RCLike.inner_apply, conj_trivial, mul_one]
-  · refine integral_congr_ae ?_
-    filter_upwards [memLp_ramp.coeFn_toLp, d.sndV_domGen_ae e w] with s h1 h2
-    rw [rampL2, h1, h2, RCLike.inner_apply, conj_trivial, mul_comm]
-
-/-- `C` on `D(A)`: the modal formula. -/
-theorem hasSum_C (w : d.W) (hw : d.ιW e w ∈ (d.SX e).generator.domain) :
-    HasSum (fun n => d.c n * ⟪e n, d.ιW e w⟫_ℝ) (d.C w) := by
-  rw [d.C_apply e w]
-  exact d.hasSum_trace e _ ((mem_generator_domain_diag_iff e d.lam d.bddAbove_lam _).1 hw)
-
-/-- `C S_W(t) w = C S(t) ι_W w` is the free output for `t > 0`. -/
-theorem C_SW {t : ℝ} (ht : 0 < t) (w : d.W) :
-    d.C (d.SW.real t w) = d.obs (d.toXm1 e (d.ιW e w)) t := by
-  have hx : d.ιW e (d.SW.real t w) = (d.SX e).real t (d.ιW e w) := (d.consistent_ιW e).real t w
-  have hD : d.ιW e (d.SW.real t w) ∈ (d.SX e).generator.domain := by
-    rw [hx]; exact (isAnalytic_diagSemigroup e d.lam d.bddAbove_lam).mem_generator_domain ht _
-  refine (d.hasSum_C e _ hD).unique ?_
-  convert d.hasSum_obs_toXm1 e ht (d.ιW e w) using 1
-  funext n
-  rw [hx, inner_diagSemigroup_real _ _ _ ht.le]
-  ring
+variable {ξ₀ : ℝ} (hξ₀ : ξ₀ ∈ Ioo 0 1) (χ : Cutoff) (hχ : χ ξ₀ = 1) {ν : ℝ}
 
 /-! ### The system -/
 
-/-- **The boundary-controlled heat system** in modal form. -/
-def sys : System ℝ d.W X d.V ℝ where
-  ιW := d.ιW e
-  ιV := d.ιV e
-  ιW_injective := d.ιW_injective e
-  ιV_injective := d.ιV_injective e
-  ιW_denseRange := d.denseRange_ιW e
-  ιV_denseRange := d.denseRange_ιV e
-  SW := d.SW
-  SX := d.SX e
-  SV := d.SV
-  consistentW := d.consistent_ιW e
-  consistentV := d.consistent_ιV e
-  B := d.B
-  C := d.C
+/-- **The boundary-controlled heat system with diffusivity `ν`** (`ex:intro-pde`): the time
+rescaling `t ↦ ν t` of `unitHeatSystem`, on `W = D(A_V) ↪ L²(0, 1) ↪ V`. -/
+def heatSystem (ν : ℝ) : System ℝ (W χ) (L2 ℝ 1) (V χ) ℝ :=
+  (unitHeatSystem hξ₀ χ hχ).timeScale ν
 
-/-- The embedding `W ↪ X` of the heat system. -/
-@[simp] theorem sys_ιW : (d.sys e).ιW = d.ιW e := rfl
-/-- The embedding `X ↪ V` of the heat system. -/
-@[simp] theorem sys_ιV : (d.sys e).ιV = d.ιV e := rfl
-/-- The semigroup on `W`. -/
-@[simp] theorem sys_SW : (d.sys e).SW = d.SW := rfl
-/-- The semigroup on `X` is the diagonal semigroup with the eigenvalues `λₙ`. -/
-@[simp] theorem sys_SX : (d.sys e).SX = diagSemigroup e d.lam d.bddAbove_lam := rfl
-/-- The semigroup on `V`. -/
-@[simp] theorem sys_SV : (d.sys e).SV = d.SV := rfl
-/-- The control operator. -/
-@[simp] theorem sys_B : (d.sys e).B = d.B := rfl
-/-- The observation operator. -/
-@[simp] theorem sys_C : (d.sys e).C = d.C := rfl
+/-- The embedding `W ↪ X`. -/
+@[simp] theorem heatSystem_ιW : (heatSystem hξ₀ χ hχ ν).ιW = ιW χ := rfl
+/-- The embedding `X ↪ V`. -/
+@[simp] theorem heatSystem_ιV : (heatSystem hξ₀ χ hχ ν).ιV = ιV χ := rfl
+/-- The control operator `ν B`. -/
+@[simp] theorem heatSystem_B : (heatSystem hξ₀ χ hχ ν).B = ν • B χ := rfl
 
-/-- `W ↪ V` is the inclusion `D(A_V) ↪ V`. -/
-theorem sys_ιWV (w : d.W) : (d.sys e).ιWV w = d.SV.domIncl w := d.ιV_ιW e w
+/-- **The state-space semigroup is the Neumann heat semigroup with diffusivity `ν`**
+(`λₙ = -ν (nπ)²`, cosine basis). -/
+theorem heatSystem_SX (hν : 0 < ν) : (heatSystem hξ₀ χ hχ ν).SX =
+    diagSemigroup cosBasis (fun n => ν * eig n) (bddAbove_mul_eig hν.le) := by
+  refine C0Semigroup.ext fun t => ContinuousLinearMap.ext fun x =>
+    Diagonal.ext_inner cosBasis fun n => ?_
+  show ⟪cosBasis n, SX (ν.toNNReal * t) x⟫_ℝ = _
+  simp only [inner_diagSemigroup, NNReal.coe_mul, Real.coe_toNNReal _ hν.le, heatModal_lam]
+  ring_nf
 
-/-- **`hyp:compat`**. -/
-theorem compat : (d.sys e).Compat := by
-  refine ⟨⟨1, fun v hv => ⟨d.SV.toDom ⟨v, hv⟩, ?_, ?_⟩⟩, ?_⟩
-  · rw [sys_ιWV]; rfl
-  · rw [one_mul]; exact d.SV.norm_toDom_le _
-  · convert dense_univ (X := d.W)
-    ext w
-    simp only [Set.mem_ofPred_eq, Set.mem_univ, iff_true, sys_ιWV]
-    exact d.SV.domIncl_mem w
+/-- `A_ν = ν A`, with the domain of `A`. -/
+theorem heatSystem_A (hν : 0 < ν) : (heatSystem hξ₀ χ hχ ν).A = ν • SX.generator :=
+  System.timeScale_A hν
 
-/-- **`hyp:H2`** at horizon `1`. -/
-theorem H2_one : (d.sys e).H2 1 := by
-  refine ⟨1, fun w => ?_⟩
-  have hae : (fun t => (d.sys e).C ((d.sys e).SW.real t w)) =ᵐ[μI 1]
-      (d.sndV ((d.sys e).ιWV w) : ℝ → ℝ) := by
-    rw [sys_ιWV, d.domIncl_eq_ιV e]
-    have h1 : (fun t => (d.sys e).C ((d.sys e).SW.real t w)) =ᵐ[μI 1]
-        d.obs (d.fstV (d.ιV e (d.ιW e w))) :=
-      ae_restrict_of_forall_mem measurableSet_Ioc fun t ht => by
-        rw [d.fstV_ιV e, ← d.C_SW e ht.1 w]; rfl
-    exact h1.trans (d.sndV_ae _).symm
-  rw [eLpNorm_congr_ae hae, one_mul, ← Lp.enorm_def, ← ofReal_norm]
-  refine ENNReal.ofReal_le_ofReal ?_
-  have := d.norm_V_sq ((d.sys e).ιWV w)
-  nlinarith [norm_nonneg (d.sndV ((d.sys e).ιWV w)), norm_nonneg ((d.sys e).ιWV w),
-    sq_nonneg ‖d.fstV ((d.sys e).ιWV w)‖]
+/-- **The generator is `ν` times the Neumann Laplacian** (`ex:intro-pde`): the graph of `A` is
+`{([φ], [ν φ'']) : φ ∈ H²_N(0, 1)}`. -/
+theorem heatSystem_A_graph (hν : 0 < ν) (p : L2 ℝ 1 × L2 ℝ 1) :
+    p ∈ (heatSystem hξ₀ χ hχ ν).A.graph ↔
+      ∃ φ φ' φ'' : ℝ → ℝ, PDE.IsNeumannH2 φ φ' φ'' ∧ (p.1 : ℝ → ℝ) =ᵐ[μI 1] φ ∧
+        (p.2 : ℝ → ℝ) =ᵐ[μI 1] fun ξ => ν * φ'' ξ := by
+  have key : p ∈ (heatSystem hξ₀ χ hχ ν).A.graph ↔ (p.1, ν⁻¹ • p.2) ∈ SX.generator.graph := by
+    rw [heatSystem_A hξ₀ χ hχ hν, LinearPMap.mem_graph_iff, LinearPMap.mem_graph_iff]
+    exact exists_congr fun y => and_congr_right fun _ => (eq_inv_smul_iff₀ hν.ne').symm
+  refine key.trans ((PDE.mem_graph_generator_iff _).trans (exists₃_congr fun φ φ' φ'' =>
+    and_congr_right fun _ => and_congr_right fun _ => ?_))
+  have hs := Lp.coeFn_smul ν⁻¹ p.2
+  constructor <;> intro h <;> filter_upwards [hs, h] with ξ h1 h2
+  · rw [← h2, h1, Pi.smul_apply, smul_eq_mul, mul_inv_cancel_left₀ hν.ne']
+  · rw [h1, Pi.smul_apply, h2, smul_eq_mul, inv_mul_cancel_left₀ hν.ne']
 
-/-- **`hyp:H2`** at every horizon. -/
-theorem H2 (T : ℝ) : (d.sys e).H2 T := System.H2.of_pos (d.sys e) (d.H2_one e) one_pos T
+/-- `D(A) = H²_N(0, 1)`. -/
+theorem heatSystem_A_domain (hν : 0 < ν) (x : L2 ℝ 1) :
+    x ∈ (heatSystem hξ₀ χ hχ ν).A.domain ↔
+      ∃ φ φ' φ'' : ℝ → ℝ, PDE.IsNeumannH2 φ φ' φ'' ∧ (x : ℝ → ℝ) =ᵐ[μI 1] φ := by
+  rw [heatSystem_A hξ₀ χ hχ hν]
+  exact PDE.mem_generator_domain_iff x
 
-/-! ### `hyp:H1` -/
+/-- `A φ = ν φ''` on `H²_N(0, 1)`. -/
+theorem heatSystem_A_apply (hν : 0 < ν) {φ φ' φ'' : ℝ → ℝ} (h : PDE.IsNeumannH2 φ φ' φ'')
+    {x : L2 ℝ 1} (hx : x ∈ (heatSystem hξ₀ χ hχ ν).A.domain) (hxφ : (x : ℝ → ℝ) =ᵐ[μI 1] φ) :
+    ((heatSystem hξ₀ χ hχ ν).A ⟨x, hx⟩ : ℝ → ℝ) =ᵐ[μI 1] fun ξ => ν * φ'' ξ := by
+  have hx' : x ∈ SX.generator.domain := (SX.mem_generator_domain_timeScale hν).1 hx
+  rw [show (heatSystem hξ₀ χ hχ ν).A ⟨x, hx⟩ = ν • SX.generator ⟨x, hx'⟩ from
+    SX.generator_timeScale_apply hν ⟨x, hx⟩]
+  filter_upwards [Lp.coeFn_smul ν (SX.generator ⟨x, hx'⟩), PDE.generator_ae_eq h hx' hxφ]
+    with ξ h1 h2
+  rw [h1, Pi.smul_apply, smul_eq_mul]
+  exact congrArg (ν * ·) h2
 
-/-- `‖A_{X,-1}‖_{L(X, X₋₁)} ≤ 1`. -/
-theorem norm_genXm1_le : ‖d.genXm1 e‖ ≤ 1 :=
-  (Diagonal.norm_diagMap_le _ _ _).trans (by norm_num)
+/-- `A⋆ = A`: `ν` times the Neumann Laplacian is self-adjoint. -/
+theorem heatSystem_A_adjoint (hν : 0 < ν) :
+    (heatSystem hξ₀ χ hχ ν).A.adjoint = (heatSystem hξ₀ χ hχ ν).A := by
+  rw [heatSystem_A hξ₀ χ hχ hν, LinearPMap.adjoint_smul hν.ne',
+    generator_adjoint_diag cosBasis heatModal.lam heatModal.bddAbove_lam]
 
-/-- The control convolution is integrable. -/
-theorem integrableOn_conv {T : ℝ} (u : L2 ℝ T) :
-    IntegrableOn (fun r => d.SV.real (T - r) (d.B (u r))) (Ioc 0 T) := by
-  have hu : Integrable (u : ℝ → ℝ) (μI T) := (Lp.memLp u).integrable one_le_two
-  exact d.SV.integrableOn_conv (d.B.integrable_comp hu)
+/-- **`B⋆` is `-ν` times the trace at `0`** (`app:boundary-heat-informative` for `ν = 1`): for
+`η ∈ D(A⋆) = H²_N(0, 1)` the class of `φ`, `B⋆ η = -ν φ(0)` (`B⋆_ν = ν B⋆`,
+`System.Bstar_timeScale`). -/
+theorem heatSystem_Bstar (hν : 0 < ν) {φ φ' φ'' : ℝ → ℝ} (h : PDE.IsNeumannH2 φ φ' φ'')
+    {η : L2 ℝ 1} (hη : η ∈ (heatSystem hξ₀ χ hχ ν).A.adjoint.domain)
+    (hηφ : (η : ℝ → ℝ) =ᵐ[μI 1] φ) :
+    (heatSystem hξ₀ χ hχ ν).Bstar ⟨η, hη⟩ = -(ν * φ 0) := by
+  refine (System.Bstar_timeScale (unitHeatSystem_H1 hξ₀ χ hχ 1) one_pos hν ⟨η, hη⟩).trans ?_
+  have e : (unitHeatSystem hξ₀ χ hχ).Bstar (⟨η, (System.mem_adjoint_domain_timeScale hν).1 hη⟩ :
+      (unitHeatSystem hξ₀ χ hχ).A.adjoint.domain) = -φ 0 :=
+    unitHeatSystem_Bstar hξ₀ χ hχ h _ hηφ
+  rw [e, smul_neg, smul_eq_mul]
 
-/-- The `X₋₁` coordinates of the control convolution `∫₀ᵀ S_V(T - r) B u(r) dr`. -/
-theorem fstV_conv_apply {T : ℝ} (u : L2 ℝ T) (n : ℕ) :
-    d.fstV (∫ r in Ioc 0 T, d.SV.real (T - r) (d.B (u r))) n =
-      d.b n / d.wt n * ∫ r in Ioc 0 T, Real.exp (d.lam n * (T - r)) * u r := by
-  have hint := d.integrableOn_conv u
-  rw [← ContinuousLinearMap.integral_comp_comm _ hint, ← inner_stdBasis]
-  have h := (innerSL ℝ (stdBasis n)).integral_comp_comm (d.fstV.integrable_comp hint)
-  simp only [innerSL_apply_apply] at h
-  rw [← h, ← integral_const_mul]
-  refine setIntegral_congr_fun measurableSet_Ioc fun r hr => ?_
-  have hTr : 0 ≤ T - r := by linarith [hr.2]
-  rw [inner_stdBasis, d.fstV_SV_real hTr, d.fstV_B, d.Sm_apply hTr, lp.coeFn_smul, Pi.smul_apply,
-    smul_eq_mul, ctrlVec_apply]
-  ring
+/-- **`C` is point evaluation at `ξ₀`** (`ex:intro-pde`, `y(t) = x(t, ξ₀)`): if `ι_W w` is the
+class of `φ ∈ H²_N(0, 1)`, then `C w = φ(ξ₀)`. -/
+theorem heatSystem_C {φ φ' φ'' : ℝ → ℝ} (h : PDE.IsNeumannH2 φ φ' φ'') (w : W χ)
+    (hw : ((heatSystem hξ₀ χ hχ ν).ιW w : ℝ → ℝ) =ᵐ[μI 1] φ) :
+    (heatSystem hξ₀ χ hχ ν).C w = φ ξ₀ :=
+  (hasSum_C hξ₀ χ hχ w (PDE.mem_generator_domain_of_isNeumannH2 h hw)).unique
+    (PDE.hasSum_obsCoeff_mul_inner h hw (Ioo_subset_Icc_self hξ₀))
 
-/-- The state `x ∈ X` with the coordinates of `L_T u` is the control convolution in `V`. -/
-theorem ιV_eq_conv {T : ℝ} (u : L2 ℝ T) (x : X)
-    (hx : ∀ n, ⟪e n, x⟫_ℝ = d.b n * ∫ r in Ioc 0 T, Real.exp (d.lam n * (T - r)) * u r) :
-    d.ιV e x = ∫ r in Ioc 0 T, d.SV.real (T - r) (d.B (u r)) := by
-  refine d.V_ext (ext_Xm1 fun n => ?_)
-  rw [d.fstV_ιV e, d.toXm1_apply e, hx, d.fstV_conv_apply]
-  field_simp [(d.wt_pos n).ne']
+/-- Every `φ ∈ H²_N(0, 1)` is the state `ι_W w` of some `w ∈ W` (`D(A) ⊆ W`). -/
+theorem exists_heatSystem_ιW_ae_eq {φ φ' φ'' : ℝ → ℝ} (h : PDE.IsNeumannH2 φ φ' φ'') :
+    ∃ w : W χ, ((heatSystem hξ₀ χ hχ ν).ιW w : ℝ → ℝ) =ᵐ[μI 1] φ := by
+  obtain ⟨w, hw⟩ := exists_ιW_eq χ (PDE.mem_generator_domain_of_isNeumannH2 h h.memLp.coeFn_toLp)
+  refine ⟨w, ?_⟩
+  rw [heatSystem_ιW, hw]
+  exact h.memLp.coeFn_toLp
 
-/-- **`hyp:H1`** in every positive time (`app:boundary-heat-informative`). -/
-theorem H1 {T : ℝ} (hT : 0 < T) : (d.sys e).H1 T := by
-  obtain ⟨C₀, hC₀⟩ := d.exists_control_bound e d.exists_abs_b_le d.exists_abs_kernelDeriv_le hT
-  refine ⟨(‖d.ιV e‖ + 2) * C₀, fun u => ?_⟩
-  obtain ⟨x, hx, hxn, h, hh⟩ := hC₀ u
-  have hv := (d.mem_SV_generator_domain_iff e x).2 h
-  refine ⟨d.SV.toDom ⟨d.ιV e x, hv⟩, ?_, ?_⟩
-  · rw [sys_ιWV]
-    exact d.ιV_eq_conv e u x hx
-  · calc ‖d.SV.toDom ⟨d.ιV e x, hv⟩‖
-        ≤ ‖d.ιV e x‖ + ‖d.SV.generator ⟨d.ιV e x, hv⟩‖ := d.SV.norm_toDom_le _
-      _ ≤ ‖d.ιV e‖ * (C₀ * ‖u‖) + (C₀ * ‖u‖ + C₀ * ‖u‖) := by
-          refine add_le_add ((ContinuousLinearMap.le_opNorm _ _).trans
-            (mul_le_mul_of_nonneg_left hxn (norm_nonneg _))) ?_
-          rw [d.SV_generator_ιV e x h]
-          refine (d.norm_V_le _).trans (add_le_add ?_ ?_)
-          · rw [d.fstV_mkV]
-            exact ((ContinuousLinearMap.le_opNorm _ _).trans
-              (mul_le_of_le_one_left (norm_nonneg _) (d.norm_genXm1_le e))).trans hxn
-          · rw [d.sndV_mkV]; exact hh
-      _ = (‖d.ιV e‖ + 2) * C₀ * ‖u‖ := by ring
-
-/-- The modal coordinates of the input-to-state map:
-`⟪eₙ, L_T u⟫ = ∫₀ᵀ e^{λₙ (T - r)} ⟪bₙ, u(r)⟫ dr`. -/
-theorem inner_ιW_Lop {T : ℝ} (hT : 0 < T) (u : L2 ℝ T) (n : ℕ) :
-    ⟪e n, (d.sys e).ιW ((d.sys e).Lop T u)⟫_ℝ =
-      ∫ r in Ioc 0 T, Real.exp (d.lam n * (T - r)) * ⟪d.b n, u r⟫_ℝ := by
-  have hL := (d.sys e).ιWV_L (d.H1 e hT) hT (Lp.memLp u)
-  rw [(d.sys e).Lop_apply (d.H1 e hT) hT u]
-  set w := (d.sys e).L T u
-  have h1 : d.toXm1 e (d.ιW e w) = d.fstV (∫ r in Ioc 0 T, d.SV.real (T - r) (d.B (u r))) := by
-    rw [← d.fstV_ιV e]
-    exact congrArg d.fstV hL
-  have h2 := congrArg (fun a : Xm1 => a n) h1
-  simp only [d.toXm1_apply e, d.fstV_conv_apply] at h2
-  have hw := (d.wt_pos n).ne'
-  rw [sys_ιW]
-  have h3 : ⟪e n, d.ιW e w⟫_ℝ = d.b n * ∫ r in Ioc 0 T, Real.exp (d.lam n * (T - r)) * u r := by
-    field_simp at h2
-    linarith [h2]
-  rw [h3, ← integral_const_mul]
-  refine integral_congr_ae (Eventually.of_forall fun r => ?_)
-  simp only [RCLike.inner_apply, conj_trivial]
-  ring
-
-/-- **Approximate controllability** in every positive time, from the modal coordinates
-(`System.approxControllable_of_modal`), for distinct eigenvalues and `bₙ ≠ 0`. -/
-theorem approxControllable (hinj : Function.Injective d.lam) (hb0 : ∀ n, d.b n ≠ 0) {T : ℝ}
-    (hT : 0 < T) : (d.sys e).ApproxControllable T := by
-  obtain ⟨K, hK⟩ := d.exists_abs_b_le
-  exact System.approxControllable_of_modal (d.sys e) e hinj (fun s hs => d.summable_exp hs)
-    (β := d.b) (Cβ := K) (fun n => by rw [Real.norm_eq_abs]; exact hK n) hb0 hT (d.H1 e hT)
-    (fun u n => d.inner_ιW_Lop e hT u n)
-
-/-! ### `B⋆` on `D(A⋆)` and unboundedness -/
-
-/-- **`B⋆` in modal form** (`app:control-realization`; `app:boundary-heat-informative`:
-`B⋆φ = -φ(0)` for the heat equation): `B⋆ η = ∑ₙ bₙ ⟪eₙ, η⟫` for `η ∈ D(A⋆)`. -/
-theorem hasSum_Bstar {η : X} (hη : η ∈ (d.sys e).A.adjoint.domain) :
-    HasSum (fun n => d.b n * ⟪e n, η⟫_ℝ) ((d.sys e).Bstar ⟨η, hη⟩) := by
-  have hA : (d.sys e).A.adjoint = (d.SX e).generator :=
-    generator_adjoint_diag e d.lam d.bddAbove_lam
-  have hηD : η ∈ (d.SX e).generator.domain := hA ▸ hη
-  have hs := (mem_generator_domain_diag_iff e d.lam d.bddAbove_lam η).1 hηD
-  have hsum : Summable fun n => (d.wt n * ⟪e n, η⟫_ℝ) ^ 2 := by
-    refine (((Diagonal.summable_inner_sq e η).mul_left 2).add (hs.mul_left 2)).of_nonneg_of_le
-      (fun _ => sq_nonneg _) fun n => ?_
-    simp only [ModalData.wt]
-    nlinarith [sq_nonneg (⟪e n, η⟫_ℝ + d.lam n * ⟪e n, η⟫_ℝ)]
-  set ηm := mkL2 (fun n => d.wt n * ⟪e n, η⟫_ℝ) hsum with hηm
-  set ζ : d.V →L[ℝ] ℝ := (innerSL ℝ ηm).comp d.fstV with hζdef
-  have hζ : ∀ x : X, ζ ((d.sys e).ιV x) = ⟪((⟨η, hη⟩ : (d.sys e).A.adjoint.domain) : X), x⟫_ℝ := by
-    intro x
-    simp only [hζdef, ContinuousLinearMap.comp_apply, innerSL_apply_apply, sys_ιV, d.fstV_ιV e]
-    refine (lp.hasSum_inner ηm (d.toXm1 e x)).unique ?_
-    convert e.hasSum_inner_mul_inner η x using 1
-    funext n
-    rw [hηm, mkL2_apply, d.toXm1_apply e, RCLike.inner_apply, conj_trivial, real_inner_comm η]
-    field_simp [(d.wt_pos n).ne']
-  have h := System.inner_Bstar_of_dual (d.H1 e one_pos) one_pos ⟨η, hη⟩ ζ hζ 1
-  have h1 : ⟪(d.sys e).Bstar ⟨η, hη⟩, (1 : ℝ)⟫_ℝ = (d.sys e).Bstar ⟨η, hη⟩ := by
-    simp [RCLike.inner_apply]
-  rw [show (d.sys e).Bstar ⟨η, hη⟩ = ζ ((d.sys e).B 1) from h1.symm.trans h]
-  simp only [hζdef, ContinuousLinearMap.comp_apply, innerSL_apply_apply, sys_B, d.fstV_B,
-    one_smul]
-  convert lp.hasSum_inner ηm d.ctrlVec using 1
-  funext n
-  rw [hηm, mkL2_apply, ctrlVec_apply, RCLike.inner_apply, conj_trivial]
-  field_simp [(d.wt_pos n).ne']
-
-/-- **`B` is unbounded on `X`**: if `∑ bₙ² = ∞`, then `B 1 ∉ X`. -/
-theorem B_one_not_mem_range (h : ¬ Summable fun n => d.b n ^ 2) :
-    (d.sys e).B 1 ∉ Set.range (d.sys e).ιV := by
-  rintro ⟨x, hx⟩
-  apply h
-  refine (Diagonal.summable_inner_sq e x).congr fun n => ?_
-  have h2 := congrArg (fun v => d.fstV v n) hx
-  simp only [sys_ιV, sys_B, d.fstV_ιV e, d.fstV_B, one_smul, d.toXm1_apply e,
-    ctrlVec_apply] at h2
-  have hw := (d.wt_pos n).ne'
-  rw [div_eq_inv_mul] at h2
-  rw [mul_left_cancel₀ (inv_ne_zero hw) h2]
-
-/-- **`C` is unbounded on `X`**: if `∑ cₙ² = ∞`, there is no `K` with
-`|C w| ≤ K ‖ι_W w‖` on `D(A)`. -/
-theorem not_exists_bound_C (h : ¬ Summable fun n => d.c n ^ 2) :
-    ¬ ∃ K : ℝ, ∀ w : d.W, (d.sys e).ιW w ∈ (d.sys e).A.domain →
-      ‖(d.sys e).C w‖ ≤ K * ‖(d.sys e).ιW w‖ := by
+/-- **`C` is unbounded on `X`**: point evaluation is not bounded by the `L²` norm on `D(A)`
+(`∑ₙ cₙ² = ∞`; test on `x = ∑_{n < N} cₙ eₙ`, for which `C x = ‖x‖²`). -/
+theorem heatSystem_C_unbounded (hν : 0 < ν) :
+    ¬ ∃ K : ℝ, ∀ w : W χ, (heatSystem hξ₀ χ hχ ν).ιW w ∈ (heatSystem hξ₀ χ hχ ν).A.domain →
+      ‖(heatSystem hξ₀ χ hχ ν).C w‖ ≤ K * ‖(heatSystem hξ₀ χ hχ ν).ιW w‖ := by
   rintro ⟨K, hK⟩
-  apply h
+  apply not_summable_obsCoeff_sq ξ₀
   refine summable_of_sum_range_le (c := K ^ 2) (fun n => sq_nonneg _) fun N => ?_
-  set a : ℕ → ℝ := fun n => if n < N then d.c n else 0 with ha
+  set a : ℕ → ℝ := fun n => if n < N then obsCoeff ξ₀ n else 0 with ha
   have ha0 : ∀ n ∉ Finset.range N, a n = 0 := fun n hn => by
     simp only [ha, Finset.mem_range] at hn ⊢; simp [hn]
   have has : Summable fun n => a n ^ 2 :=
     summable_of_ne_finset_zero (s := Finset.range N) fun n hn => by rw [ha0 n hn]; ring
-  set x : X := ModalData.toX e (mkL2 a has) with hx
-  have hxe : ∀ n, ⟪e n, x⟫_ℝ = a n := fun n => by
+  set x : L2 ℝ 1 := ModalData.toX cosBasis (mkL2 a has) with hx
+  have hxe : ∀ n, ⟪cosBasis n, x⟫_ℝ = a n := fun n => by
     rw [hx, ModalData.toX, Diagonal.inner_diagMap, inner_stdBasis, mkL2_apply, one_mul]
-  have hxD : x ∈ (d.SX e).generator.domain := by
+  have hxD : x ∈ SX.generator.domain := by
     rw [mem_generator_domain_diag_iff]
     exact summable_of_ne_finset_zero (s := Finset.range N) fun n hn => by
       rw [hxe, ha0 n hn]; ring
-  obtain ⟨w, hw⟩ := d.exists_ιW_eq e hxD
-  set S := ∑ n ∈ Finset.range N, d.c n ^ 2 with hSdef
-  have hsumS : ∀ f : ℕ → ℝ, (∀ n, f n = if n < N then d.c n ^ 2 else 0) → HasSum f S := by
+  obtain ⟨w, hw⟩ := exists_ιW_eq χ hxD
+  set S := ∑ n ∈ Finset.range N, obsCoeff ξ₀ n ^ 2 with hSdef
+  have hsumS : ∀ f : ℕ → ℝ, (∀ n, f n = if n < N then obsCoeff ξ₀ n ^ 2 else 0) →
+      HasSum f S := by
     intro f hf
     have h0 : HasSum f (∑ n ∈ Finset.range N, f n) :=
       hasSum_sum_of_ne_finset_zero fun n hn => by
@@ -411,13 +196,15 @@ theorem not_exists_bound_C (h : ¬ Summable fun n => d.c n ^ 2) :
     have hs : ∑ n ∈ Finset.range N, f n = S := Finset.sum_congr rfl fun n hn => by
       rw [hf]; simp only [Finset.mem_range] at hn; simp [hn]
     rwa [hs] at h0
-  have hCw : d.C w = S := by
-    refine (d.hasSum_C e w (hw ▸ hxD)).unique (hsumS _ fun n => ?_)
+  have hCw : C hξ₀ χ hχ w = S := by
+    refine (hasSum_C hξ₀ χ hχ w (hw ▸ hxD)).unique (hsumS _ fun n => ?_)
     rw [hw, hxe]; simp only [ha]; split_ifs <;> ring
-  have hnx : ‖x‖ ^ 2 = S := (Diagonal.hasSum_inner_sq e x).unique (hsumS _ fun n => by
+  have hnx : ‖x‖ ^ 2 = S := (Diagonal.hasSum_inner_sq cosBasis x).unique (hsumS _ fun n => by
     rw [hxe]; simp only [ha]; split_ifs <;> ring)
-  have hb := hK w (by rw [sys_ιW, hw]; exact hxD)
-  rw [sys_C, sys_ιW, hw, hCw, Real.norm_eq_abs] at hb
+  have hb : |C hξ₀ χ hχ w| ≤ K * ‖x‖ := by
+    have := hK w (by rw [heatSystem_ιW, hw]; exact (SX.mem_generator_domain_timeScale hν).2 hxD)
+    rwa [heatSystem_ιW, hw, Real.norm_eq_abs] at this
+  rw [hCw] at hb
   have hS0 : 0 ≤ S := Finset.sum_nonneg fun n _ => sq_nonneg _
   have h1 : S ≤ K * ‖x‖ := (le_abs_self S).trans hb
   have h2 : S ^ 2 ≤ K ^ 2 * S := by
@@ -427,7 +214,174 @@ theorem not_exists_bound_C (h : ¬ Summable fun n => d.c n ^ 2) :
   · rw [← h0]; positivity
   · nlinarith
 
-end ControlData
+/-- **`B` is unbounded on `X`**: `B 1 = ν b`, `b = -δ₀ ∉ X` (`B_not_mem_range`). -/
+theorem heatSystem_B_not_mem_range (hν : 0 < ν) :
+    (heatSystem hξ₀ χ hχ ν).B 1 ∉ Set.range (heatSystem hξ₀ χ hχ ν).ιV := by
+  rintro ⟨x, hx⟩
+  rw [heatSystem_ιV, heatSystem_B, smul_apply] at hx
+  exact B_not_mem_range χ ⟨ν⁻¹ • x, by rw [map_smul, hx, inv_smul_smul₀ hν.ne']⟩
+
+/-! ### The standing assumptions -/
+
+/-- **`hyp:H1`** at every horizon (`System.H1.timeScale`). -/
+theorem heatSystem_H1 (hν : 0 < ν) (T : ℝ) : (heatSystem hξ₀ χ hχ ν).H1 T :=
+  (unitHeatSystem_H1 hξ₀ χ hχ (ν * T)).timeScale hν
+
+/-- **`hyp:H2`** at every horizon (`System.H2.timeScale`). -/
+theorem heatSystem_H2 (hν : 0 < ν) (T : ℝ) : (heatSystem hξ₀ χ hχ ν).H2 T :=
+  (unitHeatSystem_H2 hξ₀ χ hχ (ν * T)).timeScale hν
+
+/-- **`hyp:compat`** (`W = D(A_V)` by construction). -/
+theorem heatSystem_compat (hν : 0 < ν) : (heatSystem hξ₀ χ hχ ν).Compat :=
+  (unitHeatSystem_compat hξ₀ χ hχ).timeScale hν
+
+/-! ### Approximate controllability and informativity -/
+
+/-- **Approximate controllability** of `(A, B)` in every `T > 0` (`ex:boundary-heat-informative`):
+that of `ν = 1` in time `ν T` (`System.approxControllable_timeScale`). -/
+theorem heatSystem_approxControllable (hν : 0 < ν) {T : ℝ} (hT : 0 < T) :
+    (heatSystem hξ₀ χ hχ ν).ApproxControllable T :=
+  (System.approxControllable_timeScale hν T).2
+    (unitHeatSystem_approxControllable hξ₀ χ hχ (mul_pos hν hT))
+
+/-- The heat semigroup is analytic (`app:boundary-heat-informative`). -/
+theorem heatSystem_isAnalytic (hν : 0 < ν) : (heatSystem hξ₀ χ hχ ν).SX.IsAnalytic :=
+  (isAnalytic_diagSemigroup cosBasis heatModal.lam heatModal.bddAbove_lam).timeScale hν
+
+/-- The growth bound `eq:analytic-growth-bound` with `M = 1`, `σ = 0`. -/
+theorem norm_heatSystem_SX_le (hν : 0 < ν) (t : ℝ≥0) :
+    ‖(heatSystem hξ₀ χ hχ ν).SX t‖ ≤ 1 * Real.exp (0 * t) := by
+  have h : ∀ t : ℝ≥0, ‖SX t‖ ≤ 1 * Real.exp (0 * t) := fun t => by
+    rw [one_mul]
+    exact norm_diagSemigroup_le cosBasis heatModal.lam heatModal.bddAbove_lam
+      heatModal.lam_nonpos t
+  exact (SX.norm_timeScale_le h hν.le t).trans_eq (by simp)
+
+/-- `iω ∈ ρ(A)` for `ω ≠ 0`: the spectrum `{-ν (nπ)²}` is real (`app:boundary-heat-informative`). -/
+theorem mem_resolventSet_heatSystem (hν : 0 < ν) {ω : ℝ} (hω : ω ≠ 0) :
+    ((0 : ℝ) : ℂ) + ω * Complex.I ∈ resolventSet (heatSystem hξ₀ χ hχ ν).A.complexify := by
+  refine (System.mem_resolventSet_complexify_timeScale (sys := unitHeatSystem hξ₀ χ hχ) hν _).2
+    (mem_resolventSet_complexify_diag_of_notMem_closure cosBasis heatModal.lam
+      heatModal.bddAbove_lam fun h => ?_)
+  have hcl : closure (Set.range fun n => (heatModal.lam n : ℂ)) ⊆ {z : ℂ | z.im = 0} :=
+    closure_minimal (by rintro _ ⟨n, rfl⟩; simp)
+      (isClosed_eq Complex.continuous_im continuous_const)
+  have := hcl h
+  simp [hν.ne'] at this
+  exact hω this
+
+/-- **`thm:analytic-universal-sufficiency` for the heat equation** with the input `ū`
+(`ex:boundary-heat-informative`): approximate controllability in time `T`, informativity in
+`U × W` for every `x̄₀ ∈ W`, and window informativity for every `x̄₀ ∈ X` are equivalent. -/
+theorem heatSystem_TFAE (hν : 0 < ν) {T T' : ℝ} (hT : 0 < T) (hT' : 0 < T') :
+    [(heatSystem hξ₀ χ hχ ν).ApproxControllable T,
+      ∀ w₀ : W χ, Informative T heatInput ((heatSystem hξ₀ χ hχ ν).mildW w₀ heatInput),
+      ∀ x₀ : L2 ℝ 1,
+        WindowInformative T T' heatInput ((heatSystem hξ₀ χ hχ ν).mild x₀ heatInput)].TFAE := by
+  have := Diagonal.separableSpace cosBasis
+  have h := System.analytic_universal_sufficiency (sys := heatSystem hξ₀ χ hχ ν) (T := T)
+    (T' := T') (σ := 0) (M := 1) hT hT' (heatSystem_isAnalytic hξ₀ χ hχ hν)
+    (heatSystem_H1 hξ₀ χ hχ hν T) (heatSystem_compat hξ₀ χ hχ hν) isHarmonicPE_heatInput
+    (fun ω hω => mem_resolventSet_heatSystem hξ₀ χ hχ hν (ne_zero_of_mem_closure_range_freq hω))
+    (norm_heatSystem_SX_le hξ₀ χ hχ hν)
+  have he : (fun t => Real.exp (0 * t) • heatInput t) = ⇑heatInput := by funext t; simp
+  rw [he] at h
+  exact h
+
+/-- **`ex:boundary-heat-informative`, (ii)**: `(ū, x̄)` is informative in `U × W` for every
+`x̄₀ ∈ W`. -/
+theorem heatSystem_informative (hν : 0 < ν) {T : ℝ} (hT : 0 < T) (w₀ : W χ) :
+    Informative T heatInput ((heatSystem hξ₀ χ hχ ν).mildW w₀ heatInput) := by
+  have h := (heatSystem_TFAE hξ₀ χ hχ hν hT one_pos).out 1 2
+  exact h.1 (heatSystem_approxControllable hξ₀ χ hχ hν hT) w₀
+
+/-- **`ex:boundary-heat-informative`, (iii)**: `(ū, x̄)` is window informative for every
+`x̄₀ ∈ X`. -/
+theorem heatSystem_windowInformative (hν : 0 < ν) {T T' : ℝ} (hT : 0 < T) (hT' : 0 < T')
+    (x₀ : L2 ℝ 1) :
+    WindowInformative T T' heatInput ((heatSystem hξ₀ χ hχ ν).mild x₀ heatInput) := by
+  have h := (heatSystem_TFAE hξ₀ χ hχ hν hT hT').out 1 3
+  exact h.1 (heatSystem_approxControllable hξ₀ χ hχ hν hT) x₀
+
+/-! ### The example -/
+
+/-- **`ex:boundary-heat-informative`** for every diffusivity `ν > 0` (the paper's case is
+`ν = 1`; `app:boundary-heat-informative`, `eq:heat-localized-V`, `eq:heat-W-domain`).  Let
+`ξ₀ ∈ (0, 1)` and let `χ ∈ C¹` with `supp χ ⊆ (0, 1)` and `χ = 1` near `ξ₀` (every
+`χ ∈ C_c^∞(0, 1)` equal to one near `ξ₀` qualifies; one exists by `exists_smooth_cutoff`).  There
+are Hilbert spaces `W ↪ L²(0, 1) ↪ V` and a system on them such that:
+* `V` is the paper's space: `ζ : V → X₋₁` is injective and the identity on `X`, and
+  `‖v‖²_V = ‖z‖²_{X₋₁} + ν ∫₀^∞ e^{-2νs} (∫₀¹ (χ S_ν(s) z)² + ∫₀¹ (∂_ξ (χ S_ν(s) z))²) ds` for
+  `z = ζ v`, where `S_ν(s) z = S(ν s) z` is the profile `orbit z (ν s)` of the heat semigroup
+  with diffusivity `ν` (for `ν = 1`, the paper's norm); `V = {z ∈ X₋₁ : this is finite}`, and
+  `S_V` extends `S_ν` on `X₋₁`;
+* `W = D(A_V) = {x ∈ X : A_{X,-1} x ∈ V}` (`eq:heat-W-domain`, as a set) with `hyp:compat`;
+* `S_X` is the diagonal semigroup with `λₙ = -ν (nπ)²`; the generator is `ν` times the Neumann
+  Laplacian (`D(A) = H²_N(0, 1)`, `A φ = ν φ''`, `A⋆ = A`), `B⋆η = -ν η(0)`, `H²_N(0, 1) ⊆ W`
+  and `C` is the point evaluation at `ξ₀` there;
+* `hyp:H1`, `hyp:H2` hold at every horizon, while `B` and `C` are unbounded on `L²(0, 1)`;
+* `ū` is harmonically persistently exciting, `(A, B)` is approximately controllable in every
+  positive time, and `(ū, x̄)` is informative in `U × W` for every `x̄₀ ∈ W` and window
+  informative for every `x̄₀ ∈ L²(0, 1)`. -/
+theorem exists_boundaryHeat {ν : ℝ} (hν : 0 < ν) {ξ₀ : ℝ} (hξ₀ : ξ₀ ∈ Ioo 0 1) {χ : ℝ → ℝ}
+    (hχ : ContDiff ℝ 1 χ) (hχs : tsupport χ ⊆ Ioo 0 1) (hχ₀ : χ =ᶠ[𝓝 ξ₀] 1) :
+    ∃ (W V : Type) (_ : NormedAddCommGroup W) (_ : InnerProductSpace ℝ W) (_ : CompleteSpace W)
+      (_ : NormedAddCommGroup V) (_ : InnerProductSpace ℝ V) (_ : CompleteSpace V)
+      (sys : System ℝ W (L2 ℝ 1) V ℝ) (ζ : V →L[ℝ] Xm1),
+      Function.Injective ζ ∧
+      (∀ x : L2 ℝ 1, ζ (sys.ιV x) = heatModal.toXm1 cosBasis x) ∧
+      (∀ v : V, ‖v‖ ^ 2 = ‖ζ v‖ ^ 2 + ν * ∫ s in Ioi 0,
+        Real.exp (-2 * (ν * s)) * H1sq (fun ξ => χ ξ * orbit (ζ v) (ν * s) ξ)) ∧
+      (∀ a : Xm1, a ∈ Set.range ζ ↔ IntegrableOn (fun s =>
+        Real.exp (-2 * (ν * s)) * H1sq (fun ξ => χ ξ * orbit a (ν * s) ξ)) (Ioi 0)) ∧
+      C0Semigroup.Consistent ζ sys.SV (heatModal.Sm.timeScale ν) ∧
+      Set.range sys.ιW = {x | IntegrableOn (fun s => Real.exp (-2 * (ν * s)) *
+        H1sq (fun ξ => χ ξ * orbit (heatModal.genXm1 cosBasis x) (ν * s) ξ)) (Ioi 0)} ∧
+      sys.SX = diagSemigroup cosBasis (fun n => ν * eig n) (bddAbove_mul_eig hν.le) ∧
+      (∀ p : L2 ℝ 1 × L2 ℝ 1, p ∈ sys.A.graph ↔
+        ∃ φ φ' φ'' : ℝ → ℝ, PDE.IsNeumannH2 φ φ' φ'' ∧ (p.1 : ℝ → ℝ) =ᵐ[μI 1] φ ∧
+          (p.2 : ℝ → ℝ) =ᵐ[μI 1] fun ξ => ν * φ'' ξ) ∧
+      sys.A.adjoint = sys.A ∧
+      (∀ (η : L2 ℝ 1) (hη : η ∈ sys.A.adjoint.domain) (φ φ' φ'' : ℝ → ℝ),
+        PDE.IsNeumannH2 φ φ' φ'' → (η : ℝ → ℝ) =ᵐ[μI 1] φ → sys.Bstar ⟨η, hη⟩ = -(ν * φ 0)) ∧
+      (∀ φ φ' φ'' : ℝ → ℝ, PDE.IsNeumannH2 φ φ' φ'' →
+        ∃ w : W, (sys.ιW w : ℝ → ℝ) =ᵐ[μI 1] φ) ∧
+      (∀ (w : W) (φ φ' φ'' : ℝ → ℝ), PDE.IsNeumannH2 φ φ' φ'' →
+        (sys.ιW w : ℝ → ℝ) =ᵐ[μI 1] φ → sys.C w = φ ξ₀) ∧
+      (∀ T, sys.H1 T) ∧ (∀ T, sys.H2 T) ∧ sys.Compat ∧
+      sys.B 1 ∉ Set.range sys.ιV ∧
+      (¬ ∃ K : ℝ, ∀ w : W, sys.ιW w ∈ sys.A.domain → ‖sys.C w‖ ≤ K * ‖sys.ιW w‖) ∧
+      heatInput.IsHarmonicPE ∧
+      (∀ T > 0, sys.ApproxControllable T) ∧
+      (∀ T > 0, ∀ w₀ : W, Informative T heatInput (sys.mildW w₀ heatInput)) ∧
+      (∀ T > 0, ∀ T' > 0, ∀ x₀ : L2 ℝ 1,
+        WindowInformative T T' heatInput (sys.mild x₀ heatInput)) := by
+  let c : Cutoff := ⟨χ, hχ, hχs⟩
+  have h1 : c ξ₀ = 1 := hχ₀.eq_of_nhds
+  have hint : ∀ f : ℝ → ℝ, IntegrableOn (fun s => f (ν * s)) (Ioi 0) ↔ IntegrableOn f (Ioi 0) :=
+    fun f => by rw [integrableOn_Ioi_comp_mul_left_iff f 0 hν, mul_zero]
+  refine ⟨W c, V c, inferInstance, inferInstance, inferInstance, inferInstance, inferInstance,
+    inferInstance, heatSystem hξ₀ c h1 ν, fstV c, fstV_injective c, fun _ => rfl,
+    fun v => ?_, fun a => ?_, (consistent_fstV c).timeScale ν, ?_,
+    heatSystem_SX hξ₀ c h1 hν, heatSystem_A_graph hξ₀ c h1 hν, heatSystem_A_adjoint hξ₀ c h1 hν,
+    fun _ hη _ _ _ h hηφ => heatSystem_Bstar hξ₀ c h1 hν h hη hηφ,
+    fun _ _ _ h => exists_heatSystem_ιW_ae_eq hξ₀ c h1 h,
+    fun w _ _ _ h hw => heatSystem_C hξ₀ c h1 h w hw,
+    heatSystem_H1 hξ₀ c h1 hν, heatSystem_H2 hξ₀ c h1 hν, heatSystem_compat hξ₀ c h1 hν,
+    heatSystem_B_not_mem_range hξ₀ c h1 hν, heatSystem_C_unbounded hξ₀ c h1 hν,
+    isHarmonicPE_heatInput,
+    fun _ hT => heatSystem_approxControllable hξ₀ c h1 hν hT,
+    fun _ hT w₀ => heatSystem_informative hξ₀ c h1 hν hT w₀,
+    fun _ hT _ hT' x₀ => heatSystem_windowInformative hξ₀ c h1 hν hT hT' x₀⟩
+  · rw [norm_V_sq_eq c v, integral_comp_mul_left_Ioi (fun t => Real.exp (-2 * t) *
+      H1sq (fun ξ => χ ξ * orbit (fstV c v) t ξ)) 0 hν, mul_zero, smul_eq_mul,
+      mul_inv_cancel_left₀ hν.ne']
+  · exact (exists_fstV_eq_iff c a).trans
+      (hint fun t => Real.exp (-2 * t) * H1sq (fun ξ => χ ξ * orbit a t ξ)).symm
+  · rw [heatSystem_ιW, range_ιW c]
+    ext x
+    exact (hint fun t => Real.exp (-2 * t) *
+      H1sq (fun ξ => χ ξ * orbit (heatModal.genXm1 cosBasis x) t ξ)).symm
 
 end BoundaryHeat
 

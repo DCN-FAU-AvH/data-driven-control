@@ -49,32 +49,21 @@ paper's `A^⋆` on `X_ℂ` is unambiguous: it is `A.adjoint.complexify`.
 * `Complexification.pairing η ζ`, notation `⟪η, ζ⟫_bil`, and `pairingCLM`; it is symmetric,
   bilinear, nondegenerate already on real vectors (`pairing_ofReal_eq_zero_forall_iff`),
   bounded (`norm_pairing_le`), commutes with integrals (`pairing_integral`), and
-  `⟪η, ζ⟫_bil = ⟪star η, ζ⟫_ℂ` (`pairing_eq_inner_star`, `inner_ofReal_right`).
+  `⟪η, ζ⟫_bil = ⟪star η, ζ⟫_ℂ` (`pairing_eq_inner_star`).
 * `LinearMap.complexify`, `ContinuousLinearMap.complexify`, `LinearPMap.complexify`,
   `Submodule.complexify`: `T_ℂ (x + i y) = T x + i T y`, `D_ℂ = D + i D`.
-* `complexAnnihilator μ z`: the annihilator in `X_ℂ`, for the bilinear pairing, of a real
-  signal `z`.
 
 ## Main statements
 
 * `ContinuousLinearMap.complexify` is functorial (`complexify_id`, `complexify_comp`,
-  `complexify_one`, `complexify_mul`, `complexify_pow`), real-linear, isometric
-  (`norm_complexify`), continuous for the norm and for strong convergence
-  (`tendsto_complexify_apply`, `continuous_complexify_apply`), and commutes with adjoints
-  (`adjoint_complexify`), kernels and ranges (`ker_complexify`, `range_complexify`);
-  `denseRange_complexify_iff`, `injective_complexify_iff`.
+  `complexify_one`), real-linear, isometric (`norm_complexify`), and commutes with adjoints
+  (`adjoint_complexify`) and kernels (`ker_complexify`, `injective_complexify_iff`).
 * `LinearPMap.adjoint_complexify`: `(A_ℂ)† = (A†)_ℂ` for every real `A`, domains included
   (`mem_adjoint_domain_complexify_iff`); this is what makes `ker (A^⋆ - λ id_{X_ℂ})` in
-  `prop:fattorini-hautus` the kernel of a complexified operator.  `pairing_adjoint_complexify`
-  is the bilinear form of the adjoint identity; `mem_graph_complexify_iff`,
-  `LinearMap.toPMap_complexify`.
-* `Submodule.topologicalClosure_complexify`, `Submodule.dense_complexify_iff`,
-  `Submodule.orthogonal_complexify`.
-* Transfer: `complexAnnihilator_eq_complexify`, `complexAnnihilator_eq_bot_iff` (a real signal
-  is informative for complex test vectors iff it is for real ones),
-  `pairing_ofReal_add_pairing_ofReal_eq_zero_iff` (two-component records),
-  `pairing_ofReal_eq_mul_cexp_iff` (`⟨η, x(t)⟩ = κ e^{λt}` as two real identities) and
-  `pairing_star_ofReal` (the conjugate triple).
+  `prop:fattorini-hautus` the kernel of a complexified operator.
+* `Submodule.topologicalClosure_complexify`, `Submodule.dense_complexify_iff`.
+* `pairing_ofReal_add_pairing_ofReal_eq_zero_iff`: a complex test vector annihilates a
+  two-component real record iff its real and imaginary parts do.
 
 C₀-semigroups are not complexified here: `C0Semigroup.complexify` is in
 `Informativity/Analytic/Transfer`, built on `complexify_one`, `complexify_comp` and
@@ -195,15 +184,6 @@ instance : StarAddMonoid (Complexification X) where
 theorem eq_ofReal_re_iff {z : Complexification X} : z = (z.re : Complexification X) ↔ z.im = 0 := by
   simp [Complexification.ext_iff]
 
-theorem exists_ofReal_iff {z : Complexification X} : (∃ x : X, (x : Complexification X) = z) ↔
-    z.im = 0 :=
-  ⟨fun ⟨x, hx⟩ => hx ▸ ofReal_im x, fun h => ⟨z.re, (eq_ofReal_re_iff.2 h).symm⟩⟩
-
-/-- `z + z̄ = 2 re z`. -/
-theorem add_star_self (z : Complexification X) :
-    z + star z = ((2 • z.re : X) : Complexification X) := by
-  ext <;> simp [two_nsmul]
-
 end AddCommGroup
 
 /-! ### The complex vector space structure -/
@@ -251,10 +231,6 @@ theorem star_eq_self_iff {z : Complexification X} : star z = z ↔ z.im = 0 := b
 
 @[simp, norm_cast] theorem ofReal_smul (r : ℝ) (x : X) :
     ((r • x : X) : Complexification X) = r • (x : Complexification X) := by
-  ext <;> simp
-
-theorem smul_ofReal (c : ℂ) (x : X) :
-    c • (x : Complexification X) = ⟨c.re • x, c.im • x⟩ := by
   ext <;> simp
 
 /-- The paper's notation `x + i y` for `⟨x, y⟩`. -/
@@ -348,9 +324,6 @@ theorem norm_eq (z : Complexification X) : ‖z‖ = √(‖z.re‖ ^ 2 + ‖z.i
 @[simp] theorem norm_ofReal (x : X) : ‖(x : Complexification X)‖ = ‖x‖ := by
   simp [norm_eq, Real.sqrt_sq (norm_nonneg _)]
 
-theorem norm_mk (x y : X) : ‖(⟨x, y⟩ : Complexification X)‖ = √(‖x‖ ^ 2 + ‖y‖ ^ 2) :=
-  norm_eq _
-
 theorem norm_re_le (z : Complexification X) : ‖z.re‖ ≤ ‖z‖ := by
   rw [norm_eq]; exact Real.le_sqrt_of_sq_le (by nlinarith [sq_nonneg ‖z.im‖])
 
@@ -401,9 +374,6 @@ def ofRealCLM : X →L[ℝ] Complexification X :=
 
 @[continuity, fun_prop] theorem continuous_ofReal : Continuous (ofReal : X → Complexification X) :=
   ofRealCLM.continuous
-
-theorem isometry_ofReal : Isometry (ofReal : X → Complexification X) :=
-  AddMonoidHomClass.isometry_of_norm (ofRealCLM : X →L[ℝ] Complexification X) norm_ofReal
 
 /-- The real embedding `X → X_ℂ` as a real linear isometry. -/
 def ofRealLI : X →ₗᵢ[ℝ] Complexification X :=
@@ -544,12 +514,6 @@ theorem pairing_ofReal_right (η : Complexification X) (x : X) :
     ⟪η, (x : Complexification X)⟫_bil = ⟨⟪η.re, x⟫_ℝ, ⟪η.im, x⟫_ℝ⟩ := by
   apply Complex.ext <;> simp
 
-theorem re_pairing_ofReal (η : Complexification X) (x : X) :
-    (⟪η, (x : Complexification X)⟫_bil).re = ⟪η.re, x⟫_ℝ := by simp
-
-theorem im_pairing_ofReal (η : Complexification X) (x : X) :
-    (⟪η, (x : Complexification X)⟫_bil).im = ⟪η.im, x⟫_ℝ := by simp
-
 /-- The bilinear pairing is the Hermitian product with the first argument conjugated. -/
 theorem pairing_eq_inner_star (η ζ : Complexification X) : ⟪η, ζ⟫_bil = ⟪star η, ζ⟫_ℂ := by
   apply Complex.ext <;> simp [inner_re, inner_im]
@@ -558,16 +522,6 @@ theorem pairing_eq_inner_star (η ζ : Complexification X) : ⟪η, ζ⟫_bil = 
 /-- The Hermitian product is the bilinear pairing with the first argument conjugated. -/
 theorem inner_eq_pairing_star (η ζ : Complexification X) : ⟪η, ζ⟫_ℂ = ⟪star η, ζ⟫_bil := by
   rw [pairing_eq_inner_star, star_star]
-
-theorem star_pairing (η ζ : Complexification X) :
-    star ⟪η, ζ⟫_bil = ⟪star η, star ζ⟫_bil := by
-  apply Complex.ext <;> simp
-  ring
-
-/-- Conjugating the complex test vector conjugates its pairing with a real vector. -/
-theorem pairing_star_ofReal (η : Complexification X) (x : X) :
-    ⟪star η, (x : Complexification X)⟫_bil = star ⟪η, (x : Complexification X)⟫_bil := by
-  rw [star_pairing, star_ofReal]
 
 theorem norm_pairing_le (η ζ : Complexification X) : ‖⟪η, ζ⟫_bil‖ ≤ ‖η‖ * ‖ζ‖ := by
   rw [pairing_eq_inner_star, ← norm_star η]
@@ -600,12 +554,6 @@ theorem pairing_ofReal_eq_zero_iff (η : Complexification X) (x : X) :
   rw [pairing_ofReal_right, Complex.ext_iff]
   simp
 
-/-- The Hermitian product of a complex vector with a real one is the conjugate of the bilinear
-pairing. -/
-theorem inner_ofReal_right (η : Complexification X) (x : X) :
-    ⟪η, (x : Complexification X)⟫_ℂ = star ⟪η, (x : Complexification X)⟫_bil := by
-  rw [inner_eq_pairing_star, pairing_star_ofReal]
-
 /-- Nondegeneracy, tested on real vectors: `η = 0` iff `⟪η, x⟫_bil = 0` for all real `x`. -/
 theorem pairing_ofReal_eq_zero_forall_iff {η : Complexification X} :
     (∀ x : X, ⟪η, (x : Complexification X)⟫_bil = 0) ↔ η = 0 := by
@@ -615,11 +563,6 @@ theorem pairing_ofReal_eq_zero_forall_iff {η : Complexification X} :
   ext
   · simpa using (inner_self_eq_zero (𝕜 := ℝ)).1 h1
   · simpa using (inner_self_eq_zero (𝕜 := ℝ)).1 h2
-
-/-- Nondegeneracy of the pairing. -/
-theorem pairing_eq_zero_forall_iff {η : Complexification X} :
-    (∀ ζ : Complexification X, ⟪η, ζ⟫_bil = 0) ↔ η = 0 :=
-  ⟨fun h => pairing_ofReal_eq_zero_forall_iff.1 fun x => h _, fun h ζ => by simp [h]⟩
 
 theorem ext_pairing {η η' : Complexification X} (h : ∀ x : X, ⟪η, (x : Complexification X)⟫_bil =
     ⟪η', (x : Complexification X)⟫_bil) : η = η' :=
@@ -635,34 +578,6 @@ theorem pairing_ofReal_add_pairing_ofReal_eq_zero_iff [NormedAddCommGroup Y]
   rw [pairing_ofReal_right, pairing_ofReal_right, Complex.ext_iff]
   simp
 
-/-- The exponential identity `⟨η, x⟩ = κ e^{s t}` of `thm:data-fattorini-hautus` (`eq:data-fh`),
-for a complex test vector `η` and a real vector `x`, as two real identities. -/
-theorem pairing_ofReal_eq_mul_cexp_iff (η : Complexification X) (x : X) (κ s : ℂ) (t : ℝ) :
-    ⟪η, (x : Complexification X)⟫_bil = κ * Complex.exp (s * t) ↔
-      ⟪η.re, x⟫_ℝ = Real.exp (s.re * t) * (κ.re * Real.cos (s.im * t) -
-          κ.im * Real.sin (s.im * t)) ∧
-        ⟪η.im, x⟫_ℝ = Real.exp (s.re * t) * (κ.re * Real.sin (s.im * t) +
-          κ.im * Real.cos (s.im * t)) := by
-  have e1 : (κ * Complex.exp (s * t)).re = Real.exp (s.re * t) * (κ.re * Real.cos (s.im * t) -
-      κ.im * Real.sin (s.im * t)) := by
-    simp only [Complex.mul_re, Complex.mul_im, Complex.exp_re, Complex.exp_im, Complex.ofReal_re,
-      Complex.ofReal_im, mul_zero, sub_zero, zero_add]
-    ring
-  have e2 : (κ * Complex.exp (s * t)).im = Real.exp (s.re * t) * (κ.re * Real.sin (s.im * t) +
-      κ.im * Real.cos (s.im * t)) := by
-    simp only [Complex.mul_re, Complex.mul_im, Complex.exp_re, Complex.exp_im, Complex.ofReal_re,
-      Complex.ofReal_im, mul_zero, sub_zero, zero_add]
-    ring
-  rw [pairing_ofReal_right, Complex.ext_iff, e1, e2]
-
-/-- The conjugate triple `(star η, star s, star κ)` satisfies the exponential identity whenever
-`(η, s, κ)` does, for a real vector. -/
-theorem pairing_star_ofReal_eq_mul_cexp {η : Complexification X} {x : X} {κ s : ℂ} {t : ℝ}
-    (h : ⟪η, (x : Complexification X)⟫_bil = κ * Complex.exp (s * t)) :
-    ⟪star η, (x : Complexification X)⟫_bil = star κ * Complex.exp (star s * t) := by
-  rw [pairing_star_ofReal, h, star_mul', Complex.star_def, ← Complex.exp_conj, map_mul,
-    Complex.conj_ofReal]
-
 end Pairing
 
 /-! ### Annihilators of real signals -/
@@ -672,35 +587,6 @@ section Annihilator
 variable [NormedAddCommGroup X] [InnerProductSpace ℝ X]
 
 open scoped InnerProductSpace
-
-/-- The annihilator in `X_ℂ` of a real signal `z`, for the bilinear pairing:
-`{η ∈ X_ℂ | ⟨η, z t⟩ = 0 for μ-a.e. t}`.  Informativity over `X_ℂ`
-(`app:data-fattorini-hautus`, Step 2) is `complexAnnihilator μ z = ⊥`. -/
-def complexAnnihilator {α : Type*} [MeasurableSpace α] (μ : Measure α) (z : α → X) :
-    Submodule ℂ (Complexification X) where
-  carrier := {η | ∀ᵐ t ∂μ, ⟪η, (z t : Complexification X)⟫_bil = 0}
-  add_mem' {η η'} hη hη' := by
-    simp only [Set.mem_ofPred_eq] at *
-    filter_upwards [hη, hη'] with t h h'
-    simp [h, h']
-  zero_mem' := by simp
-  smul_mem' c η hη := by
-    simp only [Set.mem_ofPred_eq] at *
-    filter_upwards [hη] with t h
-    simp [h]
-
-theorem mem_complexAnnihilator {α : Type*} [MeasurableSpace α] {μ : Measure α} {z : α → X}
-    {η : Complexification X} :
-    η ∈ complexAnnihilator μ z ↔ ∀ᵐ t ∂μ, ⟪η, (z t : Complexification X)⟫_bil = 0 :=
-  Iff.rfl
-
-/-- A complex test vector annihilates a real signal iff its real and imaginary parts do. -/
-theorem mem_complexAnnihilator_iff {α : Type*} [MeasurableSpace α] {μ : Measure α} {z : α → X}
-    {η : Complexification X} :
-    η ∈ complexAnnihilator μ z ↔
-      (∀ᵐ t ∂μ, ⟪η.re, z t⟫_ℝ = 0) ∧ (∀ᵐ t ∂μ, ⟪η.im, z t⟫_ℝ = 0) := by
-  simp_rw [mem_complexAnnihilator, pairing_ofReal_eq_zero_iff]
-  exact eventually_and
 
 end Annihilator
 
@@ -742,10 +628,6 @@ def complexify (K : Submodule ℝ X) : Submodule ℂ (Complexification X) where
 @[simp] theorem ofReal_mem_complexify {K : Submodule ℝ X} {x : X} :
     (x : Complexification X) ∈ K.complexify ↔ x ∈ K := by
   simp [K.zero_mem]
-
-theorem star_mem_complexify {K : Submodule ℝ X} {z : Complexification X}
-    (hz : z ∈ K.complexify) : star z ∈ K.complexify :=
-  ⟨hz.1, by simpa using K.neg_mem hz.2⟩
 
 theorem complexify_mono {K L : Submodule ℝ X} (h : K ≤ L) : K.complexify ≤ L.complexify :=
   fun _ hz => ⟨h hz.1, h hz.2⟩
@@ -819,22 +701,6 @@ theorem dense_complexify_iff {K : Submodule ℝ X} :
   rw [Submodule.dense_iff_topologicalClosure_eq_top, Submodule.dense_iff_topologicalClosure_eq_top,
     topologicalClosure_complexify, complexify_eq_top_iff]
 
-/-- Orthogonal complements commute with complexification: `(K_ℂ)ᗮ = (Kᗮ)_ℂ`. -/
-theorem orthogonal_complexify (K : Submodule ℝ X) : (K.complexify)ᗮ = (Kᗮ).complexify := by
-  ext z
-  simp only [Submodule.mem_orthogonal, mem_complexify]
-  constructor
-  · intro h
-    refine ⟨fun u hu => ?_, fun u hu => ?_⟩
-    · have := congrArg Complex.re (h (u : Complexification X) (ofReal_mem_complexify.2 hu))
-      simpa [Complexification.inner_re] using this
-    · have := congrArg Complex.im (h (u : Complexification X) (ofReal_mem_complexify.2 hu))
-      simpa [Complexification.inner_im] using this
-  · rintro ⟨h1, h2⟩ w hw
-    apply Complex.ext
-    · simp [Complexification.inner_re, h1 _ hw.1, h2 _ hw.2]
-    · simp [Complexification.inner_im, h1 _ hw.2, h2 _ hw.1]
-
 end Normed
 
 end Submodule
@@ -883,22 +749,9 @@ theorem ker_complexify (T : X →ₗ[ℝ] Y) : ker T.complexify = (ker T).comple
   ext z
   simp [Complexification.ext_iff]
 
-theorem range_complexify (T : X →ₗ[ℝ] Y) : range T.complexify = (range T).complexify := by
-  ext z
-  simp only [mem_range, Submodule.mem_complexify]
-  constructor
-  · rintro ⟨w, rfl⟩
-    exact ⟨⟨w.re, rfl⟩, ⟨w.im, rfl⟩⟩
-  · rintro ⟨⟨a, ha⟩, ⟨b, hb⟩⟩
-    exact ⟨⟨a, b⟩, by ext <;> simp [ha, hb]⟩
-
 theorem injective_complexify_iff (T : X →ₗ[ℝ] Y) :
     Function.Injective T.complexify ↔ Function.Injective T := by
   rw [← ker_eq_bot, ← ker_eq_bot, ker_complexify, Submodule.complexify_eq_bot_iff]
-
-theorem surjective_complexify_iff (T : X →ₗ[ℝ] Y) :
-    Function.Surjective T.complexify ↔ Function.Surjective T := by
-  rw [← range_eq_top, ← range_eq_top, range_complexify, Submodule.complexify_eq_top_iff]
 
 end LinearMap
 
@@ -947,11 +800,6 @@ theorem complexify_star (T : X →L[ℝ] Y) (z : Complexification X) :
     T.complexify (star z) = star (T.complexify z) := by
   ext <;> simp
 
-/-- `‖T_ℂ z‖² = ‖T z.re‖² + ‖T z.im‖²`. -/
-theorem norm_complexify_apply_sq (T : X →L[ℝ] Y) (z : Complexification X) :
-    ‖T.complexify z‖ ^ 2 = ‖T z.re‖ ^ 2 + ‖T z.im‖ ^ 2 :=
-  Complexification.norm_sq_eq _
-
 theorem norm_complexify_apply_le (T : X →L[ℝ] Y) (z : Complexification X) :
     ‖T.complexify z‖ ≤ ‖T‖ * ‖z‖ :=
   (T.complexify.le_opNorm z).trans <| mul_le_mul_of_nonneg_right
@@ -969,70 +817,20 @@ theorem complexify_comp (S : Y →L[ℝ] Z) (T : X →L[ℝ] Y) :
     (1 : X →L[ℝ] X).complexify = (1 : Complexification X →L[ℂ] Complexification X) :=
   complexify_id
 
-theorem complexify_mul (S T : X →L[ℝ] X) : (S * T).complexify = S.complexify * T.complexify :=
-  complexify_comp S T
-
-theorem complexify_pow (T : X →L[ℝ] X) (n : ℕ) : (T ^ n).complexify = T.complexify ^ n := by
-  induction n with
-  | zero => simp
-  | succ n ih => rw [pow_succ, complexify_mul, ih, pow_succ]
-
 @[simp] theorem complexify_zero : (0 : X →L[ℝ] Y).complexify = 0 := by
   ext <;> simp
 
 theorem complexify_add (S T : X →L[ℝ] Y) : (S + T).complexify = S.complexify + T.complexify := by
   ext <;> simp
 
-theorem complexify_neg (T : X →L[ℝ] Y) : (-T).complexify = -T.complexify := by
-  ext <;> simp
-
-theorem complexify_sub (S T : X →L[ℝ] Y) : (S - T).complexify = S.complexify - T.complexify := by
-  ext <;> simp
-
 theorem complexify_smul (r : ℝ) (T : X →L[ℝ] Y) : (r • T).complexify = (r : ℂ) • T.complexify := by
   ext <;> simp
-
-/-- An eigenvector of a complexified real operator has a conjugate eigenvector, with the
-conjugate eigenvalue. -/
-theorem complexify_star_eq_smul {T : X →L[ℝ] X} {s : ℂ} {η : Complexification X}
-    (h : T.complexify η = s • η) : T.complexify (star η) = star s • star η := by
-  rw [complexify_star, h, star_smul]
 
 /-- Complexification preserves the operator norm. -/
 @[simp] theorem norm_complexify (T : X →L[ℝ] Y) : ‖T.complexify‖ = ‖T‖ := by
   refine le_antisymm (LinearMap.mkContinuous_norm_le _ (norm_nonneg T) _)
     (T.opNorm_le_bound (norm_nonneg T.complexify) fun x => ?_)
   simpa using T.complexify.le_opNorm (x : Complexification X)
-
-/-- Complexification is continuous for the operator norm (it is a real-linear isometry). -/
-theorem continuous_complexify : Continuous (fun T : X →L[ℝ] Y => T.complexify) := by
-  have h : Isometry (fun T : X →L[ℝ] Y => T.complexify) := Isometry.of_dist_eq fun S T => by
-    rw [dist_eq_norm, dist_eq_norm, ← complexify_sub, norm_complexify]
-  exact h.continuous
-
-/-- Complexification is continuous for strong (pointwise) convergence. -/
-theorem tendsto_complexify_apply {ι : Type*} {l : Filter ι} {F : ι → X →L[ℝ] Y}
-    {T : X →L[ℝ] Y} (h : ∀ x, Tendsto (fun i => F i x) l (𝓝 (T x))) (z : Complexification X) :
-    Tendsto (fun i => (F i).complexify z) l (𝓝 (T.complexify z)) :=
-  Complexification.tendsto_iff.2 ⟨h z.re, h z.im⟩
-
-theorem tendsto_complexify_apply_iff {ι : Type*} {l : Filter ι} {F : ι → X →L[ℝ] Y}
-    {T : X →L[ℝ] Y} :
-    (∀ z, Tendsto (fun i => (F i).complexify z) l (𝓝 (T.complexify z))) ↔
-      ∀ x, Tendsto (fun i => F i x) l (𝓝 (T x)) :=
-  ⟨fun h x => by simpa using (Complexification.tendsto_iff.1 (h (x : Complexification X))).1,
-    fun h z => tendsto_complexify_apply h z⟩
-
-/-- Strong continuity of an operator family passes to the complexified family. -/
-theorem continuous_complexify_apply {α : Type*} [TopologicalSpace α] {F : α → X →L[ℝ] Y}
-    (h : ∀ x, Continuous fun a => F a x) (z : Complexification X) :
-    Continuous fun a => (F a).complexify z :=
-  Complexification.continuous_iff.2 ⟨h z.re, h z.im⟩
-
-theorem continuousOn_complexify_apply {α : Type*} [TopologicalSpace α] {F : α → X →L[ℝ] Y}
-    {s : Set α} (h : ∀ x, ContinuousOn (fun a => F a x) s) (z : Complexification X) :
-    ContinuousOn (fun a => (F a).complexify z) s :=
-  fun a ha => Complexification.tendsto_iff.2 ⟨h z.re a ha, h z.im a ha⟩
 
 /-- The Hermitian adjoint of a complexified operator is the complexified adjoint. -/
 theorem adjoint_complexify [CompleteSpace X] [CompleteSpace Y] (T : X →L[ℝ] Y) :
@@ -1051,20 +849,9 @@ theorem pairing_complexify_left [CompleteSpace X] [CompleteSpace Y] (T : X →L[
 theorem ker_complexify (T : X →L[ℝ] Y) : T.complexify.ker = T.ker.complexify :=
   LinearMap.ker_complexify (T : X →ₗ[ℝ] Y)
 
-theorem range_complexify (T : X →L[ℝ] Y) : T.complexify.range = T.range.complexify :=
-  LinearMap.range_complexify (T : X →ₗ[ℝ] Y)
-
 theorem injective_complexify_iff (T : X →L[ℝ] Y) :
     Function.Injective T.complexify ↔ Function.Injective T :=
   LinearMap.injective_complexify_iff (T : X →ₗ[ℝ] Y)
-
-/-- `T_ℂ` has dense range iff `T` has. -/
-theorem denseRange_complexify_iff (T : X →L[ℝ] Y) :
-    DenseRange T.complexify ↔ DenseRange T := by
-  have h1 : Set.range T.complexify = (T.complexify.range : Set (Complexification Y)) :=
-    (LinearMap.coe_range _).symm
-  have h2 : Set.range T = (T.range : Set Y) := (LinearMap.coe_range _).symm
-  rw [DenseRange, DenseRange, h1, h2, range_complexify, Submodule.dense_complexify_iff]
 
 end ContinuousLinearMap
 
@@ -1107,49 +894,12 @@ def complexify (A : X →ₗ.[ℝ] Y) : Complexification X →ₗ.[ℂ] Complexi
     (A.complexify z).im = A ⟨(z : Complexification X).im, (Submodule.mem_complexify.1 z.2).2⟩ :=
   rfl
 
-theorem complexify_apply_mk (A : X →ₗ.[ℝ] Y) {x y : X} (hx : x ∈ A.domain)
-    (hy : y ∈ A.domain) :
-    A.complexify ⟨⟨x, y⟩, ⟨hx, hy⟩⟩ = ⟨A ⟨x, hx⟩, A ⟨y, hy⟩⟩ :=
-  rfl
-
 theorem complexify_apply_ofReal (A : X →ₗ.[ℝ] Y) (x : A.domain) :
     A.complexify ⟨(x : Complexification X), Submodule.ofReal_mem_complexify.2 x.2⟩ =
       (A x : Complexification Y) := by
   ext
   · rfl
   · exact A.map_zero
-
-theorem complexify_apply_star (A : X →ₗ.[ℝ] Y) (z : A.complexify.domain) :
-    A.complexify ⟨star (z : Complexification X), Submodule.star_mem_complexify z.2⟩ =
-      star (A.complexify z) := by
-  ext
-  · rfl
-  · change A ⟨-(z : Complexification X).im, _⟩ = -A ⟨(z : Complexification X).im, _⟩
-    rw [← LinearPMap.map_neg]
-    rfl
-
-/-- A partial map `T.toPMap p` complexifies to `T_ℂ.toPMap p_ℂ`. -/
-theorem _root_.LinearMap.toPMap_complexify (T : X →ₗ[ℝ] Y) (p : Submodule ℝ X) :
-    (T.toPMap p).complexify = T.complexify.toPMap p.complexify :=
-  LinearPMap.ext rfl fun _ _ _ => rfl
-
-/-- The graph of `A_ℂ` is the complexified graph of `A`. -/
-theorem mem_graph_complexify_iff (A : X →ₗ.[ℝ] Y) (z : Complexification X)
-    (w : Complexification Y) :
-    (z, w) ∈ A.complexify.graph ↔ (z.re, w.re) ∈ A.graph ∧ (z.im, w.im) ∈ A.graph := by
-  simp only [LinearPMap.mem_graph_iff]
-  constructor
-  · rintro ⟨⟨y, hy⟩, rfl, rfl⟩
-    exact ⟨⟨⟨y.re, hy.1⟩, rfl, rfl⟩, ⟨⟨y.im, hy.2⟩, rfl, rfl⟩⟩
-  · rintro ⟨⟨a, ha1, ha2⟩, ⟨b, hb1, hb2⟩⟩
-    refine ⟨⟨z, ha1 ▸ a.2, hb1 ▸ b.2⟩, rfl, ?_⟩
-    ext
-    · rw [complexify_apply_re, ← ha2]
-      congr 1
-      exact Subtype.ext ha1.symm
-    · rw [complexify_apply_im, ← hb2]
-      congr 1
-      exact Subtype.ext hb1.symm
 
 end Algebraic
 
@@ -1244,27 +994,6 @@ theorem adjoint_complexify [CompleteSpace X] (A : X →ₗ.[ℝ] Y) :
     · exact (LinearPMap.adjoint_apply_of_not_dense hA _).symm
     · exact (LinearPMap.adjoint_apply_of_not_dense hA _).symm
 
-/-- The bilinear pairing identity for the complexified adjoint:
-`⟨(A†)_ℂ η, ζ⟩ = ⟨η, A_ℂ ζ⟩` for `η ∈ D(A†)_ℂ` and `ζ ∈ D(A)_ℂ`, when `D(A)` is dense. -/
-theorem pairing_adjoint_complexify [CompleteSpace X] (A : X →ₗ.[ℝ] Y)
-    (hA : Dense (A.domain : Set X)) (η : A.adjoint.complexify.domain)
-    (ζ : A.complexify.domain) :
-    ⟪A.adjoint.complexify η, (ζ : Complexification X)⟫_bil =
-      ⟪(η : Complexification Y), A.complexify ζ⟫_bil := by
-  have hf := LinearPMap.adjoint_isFormalAdjoint hA
-  obtain ⟨hη1, hη2⟩ := Submodule.mem_complexify.1 η.2
-  obtain ⟨hζ1, hζ2⟩ := Submodule.mem_complexify.1 ζ.2
-  have e11 := hf ⟨_, hη1⟩ ⟨_, hζ1⟩
-  have e12 := hf ⟨_, hη1⟩ ⟨_, hζ2⟩
-  have e21 := hf ⟨_, hη2⟩ ⟨_, hζ1⟩
-  have e22 := hf ⟨_, hη2⟩ ⟨_, hζ2⟩
-  dsimp only at e11 e12 e21 e22
-  apply Complex.ext
-  · simp only [Complexification.pairing_re, complexify_apply_re, complexify_apply_im]
-    linarith
-  · simp only [Complexification.pairing_im, complexify_apply_re, complexify_apply_im]
-    linarith
-
 end Normed
 
 end LinearPMap
@@ -1275,30 +1004,5 @@ namespace DataDrivenControl.Complexification
 
 variable {X : Type*} [NormedAddCommGroup X] [InnerProductSpace ℝ X]
   {α : Type*} [MeasurableSpace α]
-
-/-- The complex annihilator of a real signal is the complexified real annihilator: if `K` is the
-real annihilator `{ξ | ⟨ξ, z t⟩ = 0 a.e.}` (the `annihilator` of `Signal/Span`), then the
-complex annihilator is `K_ℂ`. -/
-theorem complexAnnihilator_eq_complexify (μ : Measure α) (z : α → X) (K : Submodule ℝ X)
-    (hK : ∀ ξ, ξ ∈ K ↔ ∀ᵐ t ∂μ, ⟪ξ, z t⟫_ℝ = 0) :
-    complexAnnihilator μ z = K.complexify := by
-  ext η
-  rw [mem_complexAnnihilator_iff, Submodule.mem_complexify, hK, hK]
-
-/-- Informativity is unchanged under complexification: a real signal has no nonzero complex
-annihilator iff it has no nonzero real one. -/
-theorem complexAnnihilator_eq_bot_iff (μ : Measure α) (z : α → X) :
-    complexAnnihilator μ z = ⊥ ↔ ∀ ξ : X, (∀ᵐ t ∂μ, ⟪ξ, z t⟫_ℝ = 0) → ξ = 0 := by
-  rw [Submodule.eq_bot_iff]
-  constructor
-  · intro h ξ hξ
-    have hmem : (ξ : Complexification X) ∈ complexAnnihilator μ z :=
-      mem_complexAnnihilator_iff.2 ⟨by simpa using hξ, by simp⟩
-    simpa using h _ hmem
-  · intro h η hη
-    obtain ⟨h1, h2⟩ := mem_complexAnnihilator_iff.1 hη
-    ext
-    · simpa using h _ h1
-    · simpa using h _ h2
 
 end DataDrivenControl.Complexification

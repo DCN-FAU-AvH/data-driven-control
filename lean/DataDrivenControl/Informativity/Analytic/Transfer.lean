@@ -30,8 +30,7 @@ No complexified extrapolation space is used, and statements let `S(t)` act on `X
   `(s - A_{X,-1})⁻¹ B_X` for `s ∈ ρ(A)`.  The characterisation of the paper's definition is
   `transferX_spec` with uniqueness `eq_transferX`: `x = 𝐇(s) v` iff
   `s ⟨η, x⟩ - ⟨A† η, x⟩ = ⟨B† η, v⟩` for all `η ∈ D(A†)`, i.e. `(s - A_{X,-1}) x = B_X v` in
-  `X₋₁` (dual model).  `transferX_eq`: the formula holds for every admissible `a`;
-  `transferX_sub`: `𝐇(s) = 𝐇(r) - (s - r) R(s, A) 𝐇(r)`.
+  `X₋₁` (dual model).  `transferX_eq`: the formula holds for every admissible `a`.
 * `sys.transfer s : U_ℂ →L[ℂ] W_ℂ`: `𝐇(s)` as an operator into `W_ℂ` (`ιW_transfer`), junk `0`
   where it is not one; `transfer_ofReal`: `𝐇(r) = Q_r` for admissible real `r`.
 * `differentiableOn_transfer`: `𝐇` is holomorphic on `ρ(A)` into `L(U_ℂ, W_ℂ)`;
@@ -390,22 +389,6 @@ theorem eq_transferX {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T) {s : ℂ}
   refine sub_eq_zero.1 (sys.SX.eq_zero_of_forall_pairing hs fun η hη => ?_)
   rw [pairing_sub_right, pairing_sub_right]
   linear_combination hx η hη - transferX_spec hH1 hT hs v η hη
-
-/-- The resolvent identity for the transfer map (`app:analytic-universal-sufficiency`):
-`𝐇(s) = 𝐇(r) - (s - r) R(s, A) 𝐇(r)` for `s, r ∈ ρ(A)`. -/
-theorem transferX_sub {T : ℝ} (hH1 : sys.H1 T) (hT : 0 < T) {s r : ℂ}
-    (hs : s ∈ resolventSet sys.A.complexify) (hr : r ∈ resolventSet sys.A.complexify) :
-    sys.transferX s =
-      sys.transferX r - (s - r) • (resolvent sys.A.complexify s).comp (sys.transferX r) := by
-  obtain ⟨r₀, hr₀⟩ := exists_QSpec hH1 hT
-  have h : ∃ a, sys.QSpec a := ⟨r₀, hr₀ r₀ le_rfl⟩
-  simp only [transferX, dite_eq_left h]
-  ext1 v
-  have hres := congrArg (fun L => L ((sys.ιW.comp (sys.Q h.choose)).complexify v))
-    (resolvent_sub_resolvent hs hr)
-  simp only [sub_apply, smul_apply,
-    ContinuousLinearMap.comp_apply, map_sub, map_smul] at hres ⊢
-  linear_combination (norm := module) (-(r - (h.choose : ℂ))) • hres
 
 /-! ### `ρ(A) ⊆ ρ(A_W)` -/
 

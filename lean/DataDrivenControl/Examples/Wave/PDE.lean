@@ -44,7 +44,8 @@ Paper: `ex:intro-wave` (`introduction.tex`): `∂ₜₜw = c² ∂_ξξ w` on `(
   `A (φ, v) = (c v, c ∂_ξξ φ)`, where
   `∂_ξξ φ = lap φ ∈ H⁻¹` is the functional `ψ ↦ -∫₀¹ φ' ψ'`; with the velocity `c • x₂`, this is
   the paper's `A (w, v) = (v, c² ∂_ξξ w)`.
-* `exists_wave_L2`: **`ex:intro-wave` on `L²(0, 1) × H⁻¹(0, 1)`**, `exists_wave` with these ties.
+* `exists_wave`: **`ex:intro-wave`** on `L²(0, 1) × H⁻¹(0, 1)`, in existential form with these
+  ties.
 
 ## Constants and signs of `B⋆`
 
@@ -133,23 +134,6 @@ abbrev waveSystemL2 : System ℝ State State Vsp ℝ := waveSystem sinBasis hm1B
 theorem waveSystemL2_C (x : State) :
     (waveSystemL2 c q).C x = ∫ ξ in (0 : ℝ)..1, q ξ * x.fst ξ := by
   rw [waveSystem_C, Cop_apply, inner_eq_integral]
-
-/-- `C x = ∫₀¹ q w` for any representative `w` of the displacement. -/
-theorem waveSystemL2_C_of_ae_eq (x : State) {w : ℝ → ℝ} (hw : (x.fst : ℝ → ℝ) =ᵐ[μI 1] w) :
-    (waveSystemL2 c q).C x = ∫ ξ in (0 : ℝ)..1, q ξ * w ξ := by
-  rw [waveSystemL2_C, intervalIntegral.integral_of_le zero_le_one,
-    intervalIntegral.integral_of_le zero_le_one]
-  refine integral_congr_ae ?_
-  filter_upwards [hw] with ξ h
-  rw [h]
-
-/-- The modal form of `C` (`hasSum_waveSystem_C`) is Parseval's identity for `∫₀¹ q w`:
-`∑ₙ (∫₀¹ sₙ q)(∫₀¹ sₙ w) = ∫₀¹ q w`. -/
-theorem hasSum_waveSystemL2_C (x : State) :
-    HasSum (fun n => (∫ ξ in (0 : ℝ)..1, sinFun n ξ * q ξ) * ∫ ξ in (0 : ℝ)..1, sinFun n ξ * x.fst ξ)
-      (∫ ξ in (0 : ℝ)..1, q ξ * x.fst ξ) := by
-  rw [← waveSystemL2_C 1 q]
-  simpa only [inner_sinBasis] using hasSum_waveSystem_C sinBasis hm1Basis 1 q x
 
 /-- **The input-to-state map in function language** (`c > 0`, `u ∈ L²(0, T)`): the state
 `L_T u = (w, x₂)` reached from rest has `∫₀¹ sₙ w = c √2 ∫₀ᵀ sin(ωₙ (T - r)) u(r) dr` and
@@ -265,11 +249,6 @@ theorem exists_isDirichletH2_of_mem_adjoint_domain (hc : 0 < c) {η : State}
 /-- `∂_ξξ φ ∈ H⁻¹(0, 1)` for `φ ∈ H¹₀(0, 1)`: the functional `ψ ↦ -∫₀¹ φ' ψ'`. -/
 def lap (φ : H10) : Hm1 := -riesz φ
 
-/-- `(∂_ξξ φ)(ψ) = -∫₀¹ φ' ψ'`. -/
-theorem lap_apply (φ ψ : H10) :
-    lap φ ψ = -∫ t in (0 : ℝ)..1, (φ : L2 ℝ 1) t * (ψ : L2 ℝ 1) t := by
-  rw [lap, neg_apply, riesz_apply, inner_H10]
-
 /-- The coordinates of the pair `(c v, c ∂_ξξ φ)`. -/
 theorem inner_coord_gen (φ : H10) (v : L2 ℝ 1) (n : ℕ) :
     ⟪sinBasis n, c • v⟫_ℝ = freq c n * ⟪hm1Basis n, embed v⟫_ℝ ∧
@@ -365,7 +344,7 @@ is `A (φ, v) = (c v, c ∂_ξξ φ)` on `D(A) = H¹₀ × L²`, whose `B⋆` is
 `(-∂_ξξ)⁻¹` of the velocity component on `D(A⋆)`, and whose `C` is `x ↦ ∫₀¹ q w`, such that
 `hyp:H1`, `hyp:H2` (every horizon) and `hyp:compat` hold, `B` is unbounded on `X`, `C` is bounded
 on `X`, and the semigroup is not analytic.  The state `(w, x₂)` has velocity `c • x₂`. -/
-theorem exists_wave_L2 (hc : 0 < c) :
+theorem exists_wave (hc : 0 < c) :
     ∃ (V : Type) (_ : NormedAddCommGroup V) (_ : InnerProductSpace ℝ V) (_ : CompleteSpace V)
       (sys : System ℝ State State V ℝ),
       sys.ιW = ContinuousLinearMap.id ℝ _ ∧

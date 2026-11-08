@@ -9,9 +9,7 @@ Uniqueness tools for exponential sums and series, all through
 the identity theorem.  Used by `ex:window-strictly-stronger` (`app:window-strictly-stronger`),
 `prop:infinite-pe-insufficient` (`app:infinite-pe-insufficient`), `lem:harmonic-pe-implies-pe`
 (`app:harmonic-pe`), `lem:bohr-annihilator` (`app:analytic-universal-sufficiency`) and diagonal
-controllability (`Semigroup/Diagonal`, through `eqOn_zero_of_ae_Ioo_real`).  The power series,
-Laurent series and integer-exponent results cover the paper's own routes and are not used
-downstream.
+controllability (`Semigroup/Diagonal`, through `eqOn_zero_of_ae_Ioo_real`).
 
 Coefficients live in a Banach space `E`; Hilbert-valued coefficients are the case of interest.
 "For a.e. `t` in an interval" is `∀ᵐ t ∂(volume.restrict (Ioo a b))`; windows `Ioc 0 T` reduce to
@@ -20,24 +18,20 @@ it by `ae_restrict_of_ae_restrict_of_subset Ioo_subset_Ioc_self`.
 ## Accumulation points and the identity theorem
 * `accPt_Ioo_inter_of_ae`: a property holding a.e. on `Ioo a b` holds on a set accumulating at
   every point of `Ioo a b`; `accPt_ofReal_image`: accumulation points of real sets persist in `ℂ`;
-* `eqOn_zero_of_accPt`, `eqOn_of_accPt`: an analytic function on a preconnected set vanishing
+* `eqOn_zero_of_accPt`: an analytic function on a preconnected set vanishing
   on a set with an accumulation point in it vanishes (identity theorem);
 * `eqOn_zero_of_ae_Ioo`: the same for a real-analytic function vanishing a.e. on an interval;
   `eqOn_zero_of_accPt_real`, `eqOn_zero_of_ae_Ioo_real`: a holomorphic function vanishing on real
   points accumulating in its domain, or a.e. on a real interval in it, vanishes;
 * `analyticOnNhd_comp_ofReal`: a holomorphic function is real analytic along the real line.
 
-## Power, Laurent and trigonometric series
-* `powerSeries_coeff_eq_zero`: a power series vanishing on a set with an accumulation point
-  inside its disc of convergence has zero coefficients;
-* `laurentSeries_coeff_eq_zero`: the same for a Laurent series on an annulus;
+## Trigonometric series
 * `fourierSeries_coeff_eq_zero`: an absolutely convergent series `∑ₙ e^{int} cₙ` vanishing on `ℝ`
   has zero coefficients;
 * `trigSeries_coeff_eq_zero`: `∑ₙ (cos (n t) aₙ + sin (n t) bₙ)` with geometrically decaying
   coefficients vanishing on a set with an accumulation point has `aₙ = 0` and `bₙ = 0` (`n ≥ 1`)
   (`app:window-strictly-stronger`); the series is continued analytically as a Laurent series in
-  `e^{it}` and its coefficients are recovered by `fourierSeries_coeff_eq_zero`, not by
-  `laurentSeries_coeff_eq_zero`.
+  `e^{it}` and its coefficients are recovered by `fourierSeries_coeff_eq_zero`.
 
 ## Exponential sums
 * `coeff_eq_zero_of_sum_cexp_eq_zero`, `coeff_eq_zero_of_sum_rexp_eq_zero`: finite sums
@@ -48,15 +42,12 @@ it by `ae_restrict_of_ae_restrict_of_subset Ioo_subset_Ioc_self`.
   `∑ᵢ e^{μᵢ t} cᵢ` with distinct real exponents, finitely many above each level, converging
   absolutely on `(t₀, ∞)`, vanishing on a set accumulating in `(t₀, ∞)`, has zero coefficients
   (identity theorem on a half-plane and the leading term; the a.e. version is used in
-  `app:infinite-pe-insufficient`);
-* `coeff_eq_zero_of_tsum_exp_neg_nat_eq_zero`: integer exponents, `∑ₙ e^{-nt} cₙ`, as a special
-  case of the Dirichlet series (the paper's power series in `q = e^{-t}`).
+  `app:infinite-pe-insufficient`, where it replaces the paper's power series in `q = e^{-t}`).
 
 ## Harmonic signals
 * `differentiable_tsum_cexp_smul`: `z ↦ ∑ᵢ e^{μᵢ z} dᵢ` with bounded `μᵢ` and summable `‖dᵢ‖` is
   entire; `analyticOnNhd_tsum_cexp_smul_ofReal`: it is real analytic on `ℝ`;
-* `tsum_cexp_smul_eq_zero_of_accPt`, `tsum_cexp_smul_eq_zero_of_ae`: vanishing on a set with an
-  accumulation point, or a.e. on an interval, forces vanishing on `ℂ`;
+* `tsum_cexp_smul_eq_zero_of_ae`: vanishing a.e. on an interval forces vanishing on `ℂ`;
 * `analyticOnNhd_harmonic`, `harmonic_eq_zero_of_ae`: the specialisation to harmonic signals
   `t ↦ ∑ₗ e^{i ωₗ t} vₗ` with bounded frequencies (`harmonic_eq_zero_of_ae` in `app:harmonic-pe`,
   `analyticOnNhd_harmonic` in `lem:bohr-annihilator`).
@@ -118,14 +109,6 @@ theorem eqOn_zero_of_accPt {f : 𝕜 → E} {U S : Set 𝕜} (hf : AnalyticOnNhd
   exact hf.eqOn_zero_of_preconnected_of_frequently_eq_zero hU hz₀
     ((accPt_iff_frequently_nhdsNE.1 hacc).mono hS)
 
-/-- **Identity theorem.**  Two functions analytic on a preconnected set `U` that agree on a set
-with an accumulation point in `U` agree on `U`. -/
-theorem eqOn_of_accPt {f g : 𝕜 → E} {U S : Set 𝕜} (hf : AnalyticOnNhd 𝕜 f U)
-    (hg : AnalyticOnNhd 𝕜 g U) (hU : IsPreconnected U) {z₀ : 𝕜} (hz₀ : z₀ ∈ U)
-    (hacc : AccPt z₀ (𝓟 S)) (hS : ∀ z ∈ S, f z = g z) : EqOn f g U := by
-  exact hf.eqOn_of_preconnected_of_frequently_eq hg hU hz₀
-    ((accPt_iff_frequently_nhdsNE.1 hacc).mono hS)
-
 end Identity
 
 /-- A real-analytic function on a preconnected set `U ⊇ (a, b)`, `a < b`, that vanishes a.e. on
@@ -165,52 +148,6 @@ theorem analyticOnNhd_comp_ofReal [NormedSpace ℂ E] [CompleteSpace E] {f : ℂ
   exact h1.restrictScalars.comp (Complex.ofRealCLM.analyticAt t)
 
 /-! ### Power, Laurent and trigonometric series -/
-
-/-- **Uniqueness of power series coefficients.**  If `∑ ‖aₙ‖ rⁿ < ∞` for `0 ≤ r < R` and
-`∑ zⁿ aₙ = 0` on a set `S` (inside the disc) with an accumulation point `z₀`, `‖z₀‖ < R`,
-then every `aₙ` vanishes (the paper's route in `app:infinite-pe-insufficient`; the formalisation
-uses `coeff_eq_zero_of_tsum_rexp_ae_eq_zero` instead). -/
-theorem powerSeries_coeff_eq_zero {𝕜 : Type*} [RCLike 𝕜] [NormedSpace 𝕜 E]
-    [CompleteSpace E] {a : ℕ → E} {R : ℝ}
-    (ha : ∀ r : ℝ, 0 ≤ r → r < R → Summable fun n => ‖a n‖ * r ^ n) {S : Set 𝕜} {z₀ : 𝕜}
-    (hz₀ : ‖z₀‖ < R) (hacc : AccPt z₀ (𝓟 S)) (hS : ∀ z ∈ S, ‖z‖ < R → ∑' n, z ^ n • a n = 0)
-    (n : ℕ) : a n = 0 := by
-  have hR : 0 < R := lt_of_le_of_lt (norm_nonneg _) hz₀
-  let p : FormalMultilinearSeries 𝕜 𝕜 E := fun n =>
-    ContinuousMultilinearMap.mkPiRing 𝕜 (Fin n) (a n)
-  have hpn : ∀ n, ‖p n‖ = ‖a n‖ := fun n => ContinuousMultilinearMap.norm_mkPiRing _
-  have hpz : ∀ (z : 𝕜) n, p n (fun _ => z) = z ^ n • a n := by
-    intro z n
-    simp [p, ContinuousMultilinearMap.mkPiRing_apply]
-  have hrad : ENNReal.ofReal R ≤ p.radius := by
-    refine ENNReal.le_of_forall_nnreal_lt fun r hr => p.le_radius_of_summable ?_
-    have hr' : (r : ℝ) < R := by
-      rw [← ENNReal.ofReal_coe_nnreal] at hr
-      exact (ENNReal.ofReal_lt_ofReal_iff hR).1 hr
-    simpa [hpn] using ha r r.2 hr'
-  have hpos : 0 < p.radius := lt_of_lt_of_le (ENNReal.ofReal_pos.2 hR) hrad
-  have hps := p.hasFPowerSeriesOnBall hpos
-  have hsum_eq : ∀ z, p.sum z = ∑' n, z ^ n • a n := by
-    intro z
-    simp only [FormalMultilinearSeries.sum, hpz]
-  have hball : ∀ z ∈ Metric.ball (0 : 𝕜) R, z ∈ Metric.eball (0 : 𝕜) p.radius := by
-    intro z hz
-    rw [Metric.mem_eball, edist_dist, dist_zero_right]
-    exact lt_of_lt_of_le ((ENNReal.ofReal_lt_ofReal_iff hR).2 (mem_ball_zero_iff.1 hz)) hrad
-  have han : AnalyticOnNhd 𝕜 p.sum (Metric.ball 0 R) := fun z hz =>
-    hps.analyticAt_of_mem (hball z hz)
-  have hz₀b : z₀ ∈ Metric.ball (0 : 𝕜) R := mem_ball_zero_iff.2 hz₀
-  have hzero : EqOn p.sum 0 (Metric.ball 0 R) := by
-    refine eqOn_zero_of_accPt han (convex_ball (0 : 𝕜) R).isPreconnected hz₀b
-      (hacc.nhds_inter (Metric.isOpen_ball.mem_nhds hz₀b)) ?_
-    rintro z ⟨hzb, hzS⟩
-    rw [hsum_eq]
-    exact hS z hzS (mem_ball_zero_iff.1 hzb)
-  have hp0 : p = 0 := hps.hasFPowerSeriesAt.eq_zero_of_eventually
-    (Filter.eventually_of_mem (Metric.ball_mem_nhds 0 hR) hzero)
-  have := hpz 1 n
-  rw [hp0] at this
-  simpa using this.symm
 
 /-- `∫₀^{2π} e^{ikt} dt = 2π δ_{k0}`. -/
 private theorem integral_cexp_int_mul_I (k : ℤ) :
@@ -284,24 +221,6 @@ theorem fourierSeries_coeff_eq_zero [NormedSpace ℂ E] [CompleteSpace E] {c : �
     exact this h
   · exact h
 
-/-- An annulus `{r < ‖z‖ < R}`, `0 ≤ r`, is preconnected. -/
-private theorem isPreconnected_annulus {r R : ℝ} (hr : 0 ≤ r) :
-    IsPreconnected {z : ℂ | r < ‖z‖ ∧ ‖z‖ < R} := by
-  have himg : {z : ℂ | r < ‖z‖ ∧ ‖z‖ < R} =
-      (fun p : ℝ × ℝ => (p.1 : ℂ) * Complex.exp (p.2 * Complex.I)) '' (Ioo r R ×ˢ univ) := by
-    ext z
-    constructor
-    · rintro ⟨h1, h2⟩
-      exact ⟨(‖z‖, Complex.arg z), ⟨⟨h1, h2⟩, mem_univ _⟩, Complex.norm_mul_exp_arg_mul_I z⟩
-    · rintro ⟨⟨ρ, θ⟩, ⟨⟨h1, h2⟩, -⟩, rfl⟩
-      have hρ : 0 ≤ ρ := by linarith
-      simp only [Set.mem_ofPred_eq, norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one,
-        Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hρ]
-      exact ⟨h1, h2⟩
-  rw [himg]
-  exact (isPreconnected_Ioo.prod isPreconnected_univ).image _
-    (Continuous.continuousOn (by fun_prop))
-
 /-- A Laurent series with `∑ₙ ‖aₙ‖ ρⁿ < ∞` for `r < ρ < R` is holomorphic on the annulus. -/
 private theorem differentiableOn_laurent [NormedSpace ℂ E] [CompleteSpace E] {a : ℤ → E}
     {r R : ℝ} (hr : 0 ≤ r)
@@ -342,50 +261,6 @@ private theorem differentiableOn_laurent [NormedSpace ℂ E] [CompleteSpace E] {
             mul_le_mul_of_nonneg_left hle (norm_nonneg _)
         _ = ‖a n‖ * ρ₁ ^ n + ‖a n‖ * ρ₂ ^ n := by ring
   exact (hd.differentiableAt (hVo.mem_nhds hzV)).differentiableWithinAt
-
-/-- **Uniqueness of Laurent coefficients.**  If `∑ₙ ‖aₙ‖ ρⁿ < ∞` (`n ∈ ℤ`) for `r < ρ < R`,
-`0 ≤ r`, and `∑ₙ zⁿ aₙ = 0` on a set `S` (inside the annulus) with an accumulation point `z₀`,
-`r < ‖z₀‖ < R`, then every `aₙ` vanishes (the paper's tool in `app:window-strictly-stronger`;
-`trigSeries_coeff_eq_zero` does not use it). -/
-theorem laurentSeries_coeff_eq_zero [NormedSpace ℂ E] [CompleteSpace E] {a : ℤ → E} {r R : ℝ}
-    (hr : 0 ≤ r) (ha : ∀ ρ : ℝ, r < ρ → ρ < R → Summable fun n : ℤ => ‖a n‖ * ρ ^ n)
-    {S : Set ℂ} {z₀ : ℂ} (hz₀r : r < ‖z₀‖) (hz₀R : ‖z₀‖ < R) (hacc : AccPt z₀ (𝓟 S))
-    (hS : ∀ z ∈ S, r < ‖z‖ → ‖z‖ < R → ∑' n : ℤ, z ^ n • a n = 0) (n : ℤ) : a n = 0 := by
-  set A := {z : ℂ | r < ‖z‖ ∧ ‖z‖ < R} with hA
-  have hAo : IsOpen A :=
-    (isOpen_lt continuous_const continuous_norm).inter (isOpen_lt continuous_norm continuous_const)
-  have hdiff := differentiableOn_laurent (E := E) hr ha
-  have hz₀A : z₀ ∈ A := ⟨hz₀r, hz₀R⟩
-  have hzero : EqOn (fun z : ℂ => ∑' n : ℤ, z ^ n • a n) 0 A := by
-    refine eqOn_zero_of_accPt (hdiff.analyticOnNhd hAo) (isPreconnected_annulus hr) hz₀A
-      (hacc.nhds_inter (hAo.mem_nhds hz₀A)) ?_
-    rintro z ⟨hzA, hzS⟩
-    exact hS z hzS hzA.1 hzA.2
-  set ρ := ‖z₀‖ with hρdef
-  have hρ : 0 < ρ := lt_of_le_of_lt hr hz₀r
-  have hc : Summable fun k : ℤ => ‖(ρ : ℂ) ^ k • a k‖ := by
-    refine (ha ρ hz₀r hz₀R).congr fun k => ?_
-    rw [norm_smul, norm_zpow, Complex.norm_real, Real.norm_of_nonneg hρ.le, mul_comm]
-  have hF : ∀ t : ℝ, ∑' k : ℤ, Complex.exp (k * t * Complex.I) • ((ρ : ℂ) ^ k • a k) = 0 := by
-    intro t
-    have hmem : (ρ : ℂ) * Complex.exp (t * Complex.I) ∈ A := by
-      refine ⟨?_, ?_⟩ <;>
-        rw [norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one, Complex.norm_real,
-          Real.norm_of_nonneg hρ.le]
-      · exact hz₀r
-      · exact hz₀R
-    have := hzero hmem
-    simp only [Pi.zero_apply] at this
-    rw [← this]
-    congr 1
-    funext k
-    rw [smul_smul, mul_zpow, ← Complex.exp_int_mul, mul_comm]
-    congr 3
-    ring
-  have := fourierSeries_coeff_eq_zero hc hF n
-  rcases smul_eq_zero.1 this with h | h
-  · exact absurd h (zpow_ne_zero _ (Complex.ofReal_ne_zero.2 hρ.ne'))
-  · exact h
 
 /-- The scalar case of `trigSeries_coeff_eq_zero`. -/
 private theorem trigSeries_coeff_eq_zero_real {α β : ℕ → ℝ} {ρ : ℝ} (hρ : 1 < ρ)
@@ -833,25 +708,6 @@ theorem coeff_eq_zero_of_tsum_rexp_ae_eq_zero [NormedSpace ℝ E] [CompleteSpace
   exact coeff_eq_zero_of_tsum_rexp_eq_zero hμ hfin hsum (by linarith [hs.1] : t₀ < (a + b) / 2)
     (accPt_Ioo_inter_of_ae h hs) (fun t ht _ => ht.2) i
 
-/-- **Integer exponents** (the paper's power series in `q = e^{-t}`, here a special case of
-`coeff_eq_zero_of_tsum_rexp_eq_zero`).  If `∑ₙ ‖cₙ‖ e^{-nt} < ∞` for `t > t₀` and
-`∑ₙ e^{-nt} cₙ = 0` on a set accumulating at some `s₀ > t₀`, every `cₙ` vanishes. -/
-theorem coeff_eq_zero_of_tsum_exp_neg_nat_eq_zero [NormedSpace ℝ E] [CompleteSpace E]
-    {c : ℕ → E} {t₀ : ℝ}
-    (hsum : ∀ t, t₀ < t → Summable fun n : ℕ => ‖c n‖ * Real.exp (-(n * t)))
-    {S : Set ℝ} {s₀ : ℝ} (hs₀ : t₀ < s₀) (hacc : AccPt s₀ (𝓟 S))
-    (hS : ∀ t ∈ S, t₀ < t → ∑' n : ℕ, Real.exp (-(n * t)) • c n = 0) (n : ℕ) : c n = 0 := by
-  have hμ : Function.Injective fun n : ℕ => -(n : ℝ) := fun m k h => by simpa using h
-  have hfin : ∀ M : ℝ, {n : ℕ | M ≤ -(n : ℝ)}.Finite := by
-    intro M
-    refine (Set.finite_Iic ⌊-M⌋₊).subset fun k hk => ?_
-    have hk' : M ≤ -(k : ℝ) := hk
-    exact Nat.le_floor (by linarith)
-  refine coeff_eq_zero_of_tsum_rexp_eq_zero hμ hfin (c := c) (t₀ := t₀) (fun t ht => ?_) hs₀ hacc
-    (fun t ht ht2 => ?_) n
-  · simpa [neg_mul] using hsum t ht
-  · simpa [neg_mul] using hS t ht ht2
-
 /-! ### Exponential series with bounded exponents; harmonic signals -/
 
 section Bounded
@@ -886,15 +742,6 @@ theorem analyticOnNhd_tsum_cexp_smul_ofReal {μ : ι → ℂ} {M : ℝ} (hμ : �
   have := analyticOnNhd_comp_ofReal (differentiable_tsum_cexp_smul hμ hd).differentiableOn
     isOpen_univ
   simpa using this
-
-/-- An exponential series with bounded exponents and absolutely summable coefficients that
-vanishes on a set with an accumulation point vanishes on `ℂ`. -/
-theorem tsum_cexp_smul_eq_zero_of_accPt {μ : ι → ℂ} {M : ℝ} (hμ : ∀ i, ‖μ i‖ ≤ M)
-    {d : ι → E} (hd : Summable fun i => ‖d i‖) {S : Set ℂ} {z₀ : ℂ} (hacc : AccPt z₀ (𝓟 S))
-    (hS : ∀ z ∈ S, ∑' i, Complex.exp (μ i * z) • d i = 0) (z : ℂ) :
-    ∑' i, Complex.exp (μ i * z) • d i = 0 := by
-  have hA := (differentiable_tsum_cexp_smul hμ hd).differentiableOn.analyticOnNhd isOpen_univ
-  exact eqOn_zero_of_accPt hA isPreconnected_univ (mem_univ z₀) hacc hS (mem_univ z)
 
 /-- An exponential series with bounded exponents and absolutely summable coefficients that
 vanishes a.e. on a real interval `(a, b)`, `a < b`, vanishes on `ℂ` (`app:harmonic-pe`:

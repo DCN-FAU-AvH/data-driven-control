@@ -18,17 +18,12 @@ delay example takes `W = D(A)`.
 * `S.domGraph`, `isClosed_domGraph`, `S.Dom` (with its `CompleteSpace` instance);
 * `S.domIncl : S.Dom →L[ℝ] E` (`(x, A x) ↦ x`) and `S.domGen : S.Dom →L[ℝ] E`
   (`(x, A x) ↦ A x`): `domIncl_mem`, `generator_domIncl`, `domIncl_injective`,
-  `denseRange_domIncl`, `range_domIncl`, `norm_sq_dom` (`‖w‖² = ‖x‖² + ‖A x‖²`), `inner_dom`;
+  `denseRange_domIncl`, `range_domIncl`, `norm_sq_dom` (`‖w‖² = ‖x‖² + ‖A x‖²`);
 * `S.toDom : D(A) →ₗ[ℝ] S.Dom`, `x ↦ (x, A x)` (`domIncl_toDom`, `domGen_toDom`,
-  `toDom_domIncl`, `norm_toDom_sq`, `norm_toDom_le`);
-* `S.liftDom f g h : F →L[ℝ] S.Dom` for bounded `f, g : F →L[ℝ] E` with `f v ∈ D(A)` and
-  `A (f v) = g v`;
+  `norm_toDom_sq`, `norm_toDom_le`);
 * `S.domSemigroup : C0Semigroup ℝ S.Dom`, the restriction `S t ⊕ S t` of `S` to the graph
   (strongly continuous in the graph norm because `S t` commutes with `A`):
-  `consistent_domSemigroup` (`Consistent S.domIncl S.domSemigroup S`), `consistent_domGen`
-  (`A` intertwines), `domSemigroup_toDom`; its generator is the part of `A` in `D(A)`
-  (`mem_domSemigroup_generator_domain_iff`, `domIncl_domSemigroup_generator`,
-  `domGen_domSemigroup_generator`).
+  `consistent_domSemigroup` (`Consistent S.domIncl S.domSemigroup S`).
 
 ## The part of a generator
 
@@ -115,9 +110,6 @@ variable (S : C0Semigroup ℝ E)
 def domGraph : Submodule ℝ (WithLp 2 (E × E)) :=
   S.generator.graph.comap (WithLp.linearEquiv 2 ℝ (E × E)).toLinearMap
 
-theorem mem_domGraph_iff (g : WithLp 2 (E × E)) :
-    g ∈ S.domGraph ↔ (WithLp.ofLp g) ∈ S.generator.graph := Iff.rfl
-
 /-- The graph of the generator is closed. -/
 theorem isClosed_domGraph : IsClosed (S.domGraph : Set (WithLp 2 (E × E))) :=
   S.generator_isClosed.preimage (WithLp.prod_continuous_ofLp 2 E E)
@@ -135,10 +127,6 @@ def domIncl : S.Dom →L[ℝ] E :=
 /-- The generator as a bounded operator `D(A) → E`, `(x, A x) ↦ A x`. -/
 def domGen : S.Dom →L[ℝ] E :=
   (WithLp.sndL 2 ℝ E E).comp S.domGraph.subtypeL
-
-theorem domIncl_apply (w : S.Dom) : S.domIncl w = (w : WithLp 2 (E × E)).fst := rfl
-
-theorem domGen_apply (w : S.Dom) : S.domGen w = (w : WithLp 2 (E × E)).snd := rfl
 
 /-- The constructor `D(A) → S.Dom`, `x ↦ (x, A x)`. -/
 def toDom : S.generator.domain →ₗ[ℝ] S.Dom :=
@@ -171,11 +159,6 @@ theorem domIncl_mem (w : S.Dom) : S.domIncl w ∈ S.generator.domain := by
 /-- `A (domIncl w) = domGen w`. -/
 theorem generator_domIncl (w : S.Dom) :
     S.generator ⟨S.domIncl w, S.domIncl_mem w⟩ = S.domGen w := by
-  obtain ⟨x, rfl⟩ := S.toDom_surjective w
-  rfl
-
-/-- `w = (x, A x)` with `x = domIncl w`. -/
-theorem toDom_domIncl (w : S.Dom) : S.toDom ⟨S.domIncl w, S.domIncl_mem w⟩ = w := by
   obtain ⟨x, rfl⟩ := S.toDom_surjective w
   rfl
 
@@ -212,12 +195,6 @@ theorem denseRange_domIncl : DenseRange S.domIncl := by
 theorem norm_sq_dom (w : S.Dom) : ‖w‖ ^ 2 = ‖S.domIncl w‖ ^ 2 + ‖S.domGen w‖ ^ 2 :=
   WithLp.prod_norm_sq_eq_of_L2 (w : WithLp 2 (E × E))
 
-/-- The graph inner product: `⟪w, w'⟫ = ⟪x, x'⟫ + ⟪A x, A x'⟫`. -/
-theorem inner_dom (w w' : S.Dom) :
-    ⟪w, w'⟫_ℝ = ⟪S.domIncl w, S.domIncl w'⟫_ℝ + ⟪S.domGen w, S.domGen w'⟫_ℝ := by
-  rw [Submodule.coe_inner, WithLp.prod_inner_apply]
-  rfl
-
 /-- `‖(x, A x)‖² = ‖x‖² + ‖A x‖²`. -/
 theorem norm_toDom_sq (x : S.generator.domain) :
     ‖S.toDom x‖ ^ 2 = ‖(x : E)‖ ^ 2 + ‖S.generator x‖ ^ 2 :=
@@ -229,42 +206,6 @@ theorem norm_toDom_le (x : S.generator.domain) :
   refine (pow_le_pow_iff_left₀ (norm_nonneg _) (by positivity) two_ne_zero).1 ?_
   rw [S.norm_toDom_sq x]
   nlinarith [mul_nonneg (norm_nonneg (x : E)) (norm_nonneg (S.generator x))]
-
-/-- `‖x‖ ≤ ‖(x, A x)‖`. -/
-theorem norm_domIncl_le (w : S.Dom) : ‖S.domIncl w‖ ≤ ‖w‖ := by
-  refine (pow_le_pow_iff_left₀ (norm_nonneg _) (norm_nonneg _) two_ne_zero).1 ?_
-  rw [S.norm_sq_dom w]
-  nlinarith [sq_nonneg ‖S.domGen w‖]
-
-/-- `‖A x‖ ≤ ‖(x, A x)‖`. -/
-theorem norm_domGen_le (w : S.Dom) : ‖S.domGen w‖ ≤ ‖w‖ := by
-  refine (pow_le_pow_iff_left₀ (norm_nonneg _) (norm_nonneg _) two_ne_zero).1 ?_
-  rw [S.norm_sq_dom w]
-  nlinarith [sq_nonneg ‖S.domIncl w‖]
-
-section Lift
-
-variable {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
-
-/-- A bounded map into `D(A)` with the graph norm, from bounded `f, g : F →L[ℝ] E` with
-`f v ∈ D(A)` and `A (f v) = g v`. -/
-def liftDom (f g : F →L[ℝ] E)
-    (h : ∀ v, ∃ hv : f v ∈ S.generator.domain, S.generator ⟨f v, hv⟩ = g v) :
-    F →L[ℝ] S.Dom :=
-  ((WithLp.prodContinuousLinearEquiv 2 ℝ E E).symm.toContinuousLinearMap ∘L (f.prod g)).codRestrict
-    S.domGraph fun v => by
-      obtain ⟨hv, hA⟩ := h v
-      exact (LinearPMap.mem_graph_iff S.generator).2 ⟨⟨f v, hv⟩, rfl, hA⟩
-
-@[simp] theorem domIncl_liftDom (f g : F →L[ℝ] E)
-    (h : ∀ v, ∃ hv : f v ∈ S.generator.domain, S.generator ⟨f v, hv⟩ = g v) (v : F) :
-    S.domIncl (S.liftDom f g h v) = f v := rfl
-
-@[simp] theorem domGen_liftDom (f g : F →L[ℝ] E)
-    (h : ∀ v, ∃ hv : f v ∈ S.generator.domain, S.generator ⟨f v, hv⟩ = g v) (v : F) :
-    S.domGen (S.liftDom f g h v) = g v := rfl
-
-end Lift
 
 /-! ### The restricted semigroup -/
 
@@ -310,8 +251,6 @@ def domSemigroup : C0Semigroup ℝ S.Dom where
     exact (WithLp.prod_continuous_toLp 2 E E).comp
       ((S.continuous_apply _).prodMk (S.continuous_apply _))
 
-theorem domSemigroup_apply (t : ℝ≥0) : S.domSemigroup t = S.domSemigroupOp t := rfl
-
 @[simp] theorem domIncl_domSemigroup (t : ℝ≥0) (w : S.Dom) :
     S.domIncl (S.domSemigroup t w) = S t (S.domIncl w) := rfl
 
@@ -321,47 +260,8 @@ theorem domSemigroup_apply (t : ℝ≥0) : S.domSemigroup t = S.domSemigroupOp t
 theorem domIncl_domSemigroup_real (t : ℝ) (w : S.Dom) :
     S.domIncl (S.domSemigroup.real t w) = S.real t (S.domIncl w) := rfl
 
-theorem domGen_domSemigroup_real (t : ℝ) (w : S.Dom) :
-    S.domGen (S.domSemigroup.real t w) = S.real t (S.domGen w) := rfl
-
 /-- The restricted semigroup is consistent with `S` along `D(A) ↪ E`. -/
 theorem consistent_domSemigroup : Consistent S.domIncl S.domSemigroup S := fun _ _ => rfl
-
-/-- `A` intertwines the restricted semigroup and `S`: `A S t x = S t A x`. -/
-theorem consistent_domGen : Consistent S.domGen S.domSemigroup S := fun _ _ => rfl
-
-/-- The restricted semigroup on `(x, A x)`. -/
-theorem domSemigroup_toDom (t : ℝ≥0) (x : S.generator.domain) :
-    S.domSemigroup t (S.toDom x) = S.toDom ⟨S t x, S.mem_generator_domain_apply x.2 t⟩ :=
-  S.dom_ext rfl
-
-/-- The generator of the restricted semigroup is the part of `A` in `D(A)`: its domain is
-`D(A²) = {x ∈ D(A) | A x ∈ D(A)}`. -/
-theorem mem_domSemigroup_generator_domain_iff (w : S.Dom) :
-    w ∈ S.domSemigroup.generator.domain ↔ S.domGen w ∈ S.generator.domain := by
-  rw [S.consistent_domSemigroup.mem_generator_domain_iff S.domIncl_injective]
-  constructor
-  · rintro ⟨hv, hr⟩
-    have e : S.generator ⟨S.domIncl w, hv⟩ = S.domGen w := S.generator_domIncl w
-    rw [e, range_domIncl] at hr
-    exact hr
-  · intro hw
-    refine ⟨S.domIncl_mem w, ?_⟩
-    rw [S.generator_domIncl w, range_domIncl]
-    exact hw
-
-/-- The generator of the restricted semigroup acts as `A` on the first component. -/
-theorem domIncl_domSemigroup_generator (w : S.domSemigroup.generator.domain) :
-    S.domIncl (S.domSemigroup.generator w) = S.domGen w := by
-  rw [← S.consistent_domSemigroup.generator_apply S w.2]
-  exact S.generator_domIncl w
-
-/-- The generator of the restricted semigroup acts as `A` on the second component:
-`(x, A x) ↦ (A x, A² x)`. -/
-theorem domGen_domSemigroup_generator (w : S.domSemigroup.generator.domain) :
-    S.domGen (S.domSemigroup.generator w) =
-      S.generator ⟨S.domGen w, (S.mem_domSemigroup_generator_domain_iff w).1 w.2⟩ :=
-  (S.consistent_domGen.generator_apply S w.2).symm
 
 end Dom
 

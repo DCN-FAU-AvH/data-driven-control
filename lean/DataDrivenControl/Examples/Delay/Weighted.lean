@@ -1,29 +1,30 @@
 module
 
-public import DataDrivenControl.Examples.NeutralDelay.Operator
+public import DataDrivenControl.Examples.Delay.Operator
 
 /-!
 # Weighted `L²` norms and the neutral Volterra operators
 
-Helper file for the neutral delay example (`ex:intro-delay` with `M ≠ 0`).  Solutions of the
-neutral equation are only square integrable, and the neutral term is not an integral, so the
-Picard iteration with `Kⁿ tⁿ / n!` bounds of `Delay/Solution` does not apply.  Instead, the
-operators of the equation are contractions in the weighted norm
+Solutions of the neutral delay equation of `ex:intro-delay` are only square integrable, and the
+neutral term `M x_t` is not an integral, so existence is proved by a contraction argument in the
+weighted norm
 
-`‖x‖_γ² = ∫₀^τ e^{-2γt} ‖x(t)‖² dt`  (`wnorm γ τ x`)
+`‖x‖_γ² = ∫₀^τ e^{-2γt} ‖x(t)‖² dt`  (`wnorm γ τ x`),
 
-for `γ` large, which is equivalent to the `L²(0, τ)` norm (`wnorm_le`, `eLpNorm_le_wnorm`).
+which is equivalent to the `L²(0, τ)` norm (`wnorm_le`, `eLpNorm_le_wnorm`).
 
 ## Main results
 
-* `wnorm_shift_le`: a point delay `δ ≥ 0` with zero history has weighted norm `≤ e^{-γδ}`; this
-  is where the condition `δ > 0` ("no mass at `0`" for the neutral term) enters.
+* `wnorm_mconv_le`: a finite delay measure `ν` on `[0, H]` with zero history has weighted norm
+  `≤ ∫ e^{-γδ} dν(δ)` (the `L²` bound of `mconv` for the measure `e^{-γδ} ν`), and
+  `tendsto_integral_exp`: this tends to `0` as `γ → ∞` when `ν({0}) = 0`.  This is where the
+  condition "`M` has no mass at `0`" enters.
 * `wnorm_window_le`: a distributed delay `x ↦ D x_t`, `D` bounded on `L²(0, H; E)`, has weighted
   norm `≤ ‖D‖ / √(2γ)` (Tonelli: `∫₀^τ e^{-2γt} ‖x_t‖² dt ≤ (2γ)⁻¹ ‖x‖_γ²`).
 * `wnorm_primL_le`: the primitive `x ↦ ∫₀^· x` has weighted norm `≤ √τ / √(2γ)` (it is the
   distributed delay `∫_{(0, τ]}` over a window of length `τ`, `primitive_eq_segOp`).
 * `DelayOp.wnorm_opL_le`: the weighted bound `DelayOp.wconst p γ` of a delay functional with zero
-  history, `DelayOp.tendsto_wconst` (it tends to `0` when every point delay is positive).
+  history, `DelayOp.tendsto_wconst` (it tends to `0` when no measure has an atom at `0`).
 * `isUnit_one_sub_of_wnorm_le`: an operator `K` on `L²(0, τ; E)` with `‖K x‖_γ ≤ q ‖x‖_γ`,
   `q < 1`, has `‖Kⁿ‖ ≤ e^{γτ} qⁿ < 1` for large `n`, so `1 - K` is invertible (Neumann series for
   `Kⁿ` and the geometric sum `(1 - K) ∑_{i<n} Kⁱ = 1 - Kⁿ`).
@@ -40,10 +41,7 @@ set_option linter.unusedSectionVars false
 
 namespace DataDrivenControl
 
-namespace NeutralDelay
-
-open Delay (traj traj_of_le traj_of_lt segOp segOp_apply integral_norm_le_sqrt_mul
-  intervalIntegrable_of_integrableOn)
+namespace Delay
 
 variable {E F : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
   [NormedAddCommGroup F] [InnerProductSpace ℝ F] [CompleteSpace F]
@@ -131,17 +129,6 @@ theorem wnorm_clm_le {γ τ : ℝ} (P : E →L[ℝ] F) {x : ℝ → E} (hx : AES
 
 /-! ### Translations and windows -/
 
-/-- Translating into a longer window does not increase the `L²` seminorm. -/
-theorem eLpNorm_comp_add_le {T₁ T s : ℝ} {f : ℝ → F} (hf : AEStronglyMeasurable f (μI T₁))
-    (hs : 0 ≤ s) (hsT : s + T ≤ T₁) :
-    eLpNorm (fun t => f (s + t)) 2 (μI T) ≤ eLpNorm f 2 (μI T₁) := by
-  have hmono : volume.restrict (Ioc s (s + T)) ≤ μI T₁ :=
-    Measure.restrict_mono (Ioc_subset_Ioc hs hsT) le_rfl
-  calc eLpNorm (fun t => f (s + t)) 2 (μI T)
-      = eLpNorm f 2 (volume.restrict (Ioc s (s + T))) :=
-        eLpNorm_comp_measurePreserving (hf.mono_measure hmono) (measurePreserving_add_μI s T)
-    _ ≤ eLpNorm f 2 (μI T₁) := eLpNorm_mono_measure _ hmono
-
 /-- The weighted function of an `L²` signal is square integrable (`γ ≥ 0`). -/
 theorem memLp_weight {γ τ : ℝ} (hγ : 0 ≤ γ) {x : ℝ → E} (hx : MemLp x 2 (μI τ)) :
     MemLp (fun t => Real.exp (-(γ * t)) • x t) 2 (μI τ) := by
@@ -158,34 +145,68 @@ theorem traj_weight (H γ : ℝ) (x : ℝ → E) (ρ : ℝ) :
   unfold traj
   split_ifs <;> simp
 
-/-- **A point delay is a weighted contraction**: with zero history,
-`‖x(· - δ)‖_γ ≤ e^{-γδ} ‖x‖_γ`. -/
-theorem wnorm_shift_le {H δ τ γ : ℝ} (hδ : δ ∈ Icc 0 H) (hτ : 0 ≤ τ) (hγ : 0 ≤ γ)
-    {x : ℝ → E} (hx : MemLp x 2 (μI τ)) :
-    wnorm γ τ (fun s => traj H 0 x (H - δ + s)) ≤
-      ENNReal.ofReal (Real.exp (-(γ * δ))) * wnorm γ τ x := by
-  have hH : 0 ≤ H := hδ.1.trans hδ.2
+/-- **A measure delay is a weighted contraction**: with zero history,
+`‖∫ x(· - δ) dν(δ)‖_γ ≤ (∫ e^{-γδ} dν(δ)) ‖x‖_γ` (the `L²` bound `eLpNorm_mconv_le` for the
+measure `e^{-γδ} ν`, since `e^{-γs} x(s - δ) = e^{-γδ} (e^{-γ·} x)(s - δ)`). -/
+theorem wnorm_mconv_le {ν : Measure ℝ} [IsFiniteMeasure ν] {H τ γ : ℝ}
+    (hν : ν (Icc 0 H)ᶜ = 0) (hH : 0 ≤ H) (hτ : 0 ≤ τ) (hγ : 0 ≤ γ) {x : ℝ → E}
+    (hx : MemLp x 2 (μI τ)) :
+    wnorm γ τ (mconv ν H (traj H 0 x)) ≤
+      ENNReal.ofReal (∫ δ, Real.exp (-(γ * δ)) ∂ν) * wnorm γ τ x := by
   have hw := memLp_weight hγ hx
   set Y : ℝ → E := traj H 0 (fun u => Real.exp (-(γ * u)) • x u) with hY
   have hYL : MemLp Y 2 (μI (H + τ)) := memLp_traj_of_memLp hH hτ MemLp.zero hw
-  have e : (fun s => Real.exp (-(γ * s)) • traj H 0 x (H - δ + s)) =
-      Real.exp (-(γ * δ)) • fun s => Y (H - δ + s) := by
+  set w : ℝ → ℝ≥0 := fun δ => Real.toNNReal (Real.exp (-(γ * δ))) with hwdef
+  have hwm : Measurable w :=
+    (by fun_prop : Measurable fun δ : ℝ => Real.exp (-(γ * δ))).real_toNNReal
+  have hei : Integrable (fun δ => Real.exp (-(γ * δ))) ν :=
+    integrable_of_continuousOn hν (by fun_prop)
+  set ν' := ν.withDensity fun δ => (w δ : ℝ≥0∞) with hν'def
+  have hν'u : ν' univ = ENNReal.ofReal (∫ δ, Real.exp (-(γ * δ)) ∂ν) := by
+    rw [hν'def, withDensity_apply _ MeasurableSet.univ, Measure.restrict_univ,
+      ofReal_integral_eq_lintegral_ofReal hei (ae_of_all _ fun _ => (Real.exp_pos _).le)]
+    rfl
+  have : IsFiniteMeasure ν' := ⟨by rw [hν'u]; exact ENNReal.ofReal_lt_top⟩
+  have hν' : ν' (Icc 0 H)ᶜ = 0 := withDensity_absolutelyContinuous ν _ hν
+  have e : (fun s => Real.exp (-(γ * s)) • mconv ν H (traj H 0 x) s) = mconv ν' H Y := by
     funext s
-    rw [Pi.smul_apply, hY, traj_weight, smul_smul, ← Real.exp_add]
+    rw [mconv, mconv, hν'def, integral_withDensity_eq_integral_smul hwm, ← integral_smul]
+    refine integral_congr_ae (ae_of_all _ fun δ => ?_)
+    simp only [hY, traj_weight, hwdef, NNReal.smul_def, Real.coe_toNNReal _ (Real.exp_pos _).le,
+      smul_smul, ← Real.exp_add]
     congr 2
     ring
-  rw [wnorm, e, eLpNorm_const_smul, Real.enorm_of_nonneg (Real.exp_pos _).le, wnorm,
-    ← eLpNorm_traj_zero_left hH hw]
-  exact mul_le_mul_right (eLpNorm_comp_add_le hYL.aestronglyMeasurable (by linarith [hδ.2])
-    (by linarith [hδ.1])) _
+  rw [wnorm, e, ← hν'u, wnorm, ← eLpNorm_traj_zero_left hH hw]
+  exact eLpNorm_mconv_le hν' hYL.aestronglyMeasurable
 
-/-- `‖f‖²_{L²} = ∫ ‖f‖²`. -/
-theorem eLpNorm_two_rpow {α : Type*} [MeasurableSpace α] {μ : Measure α} {f : α → F}
-    (hf : AEStronglyMeasurable f μ) :
-    eLpNorm f 2 μ ^ (2 : ℝ) = ∫⁻ a, ‖f a‖ₑ ^ (2 : ℝ) ∂μ := by
-  rw [eLpNorm_eq_lintegral_rpow_enorm_toReal two_ne_zero ENNReal.ofNat_ne_top hf,
-    ← ENNReal.rpow_mul]
-  norm_num
+/-- `∫ e^{-γδ} dν(δ) → 0` as `γ → ∞` for a finite measure `ν` on `[0, H]` without atom at `0`
+(dominated convergence). -/
+theorem tendsto_integral_exp {ν : Measure ℝ} [IsFiniteMeasure ν] {H : ℝ}
+    (hν : ν (Icc 0 H)ᶜ = 0) (h0 : ν {0} = 0) :
+    Tendsto (fun γ : ℝ => ∫ δ, Real.exp (-(γ * δ)) ∂ν) atTop (𝓝 0) := by
+  have hlim := tendsto_integral_filter_of_dominated_convergence (μ := ν) (l := atTop)
+    (F := fun γ δ => Real.exp (-(γ * δ))) (f := fun _ => 0) (fun _ => 1)
+    (Eventually.of_forall fun γ =>
+      (by fun_prop : Continuous fun δ : ℝ => Real.exp (-(γ * δ))).aestronglyMeasurable)
+    ((eventually_ge_atTop 0).mono fun γ hγ => by
+      filter_upwards [ae_mem_Icc_of_compl hν] with δ hδ
+      rw [Real.norm_of_nonneg (Real.exp_pos _).le, Real.exp_le_one_iff]
+      nlinarith [hδ.1])
+    (integrable_const 1)
+    (by
+      filter_upwards [ae_mem_Icc_of_compl hν, measure_eq_zero_iff_ae_notMem.1 h0] with δ hδ hδ0
+      have hpos : 0 < δ := lt_of_le_of_ne hδ.1 (Ne.symm (by simpa using hδ0))
+      exact Real.tendsto_exp_neg_atTop_nhds_zero.comp (tendsto_id.atTop_mul_const hpos))
+  simpa using hlim
+
+/-- `∫ e^{-γδ} dν(δ) ≤ ν(ℝ)` for `γ ≥ 0` and `ν` on `[0, H]`. -/
+theorem integral_exp_le {ν : Measure ℝ} [IsFiniteMeasure ν] {H γ : ℝ}
+    (hν : ν (Icc 0 H)ᶜ = 0) (hγ : 0 ≤ γ) : ∫ δ, Real.exp (-(γ * δ)) ∂ν ≤ ν.real univ := by
+  calc ∫ δ, Real.exp (-(γ * δ)) ∂ν ≤ ∫ _, (1 : ℝ) ∂ν :=
+        integral_mono_ae (integrable_of_continuousOn hν (by fun_prop)) (integrable_const 1) (by
+          filter_upwards [ae_mem_Icc_of_compl hν] with δ hδ
+          exact Real.exp_le_one_iff.2 (by nlinarith [hδ.1]))
+    _ = ν.real univ := by simp
 
 /-- `∫₀^H e^{-2γ(H - σ)} dσ ≤ (2γ)⁻¹`. -/
 theorem lintegral_exp_le {H γ : ℝ} (hH : 0 ≤ H) (hγ : 0 < γ) :
@@ -348,11 +369,15 @@ theorem wnorm_window_le {H τ γ : ℝ} (hH : 0 ≤ H) (hτ : 0 ≤ τ) (hγ : 0
 
 /-! ### The primitive as a distributed delay -/
 
-/-- `‖∫_{(0, H]} w‖ ≤ √H ‖w‖_{L²(0, H)}`. -/
-theorem norm_segOp_le {H : ℝ} (hH : 0 ≤ H) : ‖(segOp H 0 : L2 E H →L[ℝ] E)‖ ≤ √H := by
+/-- `‖∫_{(a, H]} w‖ ≤ √H ‖w‖_{L²(0, H)}` for `a ≥ 0`. -/
+theorem norm_segOp_le {H a : ℝ} (hH : 0 ≤ H) (ha : 0 ≤ a) :
+    ‖(segOp H a : L2 E H →L[ℝ] E)‖ ≤ √H := by
   refine ContinuousLinearMap.opNorm_le_bound _ (Real.sqrt_nonneg _) fun w => ?_
-  rw [segOp_apply le_rfl, Lp.norm_def]
-  exact (norm_integral_le_integral_norm _).trans (integral_norm_le_sqrt_mul hH (Lp.memLp w))
+  rw [segOp_apply ha, Lp.norm_def]
+  refine (norm_integral_le_integral_norm _).trans ((setIntegral_mono_set
+    ((Lp.memLp w).integrable one_le_two).norm (ae_of_all _ fun _ => norm_nonneg _)
+    (Ioc_subset_Ioc_left ha).eventuallyLE).trans ?_)
+  exact integral_norm_le_sqrt_mul hH (Lp.memLp w)
 
 /-- **The primitive is a distributed delay** over a window of length `τ`:
 `∫₀ᵗ x = ∫_{(0, τ]} (traj τ 0 x)(t + ·)` for `t ∈ [0, τ]`. -/
@@ -391,7 +416,7 @@ theorem wnorm_primL_le {τ γ : ℝ} (hτ : 0 ≤ τ) (hγ : 0 < γ) (x : L2 E �
     rw [h1, primitive_eq_segOp (Lp.memLp x) (Ioc_subset_Icc_self h2)]
   rw [wnorm_congr_ae e]
   refine (wnorm_window_le hτ hτ hγ _ (Lp.memLp x)).trans (mul_le_mul_left ?_ _)
-  exact ENNReal.ofReal_le_ofReal (div_le_div_of_nonneg_right (norm_segOp_le hτ)
+  exact ENNReal.ofReal_le_ofReal (div_le_div_of_nonneg_right (norm_segOp_le hτ le_rfl)
     (Real.sqrt_nonneg _))
 
 /-! ### Delay functionals with zero history -/
@@ -400,39 +425,37 @@ namespace DelayOp
 
 variable {h : ℝ} (p : DelayOp h E F)
 
-/-- The weighted bound `∑ₖ ‖Pₖ‖ e^{-γδₖ} + ‖D‖ / √(2γ)` of a delay functional with zero
+/-- The weighted bound `∑ₖ ‖Pₖ‖ ∫ e^{-γδ} dμₖ(δ) + ‖D‖ / √(2γ)` of a delay functional with zero
 history. -/
-def wconst (γ : ℝ) : ℝ := ∑ k, ‖p.P k‖ * Real.exp (-(γ * p.δ k)) + ‖p.D‖ / √(2 * γ)
+def wconst (γ : ℝ) : ℝ := ∑ k, ‖p.P k‖ * ∫ δ, Real.exp (-(γ * δ)) ∂(p.μ k) + ‖p.D‖ / √(2 * γ)
 
 /-- The weighted bound is nonnegative. -/
-theorem wconst_nonneg (γ : ℝ) : 0 ≤ p.wconst γ := by
-  unfold wconst
-  have := Real.sqrt_nonneg (2 * γ)
-  have : ∀ k, 0 ≤ ‖p.P k‖ * Real.exp (-(γ * p.δ k)) := fun k => by positivity
-  positivity
+theorem wconst_nonneg (γ : ℝ) : 0 ≤ p.wconst γ :=
+  add_nonneg (Finset.sum_nonneg fun _ _ =>
+    mul_nonneg (norm_nonneg _) (integral_nonneg fun _ => (Real.exp_pos _).le))
+    (div_nonneg (norm_nonneg p.D) (Real.sqrt_nonneg _))
 
 /-- **Weighted bound of a delay functional with zero history**:
-`‖p x‖_γ ≤ (∑ₖ ‖Pₖ‖ e^{-γδₖ} + ‖D‖ / √(2γ)) ‖x‖_γ`. -/
+`‖p x‖_γ ≤ (∑ₖ ‖Pₖ‖ ∫ e^{-γδ} dμₖ(δ) + ‖D‖ / √(2γ)) ‖x‖_γ`. -/
 theorem wnorm_opL_le {τ γ : ℝ} (hτ : 0 ≤ τ) (hγ : 0 < γ) (x : L2 E τ) :
     wnorm γ τ (p.opL τ x) ≤ ENNReal.ofReal (p.wconst γ) * wnorm γ τ x := by
   rw [wnorm_congr_ae (p.coeFn_opL τ x)]
   have hx := Lp.memLp x
-  refine wnorm_add_le_of_le (Finset.sum_nonneg fun k _ => by positivity) (by positivity)
-    (wnorm_sum_le_of_le Finset.univ (fun k => by positivity) fun k _ => ?_)
+  have hc : ∀ k, 0 ≤ ‖p.P k‖ * ∫ δ, Real.exp (-(γ * δ)) ∂(p.μ k) := fun k =>
+    mul_nonneg (norm_nonneg _) (integral_nonneg fun _ => (Real.exp_pos _).le)
+  refine wnorm_add_le_of_le (Finset.sum_nonneg fun k _ => hc k) (by positivity)
+    (wnorm_sum_le_of_le Finset.univ hc fun k _ => ?_)
     (wnorm_window_le p.h_pos.le hτ hγ p.D hx)
-  have hm : AEStronglyMeasurable (fun s => traj h 0 (⇑x) (h - p.δ k + s)) (μI τ) :=
-    (memLp_comp_add (memLp_traj_of_memLp p.h_pos.le hτ MemLp.zero hx) (p.sub_δ_nonneg k)
-      (by linarith [p.sub_δ_le k])).aestronglyMeasurable
-  refine (wnorm_clm_le (p.P k) hm).trans ?_
+  refine (wnorm_clm_le (p.P k) (aestronglyMeasurable_mconv (p.μ_compl k)
+    (memLp_traj_of_memLp p.h_pos.le hτ MemLp.zero hx).aestronglyMeasurable)).trans ?_
   rw [ENNReal.ofReal_mul (norm_nonneg _), mul_assoc]
-  exact mul_le_mul_right (wnorm_shift_le (p.δ_mem k) hτ hγ.le hx) _
+  exact mul_le_mul_right (wnorm_mconv_le (p.μ_compl k) p.h_pos.le hτ hγ.le hx) _
 
-/-- The weighted bound tends to `0` when every point delay is positive. -/
-theorem tendsto_wconst (hδ : ∀ k, 0 < p.δ k) : Tendsto p.wconst atTop (𝓝 0) := by
-  have h1 : ∀ k, Tendsto (fun γ : ℝ => ‖p.P k‖ * Real.exp (-(γ * p.δ k))) atTop (𝓝 0) := by
-    intro k
-    have := Real.tendsto_exp_neg_atTop_nhds_zero.comp (tendsto_id.atTop_mul_const (hδ k))
-    simpa using this.const_mul ‖p.P k‖
+/-- The weighted bound tends to `0` when no delay measure has an atom at `0`. -/
+theorem tendsto_wconst (h0 : ∀ k, p.μ k {0} = 0) : Tendsto p.wconst atTop (𝓝 0) := by
+  have h1 : ∀ k, Tendsto (fun γ : ℝ => ‖p.P k‖ * ∫ δ, Real.exp (-(γ * δ)) ∂(p.μ k)) atTop
+      (𝓝 0) := fun k => by
+    simpa using (tendsto_integral_exp (p.μ_compl k) (h0 k)).const_mul ‖p.P k‖
   have h2 : Tendsto (fun γ : ℝ => ‖p.D‖ / √(2 * γ)) atTop (𝓝 0) :=
     tendsto_const_nhds.div_atTop (Real.tendsto_sqrt_atTop.comp
       (tendsto_id.const_mul_atTop two_pos))
@@ -440,15 +463,13 @@ theorem tendsto_wconst (hδ : ∀ k, 0 < p.δ k) : Tendsto p.wconst atTop (𝓝 
   rw [Finset.sum_const_zero, add_zero] at this
   exact this
 
-/-- For `γ ≥ 1/2` the weighted bound is at most `∑ₖ ‖Pₖ‖ + ‖D‖`. -/
-theorem wconst_le {γ : ℝ} (hγ : 1 / 2 ≤ γ) : p.wconst γ ≤ ∑ k, ‖p.P k‖ + ‖p.D‖ := by
-  unfold wconst
-  refine add_le_add (Finset.sum_le_sum fun k _ => ?_) ?_
-  · refine mul_le_of_le_one_right (norm_nonneg _) (Real.exp_le_one_iff.2 ?_)
-    nlinarith [(p.δ_mem k).1]
-  · refine div_le_self (norm_nonneg p.D) ?_
-    rw [Real.one_le_sqrt]
-    linarith
+/-- For `γ ≥ 1/2` the weighted bound is at most `∑ₖ ‖Pₖ‖ μₖ([0, h]) + ‖D‖`. -/
+theorem wconst_le {γ : ℝ} (hγ : 1 / 2 ≤ γ) : p.wconst γ ≤ p.mass + ‖p.D‖ := by
+  refine add_le_add (Finset.sum_le_sum fun k _ => mul_le_mul_of_nonneg_left
+    (integral_exp_le (p.μ_compl k) (by linarith)) (norm_nonneg _)) ?_
+  refine div_le_self (norm_nonneg p.D) ?_
+  rw [Real.one_le_sqrt]
+  linarith
 
 end DelayOp
 
@@ -499,6 +520,6 @@ theorem isUnit_one_sub_of_wnorm_le {τ γ q : ℝ} (hγ : 0 ≤ γ) (hq0 : 0 ≤
       (Commute.one_left (K ^ i)).sub_left ((Commute.refl K).pow_right i)
   exact (hc.isUnit_mul_iff.1 hu).1
 
-end NeutralDelay
+end Delay
 
 end DataDrivenControl

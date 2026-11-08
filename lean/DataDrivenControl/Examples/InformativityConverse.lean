@@ -16,15 +16,15 @@ system that satisfies the paper's standing assumptions.
 
 ## The system
 
-The retarded delay system of `ex:intro-delay` (`Examples/Delay`) with `h = 2π`,
-`E = U = Y = ℝ`, no state delays (`L = 0`), `B₀ = 1` and the delayed output `y(t) = x(t - 2π)`:
+The delay system of `ex:intro-delay` (`Examples/Delay`) with `h = 2π`, `E = U = Y = ℝ`, `L = 0`,
+`M = 0`, `B₀ = 1` and the delayed output `y(t) = x(t - 2π)`:
 
-`ẋ(t) = u(t)`,  `y(t) = x(t - 2π)`  (`model`).
+`ẋ(t) = u(t)`,  `y(t) = x(t - 2π)`  (`model`; `model_L_eval`, `model_M_eval`).
 
 It is `Delay.Model.sys : System U W X X Y` with `W = D(A)` (graph norm) and
 `X = V = ℝ × L²(0, 2π)`, so `hyp:H1`, `hyp:H2` (every horizon) and `hyp:compat` hold
-(`Model.H1`, `Model.H2`, `Model.compat`), and `C` is unbounded on `X`
-(`model_not_exists_bound_C`).  As in `Examples/Delay`, the history lives on `(0, 2π]`.
+(`model_standing`), and `C` is unbounded on `X` (`model_not_exists_bound_C`).  As in
+`Examples/Delay`, the history lives on `(0, 2π]`.
 
 ## The record
 
@@ -63,7 +63,7 @@ None in the statement.  The paper gives no example; this one works for every hor
 
 ## Upstream results used
 
-`Delay.Model.H1`, `Model.H2`, `Model.compat`, `Model.not_exists_bound_C_of_ne_zero`,
+`Delay.Model.H1`, `Model.H2`, `Model.compat`, `Model.not_exists_bound_C_of_atom_zero`,
 `Equation.mem_generator_domain_iff`, `Equation.generator_apply`,
 `Equation.mem_generator_domain_of_hasWeakDeriv`, `window_sub_window_eq_integral`
 (`Examples/Delay`); `C0Semigroup.eq_mildSol_of_strong` (`Semigroup/Inhomogeneous`);
@@ -88,27 +88,26 @@ open Delay
 
 /-! ### The system -/
 
-/-- **The delay system of the counterexample**: `h = 2π`, `E = U = Y = ℝ`, no state delays
-(`L = 0`), `B₀ = 1`, and the delayed output `y(t) = x(t - 2π)` (one output delay `h'₀ = 2π`,
-`C₀ = 1`, `C_d = 0`).  The equation is `ẋ = u`. -/
+/-- **The delay system of the counterexample**: `h = 2π`, `E = U = Y = ℝ`, `L = 0`, `M = 0`,
+`B₀ = 1`, and the delayed output `y(t) = x(t - 2π)` (one point delay `2π`, a Dirac measure,
+`DelayOp.ofPoints`).  The equation is `ẋ = u`. -/
 def model : Model (2 * π) ℝ ℝ ℝ where
-  h_pos := Real.two_pi_pos
-  N := 0
-  A := fun k => k.elim0
-  τ := fun k => k.elim0
-  τ_mem := fun k => k.elim0
-  Ad := 0
+  L := DelayOp.ofPoints Real.two_pi_pos (N := 0) (fun k => k.elim0) (fun k => k.elim0)
+    (fun k => k.elim0) 0
+  M := DelayOp.ofPoints Real.two_pi_pos (N := 0) (fun k => k.elim0) (fun k => k.elim0)
+    (fun k => k.elim0) 0
+  M_noAtom := fun k => Fin.elim0 k
   B₀ := ContinuousLinearMap.id ℝ ℝ
-  NC := 1
-  Cp := fun _ => ContinuousLinearMap.id ℝ ℝ
-  τC := fun _ => 2 * π
-  τC_mem := fun _ => ⟨Real.two_pi_pos.le, le_rfl⟩
-  Cd := 0
+  C := DelayOp.ofPoints Real.two_pi_pos (fun _ : Fin 1 => ContinuousLinearMap.id ℝ ℝ)
+    (fun _ => 2 * π) (fun _ => ⟨Real.two_pi_pos.le, le_rfl⟩) 0
 
 /-- The model has no state feedback: `L x_s = 0`. -/
-@[simp] theorem model_rhs (z : ℝ → ℝ) (s : ℝ) : model.rhs z s = 0 := by
-  simp only [Equation.rhs, model, zero_apply, add_zero]
-  exact Finset.sum_eq_zero fun k _ => k.elim0
+@[simp] theorem model_L_eval (z : ℝ → ℝ) (s : ℝ) : model.L.eval z s = 0 := by
+  simp [model, DelayOp.eval_ofPoints]
+
+/-- The model is retarded: `M x_s = 0`. -/
+@[simp] theorem model_M_eval (z : ℝ → ℝ) (s : ℝ) : model.M.eval z s = 0 := by
+  simp [model, DelayOp.eval_ofPoints]
 
 /-- `B u = (u, 0)`. -/
 @[simp] theorem model_Bop (u : ℝ) : model.Bop u = WithLp.toLp 2 (u, 0) := rfl
@@ -120,13 +119,18 @@ theorem model_standing (T : ℝ) : model.sys.H1 T ∧ model.sys.H2 T ∧ model.s
 /-- The output `y(t) = x(t - 2π)` makes `C` unbounded on `X`: informativity in `U × W` is the
 relevant notion for this system. -/
 theorem model_not_exists_bound_C :
-    ¬ ∃ K : ℝ, ∀ w : model.S.Dom, ‖model.sys.C w‖ ≤ K * ‖model.sys.ιW w‖ :=
-  model.not_exists_bound_C_of_ne_zero ⟨0, Nat.one_pos⟩
-    (by
-      intro h
-      have := congrArg (fun L : ℝ →L[ℝ] ℝ => L 1) h
-      simp [model] at this)
-    Real.two_pi_pos (fun k _ => Fin.ext (Nat.lt_one_iff.1 k.2))
+    ¬ ∃ K : ℝ, ∀ w : model.S.Dom, ‖model.sys.C w‖ ≤ K * ‖model.sys.ιW w‖ := by
+  have hatom : ∀ θ, model.C.atom θ =
+      (Measure.dirac (2 * π)).real {θ} • ContinuousLinearMap.id ℝ ℝ :=
+    fun _ => Fin.sum_univ_one _
+  refine model.not_exists_bound_C_of_atom_zero ⟨Real.two_pi_pos, le_rfl⟩ ?_ ?_
+  · rw [hatom, measureReal_def, Measure.dirac_apply' _ (measurableSet_singleton 0),
+      indicator_of_notMem (by simp [Real.pi_ne_zero]), ENNReal.toReal_zero, zero_smul]
+  · rw [hatom, measureReal_def, Measure.dirac_apply' _ (measurableSet_singleton _),
+      indicator_of_mem (mem_singleton _), Pi.one_apply, ENNReal.toReal_one, one_smul]
+    intro h
+    have := congrArg (fun L : ℝ →L[ℝ] ℝ => L 1) h
+    simp at this
 
 /-! ### The signals and the states -/
 
@@ -152,9 +156,11 @@ theorem memLp_xs (T : ℝ) : MemLp xs 2 (μI T) :=
 `x_t = x(t - 2π + ·) = x(t + ·)` on `(0, 2π]` (periodicity). -/
 def state (t : ℝ) : State (2 * π) ℝ := WithLp.toLp 2 (xs t, window (2 * π) xs t)
 
-/-- The endpoint of the history is the current value: `x(t + 2π) = x(t)`. -/
-theorem state_fst (t : ℝ) : (state t).fst = xs (t + 2 * π) := by
-  rw [xs_add_two_pi]
+/-- The first component is `g(2π) - M g` for the history `g = x(t + ·)`: `M = 0` and
+`x(t + 2π) = x(t)`. -/
+theorem state_fst (t : ℝ) :
+    (state t).fst = xs (t + 2 * π) - model.M.eval (fun σ => xs (t + σ)) 0 := by
+  rw [model_M_eval, sub_zero, xs_add_two_pi]
   rfl
 
 /-- `x̄(t) ∈ D(A)`. -/
@@ -167,7 +173,7 @@ theorem state_mem (t : ℝ) : state t ∈ model.S.generator.domain :=
 theorem generator_state (t : ℝ) :
     model.S.generator ⟨state t, state_mem t⟩ = WithLp.toLp 2 (0, window (2 * π) us t) := by
   have hg := hasWeakDeriv_shift (2 * π) t
-  rw [model.generator_apply (state_mem t) hg (state_fst t) (coeFn_window hg.memLp), model_rhs,
+  rw [model.generator_apply (state_mem t) hg (coeFn_window hg.memLp), model_L_eval,
     ← window_eq_toLp hg.memLp_deriv]
 
 /-- The initial state `x̄₀ = (x(0), x_0) ∈ W = D(A)` of the record. -/
@@ -275,8 +281,8 @@ theorem annihilatorW_ne_zero : annihilatorW ≠ 0 := by
     HasWeakDeriv.of_hasDerivAt (fun σ => hasDerivAt_id' σ) continuous_const
   have hmem := model.mem_generator_domain_of_hasWeakDeriv hg
   have hA : model.S.domGen (model.S.toDom ⟨_, hmem⟩) = eX := by
-    rw [C0Semigroup.domGen_toDom, model.generator_apply hmem hg rfl hg.memLp.coeFn_toLp,
-      model_rhs]
+    rw [C0Semigroup.domGen_toDom, model.generator_apply hmem hg hg.memLp.coeFn_toLp,
+      model_L_eval]
     rfl
   have h1 := inner_annihilatorW (model.S.toDom ⟨_, hmem⟩)
   rw [h0, inner_zero_left, hA, inner_eX_self] at h1

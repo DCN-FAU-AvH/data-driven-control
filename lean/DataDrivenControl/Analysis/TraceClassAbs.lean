@@ -93,11 +93,6 @@ theorem IsTraceClass.hasSum_re_inner {P : E →L[𝕜] E} (hP : IsTraceClass P)
     HasSum (fun i => RCLike.re ⟪b i, P (b i)⟫_𝕜) (RCLike.re (trace P)) := by
   simpa using (hP.hasSum_trace b).mapL RCLike.reCLM
 
-/-- The trace of a positive trace-class operator has a nonnegative real part. -/
-theorem IsTraceClass.re_trace_nonneg {P : E →L[𝕜] E} (hP : IsTraceClass P)
-    (hpos : P.IsPositive) : 0 ≤ RCLike.re (trace P) :=
-  (hP.hasSum_re_inner (stdHilbertBasis 𝕜 E)).nonneg fun _ => hpos.re_inner_nonneg_right _
-
 /-- If `T = U P` and `U† T = P` (a polar decomposition), then `T` is trace class iff `P` is. -/
 theorem isTraceClass_iff_of_polar {T P U : E →L[𝕜] E} (h1 : U ∘L P = T)
     (h2 : adjoint U ∘L T = P) : IsTraceClass T ↔ IsTraceClass P :=

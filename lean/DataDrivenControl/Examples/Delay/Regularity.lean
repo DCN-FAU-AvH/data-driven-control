@@ -1,12 +1,12 @@
 module
 
-public import DataDrivenControl.Examples.NeutralDelay.Solution
+public import DataDrivenControl.Examples.Delay.Solution
 
 /-!
-# Regularity of the neutral delay equation
+# Regularity of the delay equation
 
 For an `H¹` history `g` with the compatible initial value `r = g(h) - M g` and an `L²` forcing,
-the solution of the neutral equation (`ex:intro-delay`) is `H¹`, and the trajectory
+the solution of the delay equation of `ex:intro-delay` is `H¹`, and the trajectory
 `traj h g x` is `H¹` on `[0, h + τ]` (`Equation.exists_hasWeakDeriv`,
 `Equation.IsSolOn.exists_hasWeakDeriv`).  This is the regularity behind the generator domain
 `D(A) = {(g(h) - M g, g) : g ∈ H¹}` and behind `hyp:H1`.
@@ -36,9 +36,7 @@ set_option linter.unusedSectionVars false
 
 namespace DataDrivenControl
 
-namespace NeutralDelay
-
-open Delay (traj traj_of_le traj_of_lt traj_add intervalIntegrable_of_integrableOn)
+namespace Delay
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
 
@@ -46,7 +44,7 @@ namespace Equation
 
 variable {h : ℝ} (d : Equation h E)
 
-/-- **Regularity of the neutral equation**: for an `H¹` history `g`, the compatible initial value
+/-- **Regularity of the delay equation**: for an `H¹` history `g`, the compatible initial value
 `r = g(h) - M g` and an `L²` forcing `f`, there is a solution `X` with `X(0) = g(h)` that satisfies
 the integral form at every `t ∈ [0, τ]` and whose trajectory `traj h g X` is `H¹` on
 `[0, h + τ]`. -/
@@ -94,8 +92,7 @@ theorem exists_hasWeakDeriv {τ : ℝ} (hτ : 0 ≤ τ) {g g' f : ℝ → E} (hg
       he he0
   have hsplit : ∀ s ∈ Icc 0 τ, ∀ p : DelayOp h E E,
       p.eval (traj h g X) s = p.eval G s + p.eval (traj h 0 e) s := fun s hs p => by
-    rw [htr, p.eval_add (memLp_comp_add hG.memLp hs.1 (by linarith [hs.2]))
-      (memLp_comp_add hZ0.memLp hs.1 (by linarith [hs.2]))]
+    rw [htr, p.eval_add_of_continuousOn hG.continuousOn hZ0.continuousOn hs]
   -- `M (traj h 0 e)_t = ∫₀ᵗ M (traj h 0 y)_s ds` and `M G_t = M g + ∫₀ᵗ M G'_s ds`.
   have hMe : d.M.eval (traj h 0 e) t = ∫ s in (0 : ℝ)..t, d.M.eval (traj h 0 ⇑Y) s := by
     rw [(d.M.hasWeakDeriv_eval hZ0).eq_add_integral t ht, d.M.eval_traj_zero, d.M.eval_zero,
@@ -165,6 +162,6 @@ theorem IsSolOn.exists_hasWeakDeriv {τ : ℝ} (hτ : 0 ≤ τ) {g g' f x : ℝ 
 
 end Equation
 
-end NeutralDelay
+end Delay
 
 end DataDrivenControl

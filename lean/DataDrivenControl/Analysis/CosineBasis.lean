@@ -93,10 +93,6 @@ theorem cosFun_of_ne_zero {n : ℕ} (hn : n ≠ 0) (ξ : ℝ) :
 /-- `eₙ(0) = cosNorm n`. -/
 theorem cosFun_apply_zero (n : ℕ) : cosFun n 0 = cosNorm n := by simp [cosFun]
 
-/-- `eₙ(1) = (-1)ⁿ cosNorm n`. -/
-theorem cosFun_apply_one (n : ℕ) : cosFun n 1 = (-1) ^ n * cosNorm n := by
-  rw [cosFun, mul_one, Real.cos_nat_mul_pi, mul_comm]
-
 /-- `eₙ` is continuous. -/
 theorem continuous_cosFun (n : ℕ) : Continuous (cosFun n) := by
   unfold cosFun; fun_prop

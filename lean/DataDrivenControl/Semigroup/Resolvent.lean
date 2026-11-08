@@ -24,7 +24,7 @@ semigroup is a `C0Semigroup ℂ X_ℂ`); everything here is generic over `𝕜`.
   `C0Semigroup.sub_generator_integral_exp_smul`:
   `(μ - A) ∫₀ᵗ e^{-μ s} S s x ds = x - e^{-μ t} S t x` for every `μ`.
 * `C0Semigroup.mem_resolventSet`, `C0Semigroup.resolvent_eq_integral(_real)`: the Laplace
-  transform `(μ - A)⁻¹ x = ∫₀^∞ e^{-μ t} S t x dt` for `Re μ > ω`; `norm_resolvent_le`.
+  transform `(μ - A)⁻¹ x = ∫₀^∞ e^{-μ t} S t x dt` for `Re μ > ω`.
 * `C0Semigroup.integral_exp_smul_eq(_real)`: the finite-time Laplace identity
   `∫₀ᵗ e^{-μ s} S s x ds = R(μ) x - e^{-μ t} S t R(μ) x` (`app:control-realization`).
 * `C0Semigroup.Consistent.resolvent`: consistent semigroups have consistent resolvents;
@@ -533,12 +533,6 @@ theorem resolvent_eq_integral_real {M ω : ℝ} (hS : ∀ t : ℝ≥0, ‖S t‖
   congr 1; funext t
   rw [real_exp_smul (𝕜 := 𝕜)]
   push_cast; rfl
-
-/-- `‖(μ - A)⁻¹‖ ≤ M / (Re μ - ω)`. -/
-theorem norm_resolvent_le {M ω : ℝ} (hS : ∀ t : ℝ≥0, ‖S t‖ ≤ M * Real.exp (ω * t)) {μ : 𝕜}
-    (hμ : ω < RCLike.re μ) : ‖resolvent S.generator μ‖ ≤ M / (RCLike.re μ - ω) := by
-  obtain ⟨R, hR, -, hn⟩ := S.exists_isResolvent_laplace hS hμ
-  rw [resolvent_eq hR]; exact hn
 
 /-- The **finite-time Laplace identity** (`app:control-realization`): for `μ ∈ ρ(A)` and
 `t ≥ 0`, `∫₀ᵗ e^{-μ s} S s x ds = R(μ) x - e^{-μ t} S t R(μ) x`. -/

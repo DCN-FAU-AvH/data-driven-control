@@ -43,8 +43,6 @@ open scoped InnerProductSpace
 
 noncomputable section
 
-set_option autoImplicit false
-
 namespace DataDrivenControl
 
 variable {U H X : Type*}

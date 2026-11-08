@@ -1,23 +1,23 @@
 module
 
-public import DataDrivenControl.Examples.Heat.LocalizedSpaces
+public import DataDrivenControl.Examples.Heat.Spaces
 
 /-!
-# The Neumann control on the localised spaces: `B ∈ L(ℝ, V)` and `hyp:H1`
+# The Neumann control on the localised spaces: `B ∈ L(ℝ, V)` and the control estimate
 
 Paper: `app:boundary-heat-informative` (`appendix_proofs.tex`): `eq:heat-separated-kernel`,
 `eq:heat-control-X` and the convolution estimate behind `hyp:H1`, for the localised `V` of
-`eq:heat-localized-V` (`Examples/Heat/LocalizedSpaces`).
+`eq:heat-localized-V` (`Examples/Heat/Spaces`).
 
 ## Main declarations
 
 * `hasSum_conv`, `abs_integral_conv_le`: the exchange `∑ₙ pₙ e^{λₙ s} ∫₀ᵀ e^{λₙ (T - r)} u =
   ∫₀ᵀ (∑ₙ pₙ e^{λₙ (s + T - r)}) u` and the Cauchy–Schwarz bound `|∫₀ᵀ k(s + T - r) u(r) dr| ≤
   M √T ‖u‖` for `|k| ≤ M` on `(0, ∞)`.
-* `orbit_genXm1_eq`, `orbitDL_genXm1_eq`: for `x = L_T u`, `χ S(s) A_{X,-1} x` is the convolution
-  of `u` with `q'(s + T - ·)`, with the kernels `kernelDeriv`, `kernelDerivX` of
-  `Examples/Heat/LocalizedKernel` (`S(s) A_{X,-1} L_T u = ∫₀ᵀ q'(s + T - r) u(r) dr`).
-* **`exists_control_bound_loc`**: `eq:heat-control-X` (`‖L_T u‖_X ≤ C ‖u‖`) and
+* `orbit_genXm1_eq`, `orbitDL_genXm1_eq`: for `x = L_T u`, `S(s) A_{X,-1} x` and its
+  `ξ`-derivative are the convolutions of `u` with `q'(s + T - ·)` and `∂_ξ q'(s + T - ·)`
+  (`kernelDeriv`, `kernelDerivX` of `Examples/Heat/Kernel`).
+* **`exists_control_bound`**: `eq:heat-control-X` (`‖L_T u‖_X ≤ C ‖u‖`) and
   `‖A_{X,-1} L_T u‖_V ≤ C ‖u‖` (the paper's estimate
   `∫₀^∞ e^{-2s} ‖χ S(s) a‖²_{H¹} ds ≤ T e^{2T} ‖u‖² ∫₀^∞ e^{-2t} ‖q'(t)‖²_{H¹} dt`, here through the
   uniform bound of `q'` and `∂_ξ q'` on `supp χ`).
@@ -44,8 +44,6 @@ set_option linter.unusedSectionVars false
 namespace DataDrivenControl
 
 namespace BoundaryHeat
-
-namespace Localized
 
 open CosineBasis
 
@@ -143,7 +141,7 @@ theorem orbit_genXm1_eq {T s : ℝ} (hs : 0 < s) (u : L2 ℝ T) {x : L2 ℝ 1}
   have h := hasSum_conv (abs_coeffDeriv_le ξ) hs u
   convert h using 1
   funext n
-  rw [orbCoeff_mul_genXm1, hx, ← obsCoeff_eq_cosFun_apply]
+  rw [orbCoeff_mul_genXm1, hx, ← obsCoeff_eq_cosFun]
   ring
   rfl
 
@@ -246,17 +244,17 @@ theorem exists_norm_orbitH_genXm1_le {T : ℝ} (hT : 0 < T) :
 /-- **`eq:heat-control-X` and `A_{X,-1} L_T u ∈ V`** (`app:boundary-heat-informative`): for `T > 0`
 and `u ∈ L²(0, T)`, the state `x = L_T u ∈ X` (coordinates `bₙ ∫₀ᵀ e^{λₙ (T - r)} u(r) dr`)
 satisfies `‖x‖_X ≤ C ‖u‖`, and `F_{A_{X,-1} x} ∈ L²(0, ∞)` with norm at most `C ‖u‖`. -/
-theorem exists_control_bound_loc {T : ℝ} (hT : 0 < T) :
+theorem exists_control_bound {T : ℝ} (hT : 0 < T) :
     ∃ C : ℝ, ∀ u : L2 ℝ T, ∃ x : L2 ℝ 1,
       (∀ n, ⟪cosBasis n, x⟫_ℝ = ctrlCoeff n * ∫ r in Ioc 0 T, Real.exp (eig n * (T - r)) * u r) ∧
       ‖x‖ ≤ C * ‖u‖ ∧
       ∃ h : MemLp (fun t => orbitH χ t (heatModal.genXm1 cosBasis x)) 2 (volume.restrict (Ioi 0)),
         ‖h.toLp _‖ ≤ C * ‖u‖ := by
   obtain ⟨C₀, hC₀⟩ := heatModal.exists_control_bound cosBasis (b := ctrlCoeff)
-    ⟨Real.sqrt 2, abs_ctrlCoeff_le⟩ ⟨0, fun t _ => by simp [heatModal]⟩ hT
+    ⟨Real.sqrt 2, abs_ctrlCoeff_le⟩ hT
   obtain ⟨c, hc0, hc⟩ := exists_norm_orbitH_genXm1_le χ hT
   refine ⟨max C₀ c, fun u => ?_⟩
-  obtain ⟨x, hx, hxn, -⟩ := hC₀ u
+  obtain ⟨x, hx, hxn⟩ := hC₀ u
   have hx' : ∀ n, ⟪cosBasis n, x⟫_ℝ =
       ctrlCoeff n * ∫ r in Ioc 0 T, Real.exp (eig n * (T - r)) * u r := hx
   have hexp : IntegrableOn (fun t : ℝ => (c * ‖u‖) ^ 2 * Real.exp (-2 * t)) (Ioi 0) :=
@@ -298,6 +296,12 @@ theorem exists_control_bound_loc {T : ℝ} (hT : 0 < T) :
 
 /-! ### The control operator -/
 
+/-- The constant `1 ∈ L²(0, 1)`. -/
+def oneL2 : L2 ℝ 1 := (memLp_const (1 : ℝ)).toLp _
+
+/-- The class `oneL2` is the constant `1`. -/
+theorem coeFn_oneL2 : (oneL2 : ℝ → ℝ) =ᵐ[μI 1] fun _ => 1 := (memLp_const (1 : ℝ)).coeFn_toLp
+
 /-- `b = (bₙ / wₙ)ₙ ∈ X₋₁` is square summable. -/
 theorem summable_ctrlVec_sq : Summable fun n => (ctrlCoeff n / (1 - eig n)) ^ 2 := by
   refine (summable_inv_one_sub_eig.mul_left 2).of_nonneg_of_le (fun n => sq_nonneg _) fun n => ?_
@@ -334,28 +338,28 @@ theorem mul_integral_exp_one_sub (l : ℝ) :
 /-- **`b = S(1) b - A_{X,-1} L_1 1`**: `A_{X,-1} L_1 1 = ∫₀¹ S(1 - r) A_{-1} b dr = S(1) b - b`. -/
 theorem ctrlVec_eq (x : L2 ℝ 1)
     (hx : ∀ n, ⟪cosBasis n, x⟫_ℝ =
-      ctrlCoeff n * ∫ r in Ioc 0 1, Real.exp (eig n * (1 - r)) * ControlData.oneL2 r) :
+      ctrlCoeff n * ∫ r in Ioc 0 1, Real.exp (eig n * (1 - r)) * oneL2 r) :
     ctrlVec = heatModal.toXm1 cosBasis (heatModal.smoothing cosBasis one_pos ctrlVec) -
       heatModal.genXm1 cosBasis x := by
   refine ext_Xm1 fun n => ?_
   rw [lp.coeFn_sub, Pi.sub_apply, heatModal.toXm1_smoothing, heatModal.Sm_apply zero_le_one,
     heatModal.genXm1_apply, hx]
-  have h1 : ∫ r in Ioc 0 1, Real.exp (eig n * (1 - r)) * ControlData.oneL2 r =
+  have h1 : ∫ r in Ioc 0 1, Real.exp (eig n * (1 - r)) * oneL2 r =
       ∫ r in Ioc 0 1, Real.exp (eig n * (1 - r)) :=
     integral_congr_ae (by
-      filter_upwards [ControlData.memLp_one.coeFn_toLp] with r hr
-      rw [ControlData.oneL2, hr, mul_one])
+      filter_upwards [coeFn_oneL2] with r hr
+      rw [hr, mul_one])
   rw [h1]
   have h2 := mul_integral_exp_one_sub (eig n)
   simp only [ctrlVec_apply, heatModal_lam, heatModal_wt, mul_one]
   linear_combination (ctrlCoeff n / (1 - eig n)) * h2
 
 /-- **`b ∈ V`** (`app:boundary-heat-informative`): from `b = S(1) b - A_{X,-1} L_1 1`, with
-`S(1) b ∈ X ⊆ V` and `A_{X,-1} L_1 1 ∈ V` (`exists_control_bound_loc`). -/
+`S(1) b ∈ X ⊆ V` and `A_{X,-1} L_1 1 ∈ V` (`exists_control_bound`). -/
 theorem memLp_orbitH_ctrlVec :
     MemLp (fun t => orbitH χ t ctrlVec) 2 (volume.restrict (Ioi 0)) := by
-  obtain ⟨C, hC⟩ := exists_control_bound_loc χ one_pos
-  obtain ⟨x, hx, -, hm, -⟩ := hC ControlData.oneL2
+  obtain ⟨C, hC⟩ := exists_control_bound χ one_pos
+  obtain ⟨x, hx, -, hm, -⟩ := hC oneL2
   rw [ctrlVec_eq x hx]
   refine ((memLp_orbitH_toXm1 χ (heatModal.smoothing cosBasis one_pos ctrlVec)).sub hm).ae_eq
     (Eventually.of_forall fun t => ?_)
@@ -404,8 +408,6 @@ theorem ιV_eq_conv {T : ℝ} (u : L2 ℝ T) (x : L2 ℝ 1)
   refine V_ext χ (ext_Xm1 fun n => ?_)
   rw [fstV_ιV, heatModal.toXm1_apply, hx, fstV_conv_apply, heatModal_wt, div_eq_mul_inv]
   ring
-
-end Localized
 
 end BoundaryHeat
 

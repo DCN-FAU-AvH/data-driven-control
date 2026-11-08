@@ -21,8 +21,7 @@ first-order form of the oscillators `äₙ = -ωₙ² aₙ`.
 * coordinates on the product: `ext_coord`, `exists_coord_eq`, `hasSum_coord_sq` (Parseval),
   `hasSum_inner_coord`;
 * `Rotation.rotOp f₁ f₂ ω t` for every real `t`: `inner_fst_rotOp`, `inner_snd_rotOp`,
-  `rotOp_zero`, `rotOp_add`, `rotOp_neg_apply`, `rotOp_surjective` (a group of bijections),
-  `norm_rotOp_apply` (isometries), `adjoint_rotOp` (`R(t)† = R(-t)`), `tendsto_rotOp`;
+  `rotOp_zero`, `rotOp_add`, `adjoint_rotOp` (`R(t)† = R(-t)`), `tendsto_rotOp`;
 * `Rotation.rotGroup f₁ f₂ ω : C0Semigroup ℝ (WithLp 2 (E₁ × E₂))` (`rotGroup_real`,
   `adjoint_rotGroup`: the adjoint semigroup is the rotation group with frequencies `-ω`);
 * the generator in coordinates: `inner_fst_generator`, `inner_snd_generator`
@@ -170,32 +169,11 @@ theorem rotOp_add (s t : ℝ) :
       Real.cos_add, Real.sin_add]
     ring
 
-/-- `R(-t) R(t) = 1`. -/
-theorem rotOp_neg_apply (t : ℝ) (x : WithLp 2 (E₁ × E₂)) :
-    rotOp f₁ f₂ ω (-t) (rotOp f₁ f₂ ω t x) = x := by
-  rw [← ContinuousLinearMap.comp_apply, ← rotOp_add, neg_add_cancel, rotOp_zero,
-    one_apply_eq_self]
-
 /-- `R(t) R(-t) = 1`. -/
 theorem rotOp_apply_neg (t : ℝ) (x : WithLp 2 (E₁ × E₂)) :
     rotOp f₁ f₂ ω t (rotOp f₁ f₂ ω (-t) x) = x := by
   rw [← ContinuousLinearMap.comp_apply, ← rotOp_add, add_neg_cancel, rotOp_zero,
     one_apply_eq_self]
-
-/-- Every `R(t)` is onto. -/
-theorem rotOp_surjective (t : ℝ) : Function.Surjective (rotOp f₁ f₂ ω t) := fun y =>
-  ⟨rotOp f₁ f₂ ω (-t) y, rotOp_apply_neg f₁ f₂ ω t y⟩
-
-/-- Every `R(t)` is an isometry. -/
-theorem norm_rotOp_apply (t : ℝ) (x : WithLp 2 (E₁ × E₂)) : ‖rotOp f₁ f₂ ω t x‖ = ‖x‖ := by
-  have h : ‖rotOp f₁ f₂ ω t x‖ ^ 2 = ‖x‖ ^ 2 := by
-    refine (hasSum_coord_sq f₁ f₂ _).unique ?_
-    convert hasSum_coord_sq f₁ f₂ x using 1
-    funext n
-    rw [inner_fst_rotOp, inner_snd_rotOp]
-    linear_combination (⟪f₁ n, x.fst⟫_ℝ ^ 2 + ⟪f₂ n, x.snd⟫_ℝ ^ 2) *
-      Real.sin_sq_add_cos_sq (ω n * t)
-  exact (pow_left_inj₀ (norm_nonneg _) (norm_nonneg _) two_ne_zero).1 h
 
 /-- `R(t)† = R(-t)`. -/
 theorem adjoint_rotOp [CompleteSpace E₁] [CompleteSpace E₂] (t : ℝ) :

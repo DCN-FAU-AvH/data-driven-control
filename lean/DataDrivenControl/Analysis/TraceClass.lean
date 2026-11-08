@@ -24,18 +24,14 @@ representations**; everything is generic over `𝕜` with `[RCLike 𝕜]`.
 * Parseval: `hasSum_norm_inner_sq`, `enorm_sq_eq_tsum` (in `ℝ≥0∞`);
 * Hilbert–Schmidt: `tsum_enorm_apply_sq_eq_adjoint` (`∑ᵢ ‖T bᵢ‖² = ∑ⱼ ‖T† cⱼ‖²` in `ℝ≥0∞` for any
   Hilbert bases `b`, `c`), basis independence `isHilbertSchmidt_iff`,
-  `IsHilbertSchmidt.adjoint`, and the ideal property (`zero`, `add`, `smul`, `comp_left`,
-  `comp_right`);
+  `IsHilbertSchmidt.adjoint`, `add`, `smul`, `comp_left`;
 * trace in every basis and for every representation: `IsTraceClass.hasSum_trace`
   (`∑ᵢ ⟪bᵢ, T bᵢ⟫ = trace T` for **every** Hilbert basis `b`), `trace_eq_tsum_of_hasSum`
   (`trace T = ∑ₙ ⟪bₙ, aₙ⟫` for every nuclear representation, over any index type);
   `isTraceClass_of_hasSum` accepts representations over any index type;
-* linear and ideal structure: `isTraceClass_zero`, `IsTraceClass.add`, `.smul`, `.neg`, `.sub`,
-  `.comp_left`, `.comp_right`, `.adjoint`; `trace_add`, `trace_smul`, `trace_neg`, `trace_sub`,
-  `trace_adjoint` (`trace T† = conj (trace T)`), `trace_comp_comm`;
+* `IsTraceClass.add`, `.smul`, `.neg`, `.sub`, `.comp_left`, `.adjoint`;
 * `isTraceClass_adjoint_comp`: `A† B` is trace class for Hilbert–Schmidt `A, B : E →L[𝕜] F`, and
   `hasSum_inner_trace_adjoint_comp`: `trace (A† B) = ∑ᵢ ⟪A bᵢ, B bᵢ⟫` in every Hilbert basis;
-* `IsTraceClass.isCompactOperator`;
 * validation: `trace_rankOne` (`trace (a ⊗ b) = ⟪b, a⟫`), `isTraceClass_of_finiteDimensional` and
   `trace_eq_linearMap_trace` (in finite dimension every operator is trace class and the trace is
   `LinearMap.trace`).
@@ -122,10 +118,6 @@ variable [CompleteSpace E]
 def IsHilbertSchmidt (T : E →L[𝕜] F) : Prop :=
   Summable fun i => ‖T (stdHilbertBasis 𝕜 E i)‖ ^ 2
 
-/-- `0` is Hilbert–Schmidt. -/
-theorem isHilbertSchmidt_zero : IsHilbertSchmidt (0 : E →L[𝕜] F) := by
-  simp [IsHilbertSchmidt, summable_zero]
-
 /-- Sums of Hilbert–Schmidt operators are Hilbert–Schmidt. -/
 theorem IsHilbertSchmidt.add {S T : E →L[𝕜] F} (hS : IsHilbertSchmidt S)
     (hT : IsHilbertSchmidt T) : IsHilbertSchmidt (S + T) := by
@@ -198,13 +190,6 @@ theorem isHilbertSchmidt_adjoint_iff {T : E →L[𝕜] F} :
 theorem IsHilbertSchmidt.adjoint {T : E →L[𝕜] F} (hT : IsHilbertSchmidt T) :
     IsHilbertSchmidt (ContinuousLinearMap.adjoint T) :=
   isHilbertSchmidt_adjoint_iff.2 hT
-
-/-- `T S` is Hilbert–Schmidt if `T` is (right ideal property). -/
-theorem IsHilbertSchmidt.comp_right {G : Type*} [NormedAddCommGroup G] [InnerProductSpace 𝕜 G]
-    [CompleteSpace G] {T : E →L[𝕜] F} (hT : IsHilbertSchmidt T) (S : G →L[𝕜] E) :
-    IsHilbertSchmidt (T ∘L S) := by
-  rw [← isHilbertSchmidt_adjoint_iff, adjoint_comp]
-  exact hT.adjoint.comp_left _
 
 end HilbertSchmidt
 
@@ -330,15 +315,6 @@ theorem isTraceClass_of_hasSum {T : E →L[𝕜] E} {a b : κ → E}
 
 section Operations
 
-/-- `0` is trace class. -/
-theorem isTraceClass_zero : IsTraceClass (0 : E →L[𝕜] E) :=
-  ⟨0, 0, by simp [summable_zero], by simp⟩
-
-/-- Rank-one operators `a ⊗ b` are trace class. -/
-theorem isTraceClass_rankOne (x y : E) : IsTraceClass (rankOne 𝕜 x y) :=
-  isTraceClass_of_hasSum (κ := Unit) (a := fun _ => x) (b := fun _ => y) (Summable.of_finite)
-    (hasSum_single () fun u hu => absurd (Subsingleton.elim u ()) hu)
-
 /-- Sums of trace-class operators are trace class. -/
 theorem IsTraceClass.add {S T : E →L[𝕜] E} (hS : IsTraceClass S) (hT : IsTraceClass T) :
     IsTraceClass (S + T) := by
@@ -387,26 +363,6 @@ theorem IsTraceClass.comp_left {T : E →L[𝕜] E} (hT : IsTraceClass T) (S : E
 
 variable [CompleteSpace E]
 
-private theorem hasSum_comp_right {T : E →L[𝕜] E} {a b : ℕ → E}
-    (h : HasSum (fun n => rankOne 𝕜 (a n) (b n)) T) (S : E →L[𝕜] E) :
-    HasSum (fun n => rankOne 𝕜 (a n) (adjoint S (b n))) (T ∘L S) := by
-  simpa [rankOne_comp] using h.mapL ((compL 𝕜 E E E).flip S)
-
-private theorem summable_comp_right {a b : ℕ → E} (hs : Summable fun n => ‖a n‖ * ‖b n‖)
-    (S : E →L[𝕜] E) : Summable fun n => ‖a n‖ * ‖adjoint S (b n)‖ := by
-  refine (hs.mul_left ‖S‖).of_nonneg_of_le (fun n => by positivity) fun n => ?_
-  have h1 : ‖adjoint S (b n)‖ ≤ ‖S‖ * ‖b n‖ := by
-    simpa [LinearIsometryEquiv.norm_map] using (adjoint S).le_opNorm (b n)
-  calc ‖a n‖ * ‖adjoint S (b n)‖ ≤ ‖a n‖ * (‖S‖ * ‖b n‖) :=
-        mul_le_mul_of_nonneg_left h1 (norm_nonneg _)
-    _ = ‖S‖ * (‖a n‖ * ‖b n‖) := by ring
-
-/-- `T S` is trace class if `T` is (right ideal property). -/
-theorem IsTraceClass.comp_right {T : E →L[𝕜] E} (hT : IsTraceClass T) (S : E →L[𝕜] E) :
-    IsTraceClass (T ∘L S) := by
-  obtain ⟨a, b, hs, h⟩ := hT
-  exact isTraceClass_of_hasSum (summable_comp_right hs S) (hasSum_comp_right h S)
-
 /-- The adjoint of a trace-class operator is trace class: `(∑ aₙ ⊗ bₙ)† = ∑ bₙ ⊗ aₙ`. -/
 theorem IsTraceClass.adjoint {T : E →L[𝕜] E} (hT : IsTraceClass T) :
     IsTraceClass (ContinuousLinearMap.adjoint T) := by
@@ -420,60 +376,14 @@ theorem IsTraceClass.adjoint {T : E →L[𝕜] E} (hT : IsTraceClass T) :
 @[simp] theorem trace_zero : trace (0 : E →L[𝕜] E) = 0 := by
   simp [trace]
 
-/-- The trace is additive on trace-class operators. -/
-theorem trace_add {S T : E →L[𝕜] E} (hS : IsTraceClass S) (hT : IsTraceClass T) :
-    trace (S + T) = trace S + trace T := by
-  have h := (hS.hasSum_trace (stdHilbertBasis 𝕜 E)).add (hT.hasSum_trace (stdHilbertBasis 𝕜 E))
-  simp only [← inner_add_right, ← add_apply] at h
-  exact h.tsum_eq
-
-/-- The trace is homogeneous (for every operator). -/
-theorem trace_smul (c : 𝕜) (T : E →L[𝕜] E) : trace (c • T) = c * trace T := by
-  simp only [trace, smul_apply, inner_smul_right]
-  exact tsum_mul_left
-
-/-- `trace (-T) = -trace T`. -/
-theorem trace_neg (T : E →L[𝕜] E) : trace (-T) = -trace T := by
-  simpa using trace_smul (-1) T
-
-/-- The trace is subtractive on trace-class operators. -/
-theorem trace_sub {S T : E →L[𝕜] E} (hS : IsTraceClass S) (hT : IsTraceClass T) :
-    trace (S - T) = trace S - trace T := by
-  rw [sub_eq_add_neg, trace_add hS hT.neg, trace_neg, sub_eq_add_neg]
-
-/-- `trace T† = conj (trace T)` (for every operator). -/
-theorem trace_adjoint (T : E →L[𝕜] E) :
-    trace (ContinuousLinearMap.adjoint T) = conj (trace T) := by
-  simp only [trace, adjoint_inner_right, RCLike.conj_tsum, inner_conj_symm]
-
 /-- Validation: `trace (a ⊗ b) = ⟪b, a⟫`. -/
 theorem trace_rankOne (x y : E) : trace (rankOne 𝕜 x y) = ⟪y, x⟫_𝕜 := by
   simp only [trace, rankOne_apply, inner_smul_right]
   exact (stdHilbertBasis 𝕜 E).tsum_inner_mul_inner y x
 
-/-- `trace (S T) = trace (T S)` for trace-class `T` and bounded `S`. -/
-theorem trace_comp_comm {T : E →L[𝕜] E} (hT : IsTraceClass T) (S : E →L[𝕜] E) :
-    trace (S ∘L T) = trace (T ∘L S) := by
-  obtain ⟨a, b, hs, h⟩ := hT
-  rw [trace_eq_tsum_of_hasSum (summable_comp_left hs S) (hasSum_comp_left h S),
-    trace_eq_tsum_of_hasSum (summable_comp_right hs S) (hasSum_comp_right h S)]
-  simp only [adjoint_inner_left]
-
 end Operations
 
 section Compact
-
-/-- Trace-class operators are compact: they are norm limits of the finite-rank partial sums of a
-nuclear representation. -/
-theorem IsTraceClass.isCompactOperator [CompleteSpace E] {T : E →L[𝕜] E} (hT : IsTraceClass T) :
-    IsCompactOperator T := by
-  obtain ⟨a, b, -, h⟩ := hT
-  refine isCompactOperator_of_tendsto h.tendsto_sum_nat (Eventually.of_forall fun N => ?_)
-  have hmem : ∀ n, rankOne 𝕜 (a n) (b n) ∈ compactOperator (RingHom.id 𝕜) E E := fun n => by
-    change IsCompactOperator (rankOne 𝕜 (a n) (b n))
-    rw [rankOne_def', coe_comp]
-    exact (isCompactOperator_of_locallyCompactSpace_dom (innerSL 𝕜 (b n))).clm_comp _
-  exact Submodule.sum_mem _ fun n _ => hmem n
 
 end Compact
 

@@ -5,23 +5,25 @@ public import DataDrivenControl.Examples.Delay.System
 /-!
 # The output operator of the delay system is unbounded on `X`
 
-Paper: `ex:intro-delay` ("a discrete output delay generally makes `C` unbounded on `X`"),
-stated as `¬ ∃ K, ∀ w, ‖C w‖ ≤ K ‖ιW w‖`.
+Paper: `ex:intro-delay` ("a discrete output delay generally makes `C` unbounded on `X`"), stated
+as `¬ ∃ K, ∀ w, ‖C w‖ ≤ K ‖ιW w‖`.
 
-* `Model.not_exists_bound_C`: if the output coefficients at some delay `θ ∈ (0, h]` do not cancel,
-  `∑_{h'ₖ = θ} Cₖ ≠ 0`, then `C` is not bounded by the `X`-norm on `W = D(A)`.
-* `Model.not_exists_bound_C_of_ne_zero`: the case of a single nonzero coefficient `C_{k₀}` at a
-  positive delay shared by no other coefficient.
+* `DelayOp.atom p θ = ∑ₖ μₖ({θ}) Pₖ`: the atom at the delay `θ` of the measure part of a delay
+  functional (the paper's `C({θ})` for the matrix measure representing `C`).
+* `Model.not_exists_bound_C`: if `θ ∈ (0, h]` and `C({θ}) + C({0}) M({θ}) ≠ 0`, then `C` is not
+  bounded by the `X`-norm on `W = D(A)`.  `Model.not_exists_bound_C_of_atom_zero`: if `C` has no
+  atom at `0`, every `θ ∈ (0, h]` with `C({θ}) ≠ 0` works, whatever the atoms of `M`.
 
 ## Proof notes
 
-Pick `e ∈ E` with `(∑_{h'ₖ = θ} Cₖ) e ≠ 0`.  For small `ε > 0` let `φ_ε` be a smooth bump
-(`ContDiffBump` centred at `h - θ ∈ [0, h)`, outer radius `ε`, equal to `1` at the centre), with
-`ε` below `θ` (so `φ_ε(h) = 0`) and below `|h'ₖ - θ|` for every `h'ₖ ≠ θ`, and `g_ε = φ_ε • e`.
-Then `g_ε ∈ H¹` (`HasWeakDeriv.of_hasDerivAt`), `v_ε = (g_ε(h), g_ε) = (0, g_ε) ∈ D(A)`
-(`Equation.mem_generator_domain_of_hasWeakDeriv`), `w_ε = toDom v_ε`, and by `Model.Cop_apply`
-`C w_ε = (∑_{h'ₖ = θ} Cₖ) e + C_d g_ε`, while `‖ιW w_ε‖ = ‖g_ε‖_{L²} ≤ √(2ε) ‖e‖ → 0`.  A bound
-`‖C w‖ ≤ K ‖ιW w‖` would give `‖(∑ Cₖ) e‖ ≤ (K + ‖C_d‖) √(2ε) ‖e‖` for all small `ε`.
+Pick `e` with `(C({θ}) + C({0}) M({θ})) e ≠ 0` and put `e' = M({θ}) e`.  Let `g_n = φ_n e + ψ_n e'`
+with smooth bumps `φ_n` at `h - θ` and `ψ_n` at `h` (`bump`, radii `1/(2(n+1)) < 1/(n+1)`), equal
+to `1` at their centres.  By dominated convergence `∫ φ_n(h - δ) dν(δ) → ν({θ})` and
+`∫ ψ_n(h - δ) dν(δ) → ν({0})` for every finite measure `ν` (`tendsto_integral_bump`), and
+`‖g_n‖_{L²} → 0` (`tendsto_window_bump`), so `P g_n → P({θ}) e + P({0}) e'` for every delay
+functional `P` (`DelayOp.tendsto_eval_bump`).  The state `w_n = (g_n(h) - M g_n, g_n) ∈ D(A)` has
+`g_n(h) = e'` for large `n` and `M g_n → M({θ}) e = e'` (`M` has no atom at `0`), so
+`‖w_n‖_X → 0`, while `C w_n = C g_n → C({θ}) e + C({0}) e' ≠ 0`.
 -/
 
 @[expose] public section
@@ -37,121 +39,190 @@ namespace DataDrivenControl
 
 namespace Delay
 
-namespace Model
-
-variable {E U Y : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
+variable {E F U Y : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
+  [NormedAddCommGroup F] [InnerProductSpace ℝ F] [CompleteSpace F]
   [NormedAddCommGroup U] [InnerProductSpace ℝ U] [CompleteSpace U]
   [NormedAddCommGroup Y] [InnerProductSpace ℝ Y] [CompleteSpace Y]
 
+/-! ### Concentrating bumps -/
+
+/-- A smooth bump at `c`, equal to `1` on `[c - 1/(2(n+1)), c + 1/(2(n+1))]` and vanishing
+outside `(c - 1/(n+1), c + 1/(n+1))`. -/
+def bump (c : ℝ) (n : ℕ) : ContDiffBump c :=
+  ⟨1 / (2 * (n + 1)), 1 / (n + 1), by positivity,
+    one_div_lt_one_div_of_lt (by positivity) (by linarith [(n.cast_nonneg : (0 : ℝ) ≤ n)])⟩
+
+/-- **Bumps concentrate**: `∫ φ_n(h - δ) dν(δ) → ν({h - c})` for the bumps `φ_n` at `c`
+(dominated convergence). -/
+theorem tendsto_integral_bump {ν : Measure ℝ} [IsFiniteMeasure ν] (h c : ℝ) :
+    Tendsto (fun n : ℕ => ∫ δ, bump c n (h - δ) ∂ν) atTop (𝓝 (ν.real {h - c})) := by
+  rw [← integral_indicator_one (measurableSet_singleton (h - c))]
+  refine tendsto_integral_of_dominated_convergence (fun _ => 1)
+    (fun n => ((bump c n).continuous.comp (continuous_const.sub continuous_id)).aestronglyMeasurable)
+    (integrable_const 1) (fun n => ae_of_all _ fun δ => ?_) (ae_of_all _ fun δ => ?_)
+  · rw [Real.norm_of_nonneg ((bump c n).nonneg' _)]
+    exact (bump c n).le_one
+  · by_cases hδ : δ = h - c
+    · subst hδ
+      simp only [indicator_of_mem (mem_singleton _), Pi.one_apply, sub_sub_cancel]
+      exact tendsto_const_nhds.congr fun n => ((bump c n).one_of_mem_closedBall
+        (Metric.mem_closedBall_self (bump c n).rIn_pos.le)).symm
+    · rw [indicator_of_notMem (by simpa using hδ)]
+      have hpos : 0 < |h - δ - c| := abs_pos.2 fun h0 => hδ (by linarith)
+      refine tendsto_const_nhds.congr' ?_
+      filter_upwards [tendsto_one_div_add_atTop_nhds_zero_nat.eventually
+        (eventually_le_nhds hpos)] with n hn
+      exact ((bump c n).zero_of_le_dist (by rw [Real.dist_eq]; exact hn)).symm
+
+/-- `‖φ_n e‖_{L²(0, T)} ≤ √(2/(n+1)) ‖e‖`. -/
+theorem eLpNorm_bump_smul_le (c : ℝ) (n : ℕ) (e : E) (T : ℝ) :
+    eLpNorm (fun σ => bump c n σ • e) 2 (μI T) ≤
+      ENNReal.ofReal (√(2 * (1 / ((n : ℝ) + 1))) * ‖e‖) := by
+  have hpt : ∀ σ, ‖bump c n σ • e‖ ≤
+      (Metric.ball c (1 / ((n : ℝ) + 1))).indicator (fun _ => ‖e‖) σ := by
+    intro σ
+    by_cases hσ : σ ∈ Metric.ball c (1 / ((n : ℝ) + 1))
+    · rw [indicator_of_mem hσ, norm_smul, Real.norm_of_nonneg ((bump c n).nonneg' σ)]
+      exact mul_le_of_le_one_left (norm_nonneg _) (bump c n).le_one
+    · rw [indicator_of_notMem hσ, (bump c n).zero_of_le_dist (by exact not_lt.1 hσ), zero_smul,
+        norm_zero]
+  calc eLpNorm (fun σ => bump c n σ • e) 2 (μI T)
+      ≤ eLpNorm ((Metric.ball c (1 / ((n : ℝ) + 1))).indicator fun _ => ‖e‖) 2 (μI T) :=
+        eLpNorm_mono_real (((bump c n).continuous.smul continuous_const).aestronglyMeasurable) hpt
+    _ ≤ ‖‖e‖‖ₑ * (μI T) (Metric.ball c (1 / ((n : ℝ) + 1))) ^ (1 / (2 : ℝ≥0∞).toReal) :=
+        eLpNorm_indicator_const_le ‖e‖ 2 measurableSet_ball.nullMeasurableSet
+    _ ≤ ‖‖e‖‖ₑ * (ENNReal.ofReal (2 * (1 / ((n : ℝ) + 1)))) ^ (1 / (2 : ℝ≥0∞).toReal) := by
+        gcongr
+        exact (Measure.restrict_apply_le _ _).trans (Real.volume_ball c _).le
+    _ = ENNReal.ofReal (√(2 * (1 / ((n : ℝ) + 1))) * ‖e‖) := by
+        rw [ENNReal.ofReal_mul (Real.sqrt_nonneg _), mul_comm, Real.sqrt_eq_rpow,
+          ← ENNReal.ofReal_rpow_of_nonneg (by positivity) (by norm_num),
+          ← ofReal_norm, norm_norm]
+        norm_num
+
+/-- The bumps `g_n = φ_n e + ψ_n e'` at `h - θ` and `h` tend to `0` in `L²(0, h)`. -/
+theorem tendsto_window_bump (h θ : ℝ) (e e' : E) :
+    Tendsto (fun n : ℕ => window h (fun σ => bump (h - θ) n σ • e + bump h n σ • e') 0) atTop
+      (𝓝 0) := by
+  have hc : ∀ (c : ℝ) (n : ℕ) (v : E), Continuous fun σ => bump c n σ • v := fun c n v =>
+    (bump c n).continuous.smul continuous_const
+  have hb : ∀ n : ℕ, ‖window h (fun σ => bump (h - θ) n σ • e + bump h n σ • e') 0‖ ≤
+      √(2 * (1 / ((n : ℝ) + 1))) * (‖e‖ + ‖e'‖) := fun n => by
+    rw [window_zero_eq_toLp (memLp_μI_of_continuousOn
+      (f := fun σ => bump (h - θ) n σ • e + bump h n σ • e')
+      ((hc (h - θ) n e).add (hc h n e')).continuousOn), Lp.norm_toLp]
+    refine ENNReal.toReal_le_of_le_ofReal (by positivity) ((eLpNorm_add_le one_le_two).trans ?_)
+    rw [mul_add, ENNReal.ofReal_add (by positivity) (by positivity)]
+    exact add_le_add (eLpNorm_bump_smul_le _ n e h) (eLpNorm_bump_smul_le _ n e' h)
+  have h0 : Tendsto (fun n : ℕ => 2 * (1 / ((n : ℝ) + 1))) atTop (𝓝 0) := by
+    simpa using (tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul 2
+  refine squeeze_zero_norm hb ?_
+  simpa using ((Real.continuous_sqrt.tendsto 0).comp h0).mul_const (‖e‖ + ‖e'‖)
+
+/-! ### Atoms of delay functionals -/
+
+namespace DelayOp
+
+variable {h : ℝ} (p : DelayOp h E F)
+
+/-- The **atom** `P({θ}) = ∑ₖ μₖ({θ}) Pₖ` of a delay functional at the delay `θ`. -/
+def atom (θ : ℝ) : E →L[ℝ] F := ∑ k, (p.μ k).real {θ} • p.P k
+
+/-- **Delay functionals on concentrating bumps**: for `g_n = φ_n e + ψ_n e'` with bumps `φ_n` at
+`h - θ` and `ψ_n` at `h`, `p g_n → P({θ}) e + P({0}) e'`. -/
+theorem tendsto_eval_bump (θ : ℝ) (e e' : E) :
+    Tendsto (fun n : ℕ => p.eval (fun σ => bump (h - θ) n σ • e + bump h n σ • e') 0) atTop
+      (𝓝 (p.atom θ e + p.atom 0 e')) := by
+  have hi : ∀ (k : Fin p.N) (c : ℝ) (n : ℕ) (v : E),
+      Integrable (fun δ => bump c n (h - δ) • v) (p.μ k) := fun k c n v =>
+    Integrable.of_bound (((bump c n).continuous.comp (continuous_const.sub continuous_id)).smul
+      continuous_const).aestronglyMeasurable ‖v‖ (ae_of_all _ fun δ => by
+        rw [norm_smul, Real.norm_of_nonneg ((bump c n).nonneg' _)]
+        exact mul_le_of_le_one_left (norm_nonneg _) (bump c n).le_one)
+  have hk : ∀ k, Tendsto (fun n : ℕ =>
+      mconv (p.μ k) h (fun σ => bump (h - θ) n σ • e + bump h n σ • e') 0) atTop
+      (𝓝 ((p.μ k).real {θ} • e + (p.μ k).real {0} • e')) := fun k => by
+    have h1 := (tendsto_integral_bump (ν := p.μ k) h (h - θ)).smul_const e
+    have h2 := (tendsto_integral_bump (ν := p.μ k) h h).smul_const e'
+    rw [sub_sub_cancel] at h1
+    rw [sub_self] at h2
+    refine (h1.add h2).congr fun n => ?_
+    simp only [mconv, add_zero]
+    rw [integral_add (hi k _ n e) (hi k _ n e'), integral_smul_const, integral_smul_const]
+  have e1 : p.atom θ e + p.atom 0 e' =
+      ∑ k, p.P k ((p.μ k).real {θ} • e + (p.μ k).real {0} • e') + p.D 0 := by
+    simp only [atom, sum_apply, smul_apply, map_add,
+      map_smul, map_zero, add_zero, Finset.sum_add_distrib]
+  rw [e1]
+  exact (tendsto_finsetSum Finset.univ fun k _ => ((p.P k).continuous.tendsto _).comp (hk k)).add
+    ((p.D.continuous.tendsto 0).comp (tendsto_window_bump h θ e e'))
+
+end DelayOp
+
+/-! ### Unboundedness of the output -/
+
+namespace Model
+
 variable {h : ℝ} (m : Model h E U Y)
 
-/-- **`C` is unbounded on `X`** (`ex:intro-delay`): if the output
-coefficients at some delay `θ ∈ (0, h]` do not cancel, `∑_{h'ₖ = θ} Cₖ ≠ 0`, then no `K` gives
-`‖C w‖ ≤ K ‖w‖_X` on `W = D(A)`. -/
+/-- **`C` is unbounded on `X`** (`ex:intro-delay`): if at some delay `θ ∈ (0, h]` the atoms do not
+cancel, `C({θ}) + C({0}) M({θ}) ≠ 0`, then no `K` gives `‖C w‖ ≤ K ‖w‖_X` on `W = D(A)`. -/
 theorem not_exists_bound_C {θ : ℝ} (hθ : θ ∈ Ioc 0 h)
-    (hC : ∑ k ∈ Finset.univ.filter (fun k => m.τC k = θ), m.Cp k ≠ 0) :
+    (hC : m.C.atom θ + m.C.atom 0 ∘L m.M.atom θ ≠ 0) :
     ¬ ∃ K : ℝ, ∀ w : m.S.Dom, ‖m.sys.C w‖ ≤ K * ‖m.sys.ιW w‖ := by
   rintro ⟨K, hK⟩
-  set Ch := ∑ k ∈ Finset.univ.filter (fun k => m.τC k = θ), m.Cp k with hCh
-  obtain ⟨e, he⟩ : ∃ e, Ch e ≠ 0 := by
+  obtain ⟨e, he⟩ : ∃ e, (m.C.atom θ + m.C.atom 0 ∘L m.M.atom θ) e ≠ 0 := by
     by_contra hne
     simp only [not_exists, not_not] at hne
     exact hC (ContinuousLinearMap.ext hne)
-  set c := h - θ with hc
-  have hev : ∀ᶠ ε in 𝓝[>] (0 : ℝ),
-      0 < ε ∧ ε < θ ∧ ∀ k, m.τC k ≠ θ → ε < |m.τC k - θ| := by
-    refine eventually_mem_nhdsWithin.and
-      (((eventually_lt_nhds hθ.1).filter_mono nhdsWithin_le_nhds).and ?_)
-    refine Filter.eventually_all.2 fun k => ?_
-    by_cases hk : m.τC k = θ
-    · exact Eventually.of_forall fun _ hk' => absurd hk hk'
-    · exact ((eventually_lt_nhds (abs_pos.2 (sub_ne_zero.2 hk))).filter_mono
-        nhdsWithin_le_nhds).mono fun ε hε _ => hε
-  have hbound : ∀ᶠ ε in 𝓝[>] (0 : ℝ), ‖Ch e‖ ≤ (|K| + ‖m.Cd‖) * (√(2 * ε) * ‖e‖) := by
-    filter_upwards [hev] with ε hε
-    obtain ⟨hε0, hεθ, hεk⟩ := hε
-    let φ : ContDiffBump c := ⟨ε / 2, ε, by linarith, by linarith⟩
-    have hφr : φ.rOut = ε := rfl
-    set g : ℝ → E := fun σ => φ σ • e with hgdef
-    have hgd : ∀ σ, HasDerivAt g (deriv φ σ • e) σ := fun σ =>
-      ((φ.contDiff (n := 1)).differentiable (by norm_num) σ).hasDerivAt.smul_const e
-    have hgc : Continuous fun σ => deriv φ σ • e :=
-      ((φ.contDiff (n := 2)).continuous_deriv (by norm_num)).smul continuous_const
-    have hg : HasWeakDeriv h g (fun σ => deriv φ σ • e) := HasWeakDeriv.of_hasDerivAt hgd hgc
-    have hv := m.mem_generator_domain_of_hasWeakDeriv hg
-    set w := m.S.toDom ⟨_, hv⟩ with hwdef
-    have hzero : ∀ σ, ε ≤ dist σ c → g σ = 0 := fun σ hσ => by
-      simp only [hgdef]
-      rw [φ.zero_of_le_dist (by rw [hφr]; exact hσ), zero_smul]
-    have hgh : g h = 0 := hzero h (by
-      rw [Real.dist_eq, hc, sub_sub_cancel, abs_of_pos hθ.1]
-      exact hεθ.le)
-    have hsum : ∑ k, m.Cp k (g (h - m.τC k)) = Ch e := by
-      rw [hCh, FunLike.coe_sum, Finset.sum_apply, Finset.sum_filter]
-      refine Finset.sum_congr rfl fun k _ => ?_
-      by_cases hk : m.τC k = θ
-      · simp only [hk, ↓reduceIte]
-        simp only [hgdef]
-        rw [φ.one_of_mem_closedBall (Metric.mem_closedBall_self φ.rIn_pos.le), one_smul]
-      · simp only [hk, ↓reduceIte]
-        rw [hzero _ (by
-          rw [Real.dist_eq, hc, sub_sub_sub_cancel_left, abs_sub_comm]
-          exact (hεk k hk).le), map_zero]
-    have hCw : m.sys.C w = Ch e + m.Cd (hg.memLp.toLp g) := by
-      rw [sys_C, m.Cop_apply w hg rfl hg.memLp.coeFn_toLp, hsum]
-    have hgn : ‖hg.memLp.toLp g‖ ≤ √(2 * ε) * ‖e‖ := by
-      rw [Lp.norm_toLp]
-      refine ENNReal.toReal_le_of_le_ofReal (by positivity) ?_
-      have hpt : ∀ σ, ‖g σ‖ ≤ (Metric.ball c ε).indicator (fun _ => ‖e‖) σ := by
-        intro σ
-        by_cases hσ : σ ∈ Metric.ball c ε
-        · rw [indicator_of_mem hσ, hgdef, norm_smul, Real.norm_of_nonneg (φ.nonneg' σ)]
-          exact mul_le_of_le_one_left (norm_nonneg _) φ.le_one
-        · rw [indicator_of_notMem hσ, hzero σ (not_lt.1 hσ), norm_zero]
-      calc eLpNorm g 2 (μI h)
-          ≤ eLpNorm ((Metric.ball c ε).indicator fun _ => ‖e‖) 2 (μI h) :=
-            eLpNorm_mono_real hg.memLp.aestronglyMeasurable hpt
-        _ ≤ ‖‖e‖‖ₑ * (μI h) (Metric.ball c ε) ^ (1 / (2 : ℝ≥0∞).toReal) :=
-            eLpNorm_indicator_const_le ‖e‖ 2 measurableSet_ball.nullMeasurableSet
-        _ ≤ ‖‖e‖‖ₑ * (ENNReal.ofReal (2 * ε)) ^ (1 / (2 : ℝ≥0∞).toReal) := by
-            gcongr
-            exact (Measure.restrict_apply_le _ _).trans (Real.volume_ball c ε).le
-        _ = ENNReal.ofReal (√(2 * ε) * ‖e‖) := by
-            rw [ENNReal.ofReal_mul (Real.sqrt_nonneg _), mul_comm, Real.sqrt_eq_rpow,
-              ← ENNReal.ofReal_rpow_of_nonneg (by positivity) (by norm_num),
-              ← ofReal_norm, norm_norm]
-            norm_num
-    have hnw : ‖m.sys.ιW w‖ = ‖hg.memLp.toLp g‖ := by
-      rw [show m.sys.ιW w = WithLp.toLp 2 (g h, hg.memLp.toLp g) from rfl, hgh,
-        WithLp.norm_toLp_snd]
-    have hK' : K * ‖m.sys.ιW w‖ ≤ |K| * (√(2 * ε) * ‖e‖) := by
-      rw [hnw]
-      exact (mul_le_mul_of_nonneg_right (le_abs_self K) (norm_nonneg _)).trans
-        (mul_le_mul_of_nonneg_left hgn (abs_nonneg K))
-    calc ‖Ch e‖ = ‖m.sys.C w - m.Cd (hg.memLp.toLp g)‖ := by rw [hCw, add_sub_cancel_right]
-      _ ≤ ‖m.sys.C w‖ + ‖m.Cd (hg.memLp.toLp g)‖ := norm_sub_le _ _
-      _ ≤ |K| * (√(2 * ε) * ‖e‖) + ‖m.Cd‖ * (√(2 * ε) * ‖e‖) :=
-          add_le_add ((hK w).trans hK') (m.Cd.le_opNorm_of_le hgn)
-      _ = (|K| + ‖m.Cd‖) * (√(2 * ε) * ‖e‖) := by ring
-  have hlim : Tendsto (fun ε : ℝ => (|K| + ‖m.Cd‖) * (√(2 * ε) * ‖e‖)) (𝓝[>] 0) (𝓝 0) := by
-    have h0 : Tendsto (fun ε : ℝ => √(2 * ε)) (𝓝 0) (𝓝 0) := by
-      have := (show Continuous fun ε : ℝ => √(2 * ε) by fun_prop).tendsto 0
-      rwa [mul_zero, Real.sqrt_zero] at this
-    simpa using ((h0.mono_left nhdsWithin_le_nhds).mul_const ‖e‖).const_mul (|K| + ‖m.Cd‖)
-  exact he (norm_le_zero_iff.1 (ge_of_tendsto hlim hbound))
+  set e' := m.M.atom θ e with he'
+  set g : ℕ → ℝ → E := fun n σ => bump (h - θ) n σ • e + bump h n σ • e' with hgdef
+  have hg : ∀ n, HasWeakDeriv h (g n)
+      fun σ => deriv (bump (h - θ) n) σ • e + deriv (bump h n) σ • e' := fun n => by
+    refine HasWeakDeriv.of_hasDerivAt (fun σ => ?_) ?_
+    · exact ((((bump (h - θ) n).contDiff (n := 1)).differentiable (by norm_num) σ).hasDerivAt.smul_const
+        e).add ((((bump h n).contDiff (n := 1)).differentiable (by norm_num) σ).hasDerivAt.smul_const e')
+    · exact ((((bump (h - θ) n).contDiff (n := 2)).continuous_deriv (by norm_num)).smul
+        continuous_const).add ((((bump h n).contDiff (n := 2)).continuous_deriv (by norm_num)).smul
+        continuous_const)
+  set w : ℕ → m.S.Dom := fun n =>
+    m.S.toDom ⟨_, m.toEquation.mem_generator_domain_of_hasWeakDeriv (hg n)⟩
+  have hCw : ∀ n, m.sys.C (w n) = m.C.eval (g n) 0 := fun n =>
+    m.Cop_apply_eval (w n) (hg n) (hg n).memLp.coeFn_toLp
+  have hιW : ∀ n, m.sys.ιW (w n) =
+      WithLp.toLp 2 (g n h - m.M.eval (g n) 0, (hg n).memLp.toLp (g n)) := fun _ => rfl
+  have hgh : ∀ᶠ n in atTop, g n h = e' := by
+    filter_upwards [tendsto_one_div_add_atTop_nhds_zero_nat.eventually
+      (eventually_le_nhds hθ.1)] with n hn
+    simp only [hgdef]
+    rw [(bump (h - θ) n).zero_of_le_dist (by
+        rw [Real.dist_eq, sub_sub_cancel, abs_of_pos hθ.1]; exact hn), zero_smul, zero_add,
+      (bump h n).one_of_mem_closedBall (Metric.mem_closedBall_self (bump h n).rIn_pos.le),
+      one_smul]
+  have hM : Tendsto (fun n => m.M.eval (g n) 0) atTop (𝓝 e') := by
+    have hM0 : m.M.atom 0 = 0 := by simp [DelayOp.atom, measureReal_def, m.M_noAtom]
+    simpa [hM0, ← he'] using m.M.tendsto_eval_bump θ e e'
+  have hX : Tendsto (fun n => ‖m.sys.ιW (w n)‖) atTop (𝓝 0) := by
+    refine squeeze_zero (g := fun n => ‖g n h - m.M.eval (g n) 0‖ + ‖(hg n).memLp.toLp (g n)‖)
+      (fun n => norm_nonneg _) (fun n => by rw [hιW n]; exact norm_toLp_le _ _) ?_
+    have h1 : Tendsto (fun n => g n h - m.M.eval (g n) 0) atTop (𝓝 0) := by
+      have := (tendsto_const_nhds.congr' (hgh.mono fun n hn => hn.symm)).sub hM
+      rwa [sub_self] at this
+    have h2 : Tendsto (fun n => (hg n).memLp.toLp (g n)) atTop (𝓝 0) :=
+      (tendsto_window_bump h θ e e').congr fun n => window_zero_eq_toLp (hg n).memLp
+    simpa using h1.norm.add h2.norm
+  have hle := le_of_tendsto_of_tendsto' (m.C.tendsto_eval_bump θ e e').norm (hX.const_mul K)
+    fun n => by rw [← hCw n]; exact hK (w n)
+  rw [mul_zero] at hle
+  exact he (by
+    rw [add_apply, ContinuousLinearMap.comp_apply]
+    exact norm_le_zero_iff.1 hle)
 
-/-- **`C` is unbounded on `X`** as soon as some output coefficient `C_{k₀} ≠ 0` sits at a positive
-delay `h'_{k₀} > 0` shared by no other coefficient (`ex:intro-delay`). -/
-theorem not_exists_bound_C_of_ne_zero (k₀ : Fin m.NC) (hk₀ : m.Cp k₀ ≠ 0) (hτ : 0 < m.τC k₀)
-    (hdist : ∀ k, m.τC k = m.τC k₀ → k = k₀) :
-    ¬ ∃ K : ℝ, ∀ w : m.S.Dom, ‖m.sys.C w‖ ≤ K * ‖m.sys.ιW w‖ := by
-  refine m.not_exists_bound_C ⟨hτ, (m.τC_mem k₀).2⟩ ?_
-  have e : Finset.univ.filter (fun k => m.τC k = m.τC k₀) = {k₀} := by
-    ext k
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton]
-    exact ⟨hdist k, fun hk => hk ▸ rfl⟩
-  rw [e, Finset.sum_singleton]
-  exact hk₀
+/-- **`C` is unbounded on `X` when `C` has no atom at `0`**: then any nonzero atom
+`C({θ}) ≠ 0` at a delay `θ ∈ (0, h]` makes `C` unbounded, whatever the atoms of `M`. -/
+theorem not_exists_bound_C_of_atom_zero {θ : ℝ} (hθ : θ ∈ Ioc 0 h) (h0 : m.C.atom 0 = 0)
+    (hC : m.C.atom θ ≠ 0) : ¬ ∃ K : ℝ, ∀ w : m.S.Dom, ‖m.sys.C w‖ ≤ K * ‖m.sys.ιW w‖ :=
+  m.not_exists_bound_C hθ (by rwa [h0, ContinuousLinearMap.zero_comp, add_zero])
 
 end Model
 

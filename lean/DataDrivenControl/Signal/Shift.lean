@@ -157,12 +157,6 @@ theorem window_add_of_memLp [NormedSpace ℝ E] {T s : ℝ} {f g : ℝ → E}
   rw [window_eq_toLp (f := f + g) (hf.add hg), window_eq_toLp hf, window_eq_toLp hg]
   exact MemLp.toLp_add hf hg
 
-/-- The window of a sum. -/
-theorem window_add [NormedSpace ℝ E] {T₁ T s : ℝ} {f g : ℝ → E} (hf : MemLp f 2 (μI T₁))
-    (hg : MemLp g 2 (μI T₁)) (hs : 0 ≤ s) (hsT : s + T ≤ T₁) :
-    window T (f + g) s = window T f s + window T g s :=
-  window_add_of_memLp (memLp_comp_add hf hs hsT) (memLp_comp_add hg hs hsT)
-
 /-- The window of a scalar multiple. -/
 theorem window_smul [NormedSpace ℝ E] (T : ℝ) (c : ℝ) (f : ℝ → E) (s : ℝ) :
     window T (c • f) s = c • window T f s := by
@@ -236,12 +230,6 @@ theorem window_sub_of_memLp [NormedSpace ℝ E] {T s : ℝ} {f g : ℝ → E}
     window T (f - g) s = window T f s - window T g s := by
   rw [window_eq_toLp (f := f - g) (hf.sub hg), window_eq_toLp hf, window_eq_toLp hg]
   exact MemLp.toLp_sub hf hg
-
-/-- The window of a difference. -/
-theorem window_sub [NormedSpace ℝ E] {T₁ T s : ℝ} {f g : ℝ → E} (hf : MemLp f 2 (μI T₁))
-    (hg : MemLp g 2 (μI T₁)) (hs : 0 ≤ s) (hsT : s + T ≤ T₁) :
-    window T (f - g) s = window T f s - window T g s :=
-  window_sub_of_memLp (memLp_comp_add hf hs hsT) (memLp_comp_add hg hs hsT)
 
 /-- Continuity of translation for continuous compactly supported signals (uniform
 continuity). -/
@@ -392,12 +380,6 @@ theorem pointSynth_congr_ae {T' : ℝ} {g g' : ℝ → G} (h : g =ᵐ[μI T'] g'
   · have hg' : ¬ MemLp g' 2 (μI T') := fun hg' => hg (hg'.ae_eq (h.mono fun _ hs => hs.symm))
     simp only [pointSynth, hg, hg', dite_false]
 
-/-- Operator norm bound for the point synthesis. -/
-theorem norm_pointSynth_le {T' : ℝ} {g : ℝ → G} (hg : MemLp g 2 (μI T')) :
-    ‖pointSynth T' g‖ ≤ (eLpNorm g 2 (μI T')).toReal := by
-  simp only [pointSynth, hg, dite_true]
-  exact LinearMap.mkContinuous_norm_le _ ENNReal.toReal_nonneg _
-
 /-- A bounded operator passes through the point synthesis (the Bochner-integral step of
 `eq:window-factorization`). -/
 theorem comp_pointSynth [CompleteSpace G] [CompleteSpace H] {T' : ℝ} {g : ℝ → G}
@@ -413,18 +395,6 @@ theorem comp_pointSynth [CompleteSpace G] [CompleteSpace H] {T' : ℝ} {g : ℝ 
 in `def:window-informative` and both components of `𝒴` in `eq:io-window-synthesis`. -/
 def shiftSynth [NormedSpace ℝ E] (T T' : ℝ) (f : ℝ → E) : L2 ℝ T' →L[ℝ] L2 E T :=
   pointSynth T' (window T f)
-
-/-- The shift synthesis as a Bochner integral in `L²(0, T; E)`. -/
-theorem shiftSynth_apply [NormedSpace ℝ E] [CompleteSpace E] {T T' : ℝ} {f : ℝ → E}
-    (hf : MemLp f 2 (μI (T + T'))) (φ : L2 ℝ T') :
-    shiftSynth T T' f φ = ∫ s in Ioc 0 T', φ s • window T f s :=
-  pointSynth_apply (memLp_window hf) φ
-
-/-- The shift synthesis only depends on the class of `f` in `L²(0, T + T'; E)`. -/
-theorem shiftSynth_congr_ae [NormedSpace ℝ E] {T T' : ℝ} {f g : ℝ → E}
-    (h : f =ᵐ[μI (T + T')] g) : shiftSynth T T' f = shiftSynth T T' g :=
-  pointSynth_congr_ae (ae_restrict_of_forall_mem measurableSet_Ioc fun _ hs =>
-    window_congr_ae h hs.1.le (by linarith [hs.2]))
 
 end Normed
 
@@ -475,24 +445,11 @@ theorem coeFn_adjoint_pointSynth {T' : ℝ} {g : ℝ → G} (hg : MemLp g 2 (μI
   rw [this]
   exact hm.coeFn_toLp
 
-/-- Kernel of the adjoint of the point synthesis. -/
-theorem adjoint_pointSynth_eq_zero_iff {T' : ℝ} {g : ℝ → G} (hg : MemLp g 2 (μI T')) (ξ : G) :
-    ((pointSynth T' g)†) ξ = 0 ↔ ∀ᵐ s ∂(μI T'), ⟪ξ, g s⟫_ℝ = 0 :=
-  Lp_eq_zero_iff_of_ae (coeFn_adjoint_pointSynth hg ξ)
-
 end Hilbert
 
 section HilbertE
 
 variable [InnerProductSpace ℝ E] [CompleteSpace E]
-
-/-- The inner product with a shift synthesis. -/
-theorem inner_shiftSynth {T T' : ℝ} {f : ℝ → E} (hf : MemLp f 2 (μI (T + T'))) (φ : L2 ℝ T')
-    (g : L2 E T) :
-    ⟪g, shiftSynth T T' f φ⟫_ℝ = ∫ s in Ioc 0 T', φ s * ∫ t in Ioc 0 T, ⟪g t, f (s + t)⟫_ℝ := by
-  rw [shiftSynth, inner_pointSynth (memLp_window hf)]
-  refine setIntegral_congr_fun measurableSet_Ioc fun s hs => ?_
-  simp only [inner_window hf hs.1.le (by linarith [hs.2] : s + T ≤ T + T')]
 
 /-- The adjoint of the shift synthesis is `g ↦ (s ↦ ∫₀ᵀ ⟪g t, f (s + t)⟫ dt)`. -/
 theorem coeFn_adjoint_shiftSynth {T T' : ℝ} {f : ℝ → E} (hf : MemLp f 2 (μI (T + T')))
@@ -591,21 +548,6 @@ omit [CompleteSpace U] [CompleteSpace Y] in
     (ioWindowSynth T T' u y φ).snd = shiftSynth T T' y φ :=
   rfl
 
-omit [CompleteSpace U] [CompleteSpace X] in
-/-- `𝒵` only depends on the classes of `ū` in `L²(0, T + T'; U)` and of `x̄` in
-`L²(0, T'; X)`. -/
-theorem windowSynth_congr_ae {u' : ℝ → U} {x' : ℝ → X} (hu : u =ᵐ[μI (T + T')] u')
-    (hx : x =ᵐ[μI T'] x') : windowSynth T T' u x = windowSynth T T' u' x' := by
-  unfold windowSynth
-  rw [shiftSynth_congr_ae hu, pointSynth_congr_ae hx]
-
-omit [CompleteSpace U] [CompleteSpace Y] in
-/-- `𝒴` only depends on the classes of `ū` and `ȳ` in `L²(0, T + T')`. -/
-theorem ioWindowSynth_congr_ae {u' : ℝ → U} {y' : ℝ → Y} (hu : u =ᵐ[μI (T + T')] u')
-    (hy : y =ᵐ[μI (T + T')] y') : ioWindowSynth T T' u y = ioWindowSynth T T' u' y' := by
-  unfold ioWindowSynth
-  rw [shiftSynth_congr_ae hu, shiftSynth_congr_ae hy]
-
 /-- `𝒵` is the point synthesis of the family of windows `s ↦ (ū(s + ·), x̄(s))`. -/
 theorem windowSynth_eq_pointSynth (hu : MemLp u 2 (μI (T + T'))) (hx : MemLp x 2 (μI T')) :
     windowSynth T T' u x = pointSynth T' (fun s => WithLp.toLp 2 (window T u s, x s)) := by
@@ -645,16 +587,6 @@ theorem ioWindowSynth_eq_integral (hu : MemLp u 2 (μI (T + T')))
     ioWindowSynth T T' u y φ = ∫ s in Ioc 0 T', φ s • WithLp.toLp 2 (window T u s, window T y s) := by
   rw [ioWindowSynth_eq_pointSynth hu hy,
     pointSynth_apply (memLp_pair (memLp_window hu) (memLp_window hy))]
-
-/-- The inner product with `𝒵 φ`. -/
-theorem inner_windowSynth (hu : MemLp u 2 (μI (T + T'))) (hx : MemLp x 2 (μI T'))
-    (φ : L2 ℝ T') (p : WithLp 2 (L2 U T × X)) :
-    ⟪p, windowSynth T T' u x φ⟫_ℝ =
-      ∫ s in Ioc 0 T', φ s * ((∫ t in Ioc 0 T, ⟪p.fst t, u (s + t)⟫_ℝ) + ⟪p.snd, x s⟫_ℝ) := by
-  rw [windowSynth_eq_pointSynth hu hx, inner_pointSynth (memLp_pair (memLp_window hu) hx)]
-  refine setIntegral_congr_fun measurableSet_Ioc fun s hs => ?_
-  simp only [WithLp.prod_inner_apply, WithLp.ofLp_fst, WithLp.ofLp_snd,
-    inner_window hu hs.1.le (by linarith [hs.2] : s + T ≤ T + T')]
 
 /-- The adjoint `𝒵†`: `(g, ξ) ↦ (s ↦ ∫₀ᵀ ⟪g t, ū (s + t)⟫ dt + ⟪ξ, x̄ s⟫)`. -/
 theorem coeFn_adjoint_windowSynth (hu : MemLp u 2 (μI (T + T'))) (hx : MemLp x 2 (μI T'))
@@ -697,51 +629,6 @@ theorem denseRange_shiftSynth_of_windowSynth (h : DenseRange (windowSynth T T' u
   rw [this]
   exact (Function.Surjective.denseRange fun a => ⟨WithLp.toLp 2 (a, 0), rfl⟩).comp h
     (WithLp.fstL 2 ℝ (L2 U T) X).continuous
-
-/-- The inner product with `𝒴 φ`. -/
-theorem inner_ioWindowSynth (hu : MemLp u 2 (μI (T + T'))) (hy : MemLp y 2 (μI (T + T')))
-    (φ : L2 ℝ T') (p : WithLp 2 (L2 U T × L2 Y T)) :
-    ⟪p, ioWindowSynth T T' u y φ⟫_ℝ =
-      ∫ s in Ioc 0 T', φ s *
-        ((∫ t in Ioc 0 T, ⟪p.fst t, u (s + t)⟫_ℝ) + ∫ t in Ioc 0 T, ⟪p.snd t, y (s + t)⟫_ℝ) := by
-  rw [ioWindowSynth_eq_pointSynth hu hy,
-    inner_pointSynth (memLp_pair (memLp_window hu) (memLp_window hy))]
-  refine setIntegral_congr_fun measurableSet_Ioc fun s hs => ?_
-  simp only [WithLp.prod_inner_apply, WithLp.ofLp_fst, WithLp.ofLp_snd,
-    inner_window hu hs.1.le (by linarith [hs.2] : s + T ≤ T + T'),
-    inner_window hy hs.1.le (by linarith [hs.2] : s + T ≤ T + T')]
-
-/-- The adjoint `𝒴†`: `(v, g) ↦ (s ↦ ∫₀ᵀ ⟪v t, ū (s + t)⟫ dt + ∫₀ᵀ ⟪g t, ȳ (s + t)⟫ dt)`. -/
-theorem coeFn_adjoint_ioWindowSynth (hu : MemLp u 2 (μI (T + T')))
-    (hy : MemLp y 2 (μI (T + T'))) (p : WithLp 2 (L2 U T × L2 Y T)) :
-    ⇑(((ioWindowSynth T T' u y)†) p) =ᵐ[μI T']
-      fun s => (∫ t in Ioc 0 T, ⟪p.fst t, u (s + t)⟫_ℝ) + ∫ t in Ioc 0 T, ⟪p.snd t, y (s + t)⟫_ℝ := by
-  rw [ioWindowSynth_eq_pointSynth hu hy]
-  filter_upwards [coeFn_adjoint_pointSynth (memLp_pair (memLp_window hu) (memLp_window hy)) p,
-    ae_restrict_mem measurableSet_Ioc] with s h1 h2
-  rw [h1]
-  simp only [WithLp.prod_inner_apply, WithLp.ofLp_fst, WithLp.ofLp_snd,
-    inner_window hu h2.1.le (by linarith [h2.2] : s + T ≤ T + T'),
-    inner_window hy h2.1.le (by linarith [h2.2] : s + T ≤ T + T')]
-
-/-- **Kernel of `𝒴†`**. -/
-theorem adjoint_ioWindowSynth_eq_zero_iff (hu : MemLp u 2 (μI (T + T')))
-    (hy : MemLp y 2 (μI (T + T'))) (p : WithLp 2 (L2 U T × L2 Y T)) :
-    ((ioWindowSynth T T' u y)†) p = 0 ↔
-      ∀ᵐ s ∂(μI T'),
-        (∫ t in Ioc 0 T, ⟪p.fst t, u (s + t)⟫_ℝ) + ∫ t in Ioc 0 T, ⟪p.snd t, y (s + t)⟫_ℝ = 0 :=
-  Lp_eq_zero_iff_of_ae (coeFn_adjoint_ioWindowSynth hu hy p)
-
-/-- `𝒴` has dense range iff `(ker 𝒴†) = 0`, written out. -/
-theorem denseRange_ioWindowSynth_iff (hu : MemLp u 2 (μI (T + T')))
-    (hy : MemLp y 2 (μI (T + T'))) :
-    DenseRange (ioWindowSynth T T' u y) ↔
-      ∀ p : WithLp 2 (L2 U T × L2 Y T),
-        (∀ᵐ s ∂(μI T'),
-          (∫ t in Ioc 0 T, ⟪p.fst t, u (s + t)⟫_ℝ) + ∫ t in Ioc 0 T, ⟪p.snd t, y (s + t)⟫_ℝ = 0) →
-          p = 0 := by
-  rw [denseRange_iff_adjoint_eq_zero]
-  exact forall_congr' fun p => by rw [adjoint_ioWindowSynth_eq_zero_iff hu hy p]
 
 /-- **Factorisation `𝒴 = 𝓜 𝒵`** (`eq:window-factorization`): if a bounded operator `𝓜` maps
 almost every state window `(ū(s + ·), x̄(s))` to the input–output window
@@ -826,12 +713,6 @@ theorem windowL_apply (hr : 0 ≤ r) (hrT : r + T ≤ T₁) (f : L2 E T₁) :
   refine window_congr (ae_restrict_of_forall_mem measurableSet_Ioc fun t ht => ?_)
   rw [indicator_of_mem (show r + t ∈ Ioc 0 T₁ from ⟨by linarith [ht.1], by linarith [ht.2]⟩)]
 
-/-- `windowL` on the class of a signal. -/
-theorem windowL_toLp {f : ℝ → E} (hf : MemLp f 2 (μI T₁)) (hr : 0 ≤ r) (hrT : r + T ≤ T₁) :
-    windowL T₁ T r (hf.toLp f) = window T f r := by
-  rw [windowL_apply hr hrT]
-  exact window_congr_ae hf.coeFn_toLp hr hrT
-
 /-- `windowL` is a contraction. -/
 theorem norm_windowL_le (T₁ T r : ℝ) : ‖windowL (E := E) T₁ T r‖ ≤ 1 :=
   LinearMap.mkContinuous_norm_le _ zero_le_one _
@@ -875,38 +756,15 @@ def extendL (T₁ T r : ℝ) : L2 E T →L[ℝ] L2 E T₁ := windowL T T₁ (-r)
 def concat (T₀ T : ℝ) (u : L2 E T₀) (v : L2 E T) : L2 E (T₀ + T) :=
   extendL (T₀ + T) T₀ 0 u + extendL (T₀ + T) T T₀ v
 
-/-- Concatenation as a bounded operator on `L²(0, T₀) × L²(0, T)`. -/
-def concatL (T₀ T : ℝ) : WithLp 2 (L2 E T₀ × L2 E T) →L[ℝ] L2 E (T₀ + T) :=
-  extendL (T₀ + T) T₀ 0 ∘L WithLp.fstL 2 ℝ (L2 E T₀) (L2 E T) +
-    extendL (T₀ + T) T T₀ ∘L WithLp.sndL 2 ℝ (L2 E T₀) (L2 E T)
-
-/-- `concatL` applied to a pair is `concat`. -/
-theorem concatL_apply (p : WithLp 2 (L2 E T₀ × L2 E T)) :
-    concatL T₀ T p = concat T₀ T p.fst p.snd :=
-  rfl
-
 /-- A representative of the restriction. -/
 theorem coeFn_restrictL (h : T₀ ≤ T₁) (f : L2 E T₁) : ⇑(restrictL T₁ T₀ f) =ᵐ[μI T₀] ⇑f := by
   filter_upwards [coeFn_windowL_of_le le_rfl (by rwa [zero_add]) f] with t ht
   exact ht.trans (by rw [zero_add])
 
-/-- Restriction of the class of a signal. -/
-theorem restrictL_toLp {f : ℝ → E} (hf : MemLp f 2 (μI T₁)) (h : T₀ ≤ T₁) :
-    restrictL T₁ T₀ (hf.toLp f) = (memLp_μI_of_le hf h).toLp f := by
-  refine Lp.ext ?_
-  filter_upwards [coeFn_restrictL h (hf.toLp f),
-    ae_restrict_of_ae_restrict_of_subset (Ioc_subset_Ioc_right h) hf.coeFn_toLp,
-    (memLp_μI_of_le hf h).coeFn_toLp] with t h1 h2 h3
-  rw [h1, h2, h3]
-
 /-- A representative of the tail. -/
 theorem coeFn_tailL (h₀ : 0 ≤ T₀) (f : L2 E (T₀ + T)) :
     ⇑(tailL T₀ T f) =ᵐ[μI T] fun t => f (T₀ + t) :=
   coeFn_windowL_of_le h₀ le_rfl f
-
-/-- The tail is the window at `T₀`. -/
-theorem tailL_apply (h₀ : 0 ≤ T₀) (f : L2 E (T₀ + T)) : tailL T₀ T f = window T (⇑f) T₀ :=
-  windowL_apply h₀ le_rfl f
 
 /-- A representative of the zero extension. -/
 theorem coeFn_extendL (v : L2 E T) :
@@ -919,16 +777,6 @@ theorem windowL_extendL (hr : 0 ≤ r) (hrT : r + T ≤ T₁) (v : L2 E T) :
     windowL T₁ T r (extendL T₁ T r v) = v := by
   change windowL T₁ T r (windowL T T₁ (-r) v) = v
   rw [windowL_windowL hr hrT, neg_add_cancel, windowL_self, ContinuousLinearMap.id_apply]
-
-/-- The zero extension into a longer window is an isometry. -/
-theorem norm_extendL (hr : 0 ≤ r) (hrT : r + T ≤ T₁) (v : L2 E T) :
-    ‖extendL T₁ T r v‖ = ‖v‖ := by
-  refine le_antisymm ?_ ?_
-  · exact (ContinuousLinearMap.le_opNorm _ _).trans
-      (mul_le_of_le_one_left (norm_nonneg _) (norm_windowL_le _ _ _))
-  · calc ‖v‖ = ‖windowL T₁ T r (extendL T₁ T r v)‖ := by rw [windowL_extendL hr hrT]
-      _ ≤ ‖extendL T₁ T r v‖ := (ContinuousLinearMap.le_opNorm _ _).trans
-          (mul_le_of_le_one_left (norm_nonneg _) (norm_windowL_le _ _ _))
 
 /-- A sub-window lying outside `(0, T₁)` vanishes. -/
 theorem windowL_eq_zero (h : ∀ t ∈ Ioc 0 T, r + t ∉ Ioc 0 T₁) (f : L2 E T₁) :
@@ -952,17 +800,6 @@ theorem coeFn_concat (u : L2 E T₀) (v : L2 E T) :
   · rw [indicator_of_notMem (show t ∉ Ioc 0 T₀ from fun h => ht h.2),
       indicator_of_mem (show t - T₀ ∈ Ioc 0 T from ⟨by linarith, by linarith [h4.2]⟩),
       zero_add]
-
-/-- Concatenation is additive. -/
-theorem concat_add (u u' : L2 E T₀) (v v' : L2 E T) :
-    concat T₀ T (u + u') (v + v') = concat T₀ T u v + concat T₀ T u' v' := by
-  simp only [concat, map_add]
-  abel
-
-/-- Concatenation is homogeneous. -/
-theorem concat_smul (c : ℝ) (u : L2 E T₀) (v : L2 E T) :
-    concat T₀ T (c • u) (c • v) = c • concat T₀ T u v := by
-  simp only [concat, map_smul, smul_add]
 
 /-- The head of a concatenation. -/
 @[simp] theorem restrictL_concat (h : 0 ≤ T) (u : L2 E T₀) (v : L2 E T) :
@@ -1009,16 +846,6 @@ theorem concat_smul (c : ℝ) (u : L2 E T₀) (v : L2 E T) :
   · exact h2 ht
   · exact h3 (not_le.1 ht)
 
-/-- Characterisation of a concatenation by its head and tail (the bijection `v ↦ v (T₀ + ·)` of
-`app:lqr-data-io`). -/
-theorem eq_concat_iff (h₀ : 0 ≤ T₀) (h : 0 ≤ T) {w : L2 E (T₀ + T)} {u : L2 E T₀}
-    {v : L2 E T} : w = concat T₀ T u v ↔ restrictL (T₀ + T) T₀ w = u ∧ tailL T₀ T w = v := by
-  constructor
-  · rintro rfl
-    exact ⟨restrictL_concat h u v, tailL_concat h₀ u v⟩
-  · rintro ⟨rfl, rfl⟩
-    exact (concat_restrictL_tailL h₀ h w).symm
-
 section Hilbert
 
 variable {F : Type*} [NormedAddCommGroup F] [InnerProductSpace ℝ F] [CompleteSpace F]
@@ -1050,21 +877,6 @@ theorem adjoint_windowL (T₁ T r : ℝ) : ((windowL (E := F) T₁ T r)†) = ex
         filter_upwards [coeFn_windowL (T := T) (r := r) f, ae_restrict_mem measurableSet_Ioc]
           with t h1 h2
         rw [h1, indicator_of_mem h2]
-
-/-- Concatenation is orthogonal. -/
-theorem inner_concat (h₀ : 0 ≤ T₀) (h : 0 ≤ T) (u u' : L2 F T₀) (v v' : L2 F T) :
-    ⟪concat T₀ T u v, concat T₀ T u' v'⟫_ℝ = ⟪u, u'⟫_ℝ + ⟪v, v'⟫_ℝ := by
-  have e1 : extendL (T₀ + T) T₀ 0 = (restrictL (E := F) (T₀ + T) T₀)† :=
-    (adjoint_windowL _ _ _).symm
-  have e2 : extendL (T₀ + T) T T₀ = (tailL (E := F) T₀ T)† := (adjoint_windowL _ _ _).symm
-  rw [concat, inner_add_left, e1, e2, ContinuousLinearMap.adjoint_inner_left,
-    ContinuousLinearMap.adjoint_inner_left, restrictL_concat h, tailL_concat h₀]
-
-/-- Concatenation is an isometry onto `L²(0, T₀ + T)` (Pythagoras). -/
-theorem norm_concat_sq (h₀ : 0 ≤ T₀) (h : 0 ≤ T) (u : L2 F T₀) (v : L2 F T) :
-    ‖concat T₀ T u v‖ ^ 2 = ‖u‖ ^ 2 + ‖v‖ ^ 2 := by
-  rw [← real_inner_self_eq_norm_sq, ← real_inner_self_eq_norm_sq, ← real_inner_self_eq_norm_sq,
-    inner_concat h₀ h]
 
 end Hilbert
 

@@ -67,7 +67,6 @@ open scoped InnerProductSpace
 
 noncomputable section
 
-set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
 namespace DataDrivenControl
